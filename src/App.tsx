@@ -64,7 +64,6 @@ const DEFAULT_SETTINGS: AppSettings = {
 };
 
 export default function App() {
-
   // Persistence state loaders
   const [chats, setChats] = useState<ChatSession[]>(() => {
     try {
@@ -179,7 +178,7 @@ export default function App() {
   // ---- Trash + loading state ----
   const [trashChats, setTrashChats] = useState<ChatSession[]>([]);
   const [trashLoading, setTrashLoading] = useState(false);
-  const [chatsLoading, setChatsLoading] = useState(false);
+  const [chatsLoading, setChatsLoading] = useState<boolean>(() => !!getAuthToken());
   const [loadingMessageIds, setLoadingMessageIds] = useState<Record<string, boolean>>({});
 
   // Delete confirmation toast (bottom of screen)
@@ -373,7 +372,35 @@ export default function App() {
     }
   }, [chats, currentUser]);
 
-  // Guest safety-net sync
+  // Auto-save logged-in user's chats to the DB ~0.8s after streaming stops.
+  useEffect(() => {
+    if (isGuestUser(currentUser) || !getAuthToken() || isStreaming) return;
+    const timer = setTimeout(async () => {
+      const ok = await syncPendingChats();
+      if (!ok) resetToGuest(); // 401: session expired
+    }, 800);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [chats, isStreaming, currentUser]);
+
+  // Flush pending saves immediately when the tab goes hidden / closed.
+  useEffect(() => {
+    const flush = () => {
+      if (document.visibilityState === 'hidden' && getAuthToken() && !isGuestUser(currentUser)) {
+        syncPendingChats();
+      }
+    };
+    document.addEventListener('visibilitychange', flush);
+    window.addEventListener('pagehide', flush);
+    return () => {
+      document.removeEventListener('visibilitychange', flush);
+      window.removeEventListener('pagehide', flush);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentUser]);
+
+  // SECURITY: A guest's normal chats live only in the current tab. In the background,
+  // only a 30-day safety-net copy is pushed to the server (ephemeral_chats table).
   useEffect(() => {
     if (!isGuestUser(currentUser)) return;
     const timer = setTimeout(() => {
@@ -385,7 +412,8 @@ export default function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [chats, currentUser]);
 
-  // Temp Chat safety-net sync
+  // SECURITY: Temp Chats (guest or logged-in) are never permanently stored and never migrated
+  // into the user's account. Only a 30-day safety-net copy is pushed.
   useEffect(() => {
     if (!isTempChatActive || tempChatMessages.length === 0) return;
     const timer = setTimeout(() => {
@@ -639,6 +667,9 @@ export default function App() {
         setTimeout(() => setDeleteToast(null), 5000);
       } catch (err) {
         console.error('Chat delete sync failed', err);
+        // If server delete failed, put the chat back so it doesn't disappear silently.
+        if (target) setChats((prev) => [target, ...prev].sort((a, b) => b.updatedAt - a.updatedAt));
+        alert('Could not delete the chat. Please try again.');
       }
     }
   };
@@ -677,7 +708,25 @@ export default function App() {
     sessionStorage.removeItem(STORAGE_KEY_CHATS);
   };
 
+  const syncLockRef = useRef<Promise<boolean> | null>(null);
+
   const syncPendingChats = async (): Promise<boolean> => {
+    // If a save is already in flight, wait for it to finish, then run with the latest changes.
+    if (syncLockRef.current) {
+      try {
+        await syncLockRef.current;
+      } catch {}
+    }
+    const run = runSyncPendingChats();
+    syncLockRef.current = run;
+    try {
+      return await run;
+    } finally {
+      if (syncLockRef.current === run) syncLockRef.current = null;
+    }
+  };
+
+  const runSyncPendingChats = async (): Promise<boolean> => {
     if (!getAuthToken()) return true;
     for (const chat of chatsRef.current) {
       if (chat.isTemp) continue;
@@ -731,6 +780,8 @@ export default function App() {
     setLoadingMessageIds((prev) => ({ ...prev, [chatId]: true }));
     try {
       const { chat: fullChat } = await fetchServerChatById(getApiUrl, chatId);
+      // Mark as already-synced so we don't re-save an unchanged chat right after loading.
+      syncedRef.current.set(chatId, chatSignature({ ...existing, messages: fullChat.messages }));
       setChats((prev) =>
         prev.map((c) => (c.id === chatId ? { ...c, messages: fullChat.messages } : c))
       );
@@ -767,7 +818,6 @@ export default function App() {
   const handleRestoreChat = async (chatId: string) => {
     try {
       await restoreServerChat(getApiUrl, chatId);
-      // Remove from trash view, add back to active chats
       setTrashChats((prev) => prev.filter((c) => c.id !== chatId));
       await loadServerChats();
     } catch (e: any) {
@@ -791,6 +841,7 @@ export default function App() {
       alert(e?.message || 'Could not delete this chat.');
     }
   };
+
   // Whenever the active chat changes, lazily load its messages if needed.
   useEffect(() => {
     if (!activeChatId || isTempChatActive) return;
@@ -798,6 +849,44 @@ export default function App() {
     loadChatMessages(activeChatId);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeChatId, isTempChatActive]);
+
+  // ---- BOOT RESTORE ----
+  // On app open (refresh / reopening), if a saved auth token exists, re-fetch the
+  // user account + subscription + full chat list so returning users see their data.
+  useEffect(() => {
+    if (!getAuthToken() || isGuestUser(currentUser)) {
+      setChatsLoading(false);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      try {
+        const { user: fresh } = await fetchMe(getApiUrl);
+        if (cancelled) return;
+        const serverUser: any = fresh;
+        setCurrentUser(fresh);
+        setSettings((prev) => ({
+          ...prev,
+          subscriptionPlan: serverUser.subscriptionPlan || 'free',
+          ownedPlans: Array.isArray(serverUser.ownedPlans) ? serverUser.ownedPlans : [],
+          planExpiries:
+            serverUser.planExpiries && typeof serverUser.planExpiries === 'object' ? serverUser.planExpiries : {},
+          subscriptionStartedAt: serverUser.subscriptionStartedAt,
+          subscriptionExpiresAt: serverUser.subscriptionExpiresAt,
+          lastPaymentId: serverUser.lastPaymentId,
+        }));
+        await loadServerChats();
+      } catch (e) {
+        if (e instanceof ApiError && e.status === 401) resetToGuest(); // token expired
+        else console.error('Session restore failed', e); // network error: don't log out
+        setChatsLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleLogout = async () => {
     if (isGuestUser(currentUser)) return;
@@ -841,6 +930,8 @@ export default function App() {
       localStorage.setItem(STORAGE_KEY_USER, JSON.stringify(user));
     } catch (e) {}
     if (!isGuestUser(user)) {
+      // Pull the latest user record (including subscription) from the server, so
+      // plans the user bought previously reappear after logout/login.
       try {
         const { user: fresh } = await fetchMe(getApiUrl);
         const serverUser: any = fresh;
@@ -866,6 +957,8 @@ export default function App() {
     }
   };
 
+  // Sharing a chat requires login/signup for guests. After they sign in, the same chat
+  // is shared automatically.
   const handleShareChat = async () => {
     if (isTempChatActive || !activeChatId) return;
     if (isGuestUser(currentUser)) {
@@ -917,7 +1010,7 @@ export default function App() {
     setIsStreaming(false);
   };
 
-  // Main streaming request
+  // Main streaming request to the Llama REST API
   const handleSendMessage = async (
     text: string,
     options?: { editedMessageId?: string; contextText?: string; contextMessageId?: string }
