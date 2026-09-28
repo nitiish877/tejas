@@ -842,8 +842,8 @@ export const ChatArea: React.FC<ChatAreaProps> = ({
                       </div>
                     )}
 
-                    {isUser && !isEditingThis && !isStreaming && (
-                      <div className="flex items-center justify-end gap-1 mt-1 mr-1 text-zinc-400 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity">
+                                       {isUser && !isEditingThis && !isStreaming && (
+                      <div className="flex items-center justify-end gap-1 mt-1 mr-1 text-zinc-400">
                         <button
                           type="button"
                           onClick={() => handleStartEdit(msg)}
