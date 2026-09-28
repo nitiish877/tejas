@@ -599,12 +599,6 @@ export default function App() {
     }
   }, [isDark]);
 
-  // Set the default active chat if none is selected
-  useEffect(() => {
-    if (!isTempChatActive && !activeChatId && chats.length > 0) {
-      setActiveChatId(chats[0].id);
-    }
-  }, [chats, activeChatId, isTempChatActive]);
 
   // Get the currently active messages
   const currentChat = chats.find((c) => c.id === activeChatId);
