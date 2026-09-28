@@ -1,4 +1,4 @@
-import { ChatSession, UserProfile, SubscriptionPlanType } from '../types';
+import { ChatSession, Message, UserProfile, SubscriptionPlanType } from '../types';
 
 const TOKEN_KEY = 'tejas_auth_token_v1';
 const GUEST_ID_KEY = 'tejas_guest_id_v1';
@@ -142,6 +142,39 @@ export const saveServerChat = (getUrl: UrlBuilder, chat: ChatSession) =>
     },
     true
   );
+
+// Sirf NAYE messages server ki chat me jodo (poori chat dobara nahi bhejni padti).
+export const appendServerMessages = (
+  getUrl: UrlBuilder,
+  chat: ChatSession,
+  baseCount: number,
+  messages: Message[]
+) =>
+  request<{ ok: boolean; count?: number; skipped?: string }>(
+    getUrl,
+    `/api/chats/${encodeURIComponent(chat.id)}/append`,
+    {
+      method: 'POST',
+      body: JSON.stringify({
+        baseCount,
+        messages,
+        title: chat.title,
+        isPinned: !!chat.isPinned,
+        createdAt: chat.createdAt,
+        updatedAt: chat.updatedAt,
+      }),
+    },
+    true
+  );
+
+// Server pe jo messages pehle se save hain unka halka "fingerprint" (id/length/status).
+// Isse pata chalta hai ki purane messages badle (regenerate) ya sirf naye jude.
+export interface ChatSyncState {
+  fp: string[];
+  meta: string;
+}
+export const messageFingerprint = (m: Message): string => `${m.id}:${m.role}:${m.content.length}:${m.status || ''}`;
+export const chatMeta = (c: ChatSession): string => `${c.isPinned ? 1 : 0}|${c.title}`;
 
 // Move chat to trash (soft delete). Share link is revoked server-side.
 export const deleteServerChat = (getUrl: UrlBuilder, id: string) =>

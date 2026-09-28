@@ -18,7 +18,9 @@ import { playNotificationChime } from './utils/audio';
 import { AlertTriangle, Trash2 } from 'lucide-react';
 import {
   ApiError,
-  chatSignature,
+  chatMeta,
+  messageFingerprint,
+  type ChatSyncState,
   clearAuthToken,
   createShareLink,
   deleteShareLink,
@@ -34,11 +36,11 @@ import {
   restoreServerChat,
   saveEphemeralChat,
   savePaymentRecord,
-  saveServerChat,
   saveSubscriptionToServer,
   updateMyName,
 } from './utils/api';
 import { copyText } from './utils/clipboard';
+import { syncChatsToServer } from './utils/chatSync';
 
 const STORAGE_KEY_CHATS = 'llama_chatbot_sessions_v1';
 const STORAGE_KEY_USER = 'llama_chatbot_user_v1';
@@ -652,6 +654,7 @@ export default function App() {
 
     // Optimistically remove from the active list
     syncedRef.current.delete(id);
+    unloadedRef.current.delete(id);
     setChats((prev) => prev.filter((c) => c.id !== id));
     if (activeChatId === id) {
       const remaining = chats.filter((c) => c.id !== id);
@@ -682,13 +685,18 @@ export default function App() {
   };
 
   // ---- Server (DB) chat sync ----
-  const syncedRef = useRef<Map<string, string>>(new Map());
+  const syncedRef = useRef<Map<string, ChatSyncState>>(new Map());
+  // Chats whose metadata came from the server but whose messages haven't been fetched yet.
+  // These must NOT be saved until the user opens them (otherwise we'd overwrite full
+  // server messages with an empty array).
+  const unloadedRef = useRef<Set<string>>(new Set());
   const chatsRef = useRef<ChatSession[]>(chats);
   chatsRef.current = chats;
 
   const resetToGuest = () => {
     clearAuthToken();
     syncedRef.current = new Map();
+    unloadedRef.current = new Set();
     setChats([]);
     setActiveChatId(null);
     setIsTempChatActive(false);
@@ -728,20 +736,7 @@ export default function App() {
 
   const runSyncPendingChats = async (): Promise<boolean> => {
     if (!getAuthToken()) return true;
-    for (const chat of chatsRef.current) {
-      if (chat.isTemp) continue;
-      if (chat.messages.length === 0) continue;
-      const sig = chatSignature(chat);
-      if (syncedRef.current.get(chat.id) === sig) continue;
-      try {
-        await saveServerChat(getApiUrl, chat);
-        syncedRef.current.set(chat.id, sig);
-      } catch (e) {
-        if (e instanceof ApiError && e.status === 401) return false;
-        console.error('Chat sync failed', e);
-      }
-    }
-    return true;
+    return syncChatsToServer(chatsRef.current, syncedRef.current, unloadedRef.current, getApiUrl);
   };
 
   // Load only the chat LIST (metadata) — messages load on demand.
@@ -754,11 +749,18 @@ export default function App() {
         for (const sc of serverChats) {
           const local = map.get(sc.id);
           if (!local || sc.updatedAt >= local.updatedAt) {
+            const hasLocalMsgs = !!local && local.messages.length > 0;
             map.set(sc.id, {
               ...sc,
-              messages: local && local.messages.length > 0 ? local.messages : sc.messages,
+              messages: hasLocalMsgs ? local!.messages : sc.messages,
             });
-            syncedRef.current.set(sc.id, chatSignature(sc));
+            if (!hasLocalMsgs) {
+              // Server metadata arrived, but messages weren't fetched. They'll load on
+              // open — until then, don't auto-save this chat (we'd wipe server messages).
+              if ((sc.messageCount || 0) > 0) unloadedRef.current.add(sc.id);
+              else unloadedRef.current.delete(sc.id);
+              syncedRef.current.set(sc.id, { fp: [], meta: chatMeta(sc) });
+            }
           }
         }
         return Array.from(map.values()).sort((a, b) => b.updatedAt - a.updatedAt);
@@ -780,10 +782,15 @@ export default function App() {
     setLoadingMessageIds((prev) => ({ ...prev, [chatId]: true }));
     try {
       const { chat: fullChat } = await fetchServerChatById(getApiUrl, chatId);
-      // Mark as already-synced so we don't re-save an unchanged chat right after loading.
-      syncedRef.current.set(chatId, chatSignature({ ...existing, messages: fullChat.messages }));
+      // Now the server's messages are local: mark them "already saved" and allow saves.
+      syncedRef.current.set(chatId, {
+        fp: fullChat.messages.map(messageFingerprint),
+        meta: chatMeta(fullChat),
+      });
+      unloadedRef.current.delete(chatId);
       setChats((prev) =>
-        prev.map((c) => (c.id === chatId ? { ...c, messages: fullChat.messages } : c))
+        // If the user typed new messages while loading, keep them after the server ones.
+        prev.map((c) => (c.id === chatId ? { ...c, messages: [...fullChat.messages, ...c.messages] } : c))
       );
     } catch (e) {
       console.error('Failed to load chat messages', e);
