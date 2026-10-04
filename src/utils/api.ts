@@ -314,21 +314,50 @@ export interface ImageResult {
   seed: number;
 }
 
-export const generateImage = (
+// The /api/image endpoint returns raw image bytes (not JSON). We fetch it as a blob
+// and create an object URL the app can display via <img src="...">.
+export const generateImage = async (
   getUrl: UrlBuilder,
   prompt: string,
   opts?: { width?: number; height?: number }
-) =>
-  request<ImageResult>(
-    getUrl,
-    '/api/image',
-    {
+): Promise<ImageResult> => {
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  const token = getAuthToken();
+  if (token) headers.Authorization = `Bearer ${token}`;
+
+  let res: Response;
+  try {
+    res = await fetch(getUrl('/api/image'), {
       method: 'POST',
+      headers,
       body: JSON.stringify({
         prompt,
         width: opts?.width,
         height: opts?.height,
       }),
-    },
-    true
-  );
+    });
+  } catch {
+    throw new ApiError('Could not reach the server. Check your internet or backend URL.', 0);
+  }
+
+  if (!res.ok) {
+    let msg = `Image generation failed (${res.status})`;
+    try {
+      const data = await res.json();
+      if (data?.error) msg = data.error;
+    } catch {}
+    throw new ApiError(msg, res.status);
+  }
+
+  const blob = await res.blob();
+  const objectUrl = URL.createObjectURL(blob);
+
+  return {
+    ok: true,
+    imageUrl: objectUrl,
+    prompt,
+    width: opts?.width || 1024,
+    height: opts?.height || 1024,
+    seed: 0,
+  };
+};

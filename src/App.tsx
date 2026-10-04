@@ -60,7 +60,7 @@ const DEFAULT_SETTINGS: AppSettings = {
   customHfToken: '',
   customBackendUrl: '',
   systemPrompt: 'You are Tejas, an intelligent, fast, and polite AI assistant. Always match the response length directly to the user\'s query: keep simple questions concise and direct (1-3 sentences), and provide structured explanations only for complex or coding queries.',
-    selectedModel: 'Qwen/Qwen2.5-1.5B-Instruct',
+  selectedModel: 'Qwen/Qwen2.5-1.5B-Instruct',
   subscriptionPlan: 'free',
   ownedPlans: [],
   planExpiries: {},
@@ -604,7 +604,6 @@ export default function App() {
     }
   }, [isDark]);
 
-
   // Get the currently active messages
   const currentChat = chats.find((c) => c.id === activeChatId);
   const activeMessages: Message[] = isTempChatActive
@@ -651,7 +650,6 @@ export default function App() {
     const target = chats.find((c) => c.id === id);
     const title = target?.title || 'Chat';
 
-    // Optimistically remove from the active list
     syncedRef.current.delete(id);
     unloadedRef.current.delete(id);
     setChats((prev) => prev.filter((c) => c.id !== id));
@@ -660,7 +658,6 @@ export default function App() {
       setActiveChatId(remaining.length > 0 ? remaining[0].id : null);
     }
 
-    // Server: move to trash (also revokes share link)
     if (getAuthToken() && !isGuestUser(currentUser)) {
       try {
         const res = await deleteServerChat(getApiUrl, id);
@@ -669,7 +666,6 @@ export default function App() {
         setTimeout(() => setDeleteToast(null), 5000);
       } catch (err) {
         console.error('Chat delete sync failed', err);
-        // If server delete failed, put the chat back so it doesn't disappear silently.
         if (target) setChats((prev) => [target, ...prev].sort((a, b) => b.updatedAt - a.updatedAt));
         alert('Could not delete the chat. Please try again.');
       }
@@ -685,9 +681,6 @@ export default function App() {
 
   // ---- Server (DB) chat sync ----
   const syncedRef = useRef<Map<string, ChatSyncState>>(new Map());
-  // Chats whose metadata came from the server but whose messages haven't been fetched yet.
-  // These must NOT be saved until the user opens them (otherwise we'd overwrite full
-  // server messages with an empty array).
   const unloadedRef = useRef<Set<string>>(new Set());
   const chatsRef = useRef<ChatSession[]>(chats);
   chatsRef.current = chats;
@@ -702,7 +695,7 @@ export default function App() {
     setCurrentUser(DEFAULT_USER);
     setSettings((prev) => ({
       ...prev,
-      selectedModel: 'meta-llama/Llama-3.2-1B-Instruct',
+      selectedModel: 'Qwen/Qwen2.5-1.5B-Instruct',
       subscriptionPlan: 'free',
       subscriptionExpiresAt: undefined,
       subscriptionStartedAt: undefined,
@@ -718,7 +711,6 @@ export default function App() {
   const syncLockRef = useRef<Promise<boolean> | null>(null);
 
   const syncPendingChats = async (): Promise<boolean> => {
-    // If a save is already in flight, wait for it to finish, then run with the latest changes.
     if (syncLockRef.current) {
       try {
         await syncLockRef.current;
@@ -754,8 +746,6 @@ export default function App() {
               messages: hasLocalMsgs ? local!.messages : sc.messages,
             });
             if (!hasLocalMsgs) {
-              // Server metadata arrived, but messages weren't fetched. They'll load on
-              // open — until then, don't auto-save this chat (we'd wipe server messages).
               if ((sc.messageCount || 0) > 0) unloadedRef.current.add(sc.id);
               else unloadedRef.current.delete(sc.id);
               syncedRef.current.set(sc.id, { fp: [], meta: chatMeta(sc) });
@@ -781,14 +771,12 @@ export default function App() {
     setLoadingMessageIds((prev) => ({ ...prev, [chatId]: true }));
     try {
       const { chat: fullChat } = await fetchServerChatById(getApiUrl, chatId);
-      // Now the server's messages are local: mark them "already saved" and allow saves.
       syncedRef.current.set(chatId, {
         fp: fullChat.messages.map(messageFingerprint),
         meta: chatMeta(fullChat),
       });
       unloadedRef.current.delete(chatId);
       setChats((prev) =>
-        // If the user typed new messages while loading, keep them after the server ones.
         prev.map((c) => (c.id === chatId ? { ...c, messages: [...fullChat.messages, ...c.messages] } : c))
       );
     } catch (e) {
@@ -883,8 +871,8 @@ export default function App() {
         }));
         await loadServerChats();
       } catch (e) {
-        if (e instanceof ApiError && e.status === 401) resetToGuest(); // token expired
-        else console.error('Session restore failed', e); // network error: don't log out
+        if (e instanceof ApiError && e.status === 401) resetToGuest();
+        else console.error('Session restore failed', e);
         setChatsLoading(false);
       }
     })();
@@ -936,8 +924,6 @@ export default function App() {
       localStorage.setItem(STORAGE_KEY_USER, JSON.stringify(user));
     } catch (e) {}
     if (!isGuestUser(user)) {
-      // Pull the latest user record (including subscription) from the server, so
-      // plans the user bought previously reappear after logout/login.
       try {
         const { user: fresh } = await fetchMe(getApiUrl);
         const serverUser: any = fresh;
@@ -963,8 +949,6 @@ export default function App() {
     }
   };
 
-  // Sharing a chat requires login/signup for guests. After they sign in, the same chat
-  // is shared automatically.
   const handleShareChat = async () => {
     if (isTempChatActive || !activeChatId) return;
     if (isGuestUser(currentUser)) {
@@ -973,7 +957,6 @@ export default function App() {
       setAuthModalOpen(true);
       return;
     }
-    // Show a warning before sharing — the chat content is public once shared.
     pendingShareRef2.current = () => {
       createShareFor(activeChatId);
     };
@@ -1015,11 +998,11 @@ export default function App() {
     }
     setIsStreaming(false);
   };
+
   // Image generation — triggered by "/image <prompt>" or via the image button.
   const handleGenerateImage = async (prompt: string) => {
     if (!prompt.trim() || isStreaming) return;
 
-    // Ensure we have a chat target
     let targetChatId = activeChatId;
     if (!isTempChatActive && (!targetChatId || !currentChat)) {
       const title = `🎨 ${prompt.slice(0, 28)}`;
@@ -1068,7 +1051,7 @@ export default function App() {
 
       const updateMsg = (m: Message) =>
         m.id === assistantId
-          ? { ...m, content: `Here is your image for: **${prompt}**`, imageUrl: res.imageUrl, status: 'complete' as const }
+          ? { ...m, content: `Here is your image for: **${prompt}**`, imageUrl: res.objectUrl, status: 'complete' as const }
           : m;
 
       if (isTempChatActive) {
@@ -1098,7 +1081,7 @@ export default function App() {
     }
   };
 
-  // Main streaming request to the Llama REST API
+  // Main streaming request to Pollinations.
   const handleSendMessage = async (
     text: string,
     options?: { editedMessageId?: string; contextText?: string; contextMessageId?: string }
@@ -1355,8 +1338,7 @@ export default function App() {
             ? streamError
             : err.message === 'Failed to fetch'
             ? 'Could not reach the backend. Check your backend URL (VITE_BACKEND_URL) and the server status.'
-            : err.message || 'Failed to connect to the Llama 3.2 model endpoint';
-        // Friendly messages don't get the scary "Streaming error:" prefix.
+            : err.message || 'Failed to connect to the LLM endpoint';
         const errorText = streamErrorFriendly
           ? `\n\n⚠️ ${friendly}`
           : `\n\n⚠️ *Streaming error: ${friendly}*`;
@@ -1391,7 +1373,6 @@ export default function App() {
     }
   };
 
-  // Scroll to a message and highlight the snippet the user had selected.
   const handleJumpToSource = (messageId: string, selectedText: string) => {
     const el = document.querySelector(
       `[data-message-id="${messageId}"]`
@@ -1479,7 +1460,6 @@ export default function App() {
         isDark ? 'bg-[#212121] text-zinc-100' : 'bg-white text-zinc-900'
       }`}
     >
-      {/* Sidebar Drawer */}
       <Sidebar
         isOpen={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
@@ -1507,7 +1487,6 @@ export default function App() {
         onPermanentlyDeleteChat={handlePermanentlyDeleteChat}
       />
 
-      {/* Main Content Area */}
       <main className="flex-1 min-w-0 min-h-0 flex flex-col overflow-hidden md:pl-72 sm:md:pl-80 transition-all">
         <ChatArea
           messages={activeMessages}
@@ -1558,7 +1537,6 @@ export default function App() {
           )}
         />
 
-        {/* Bottom input field */}
         {activeMessages.length > 0 && (
           <ChatInput
             onSendMessage={handleSendMessage}
@@ -1574,7 +1552,6 @@ export default function App() {
         )}
       </main>
 
-      {/* User Profile Modal */}
       <UserProfileModal
         user={currentUser}
         isOpen={userProfileOpen}
@@ -1585,7 +1562,6 @@ export default function App() {
         isDark={isDark}
       />
 
-      {/* Settings Modal */}
       <SettingsModal
         isOpen={settingsOpen}
         onClose={() => setSettingsOpen(false)}
@@ -1605,7 +1581,6 @@ export default function App() {
         isCheckingUpdates={isCheckingUpdates}
       />
 
-      {/* Update Modal */}
       <UpdateModal
         isOpen={updateModalOpen}
         onClose={() => setUpdateModalOpen(false)}
@@ -1624,7 +1599,6 @@ export default function App() {
         isDark={isDark}
       />
 
-      {/* Auth Modal */}
       <AuthModal
         isOpen={authModalOpen}
         onClose={() => {
@@ -1638,7 +1612,6 @@ export default function App() {
         notice={authNotice}
       />
 
-      {/* Subscription Modal */}
       <SubscriptionModal
         isOpen={subscriptionModalOpen}
         onClose={() => setSubscriptionModalOpen(false)}
@@ -1650,7 +1623,6 @@ export default function App() {
         isDark={isDark}
       />
 
-      {/* Payment Modal */}
       {pendingPaymentItem && (
         <PaymentModal
           isOpen={paymentModalOpen}
@@ -1661,7 +1633,6 @@ export default function App() {
         />
       )}
 
-      {/* Share Modal */}
       {shareModalOpen && (
         <div
           className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-sm px-4"
@@ -1719,7 +1690,6 @@ export default function App() {
         </div>
       )}
 
-      {/* Payment History Modal */}
       <PaymentHistoryModal
         isOpen={paymentHistoryOpen}
         onClose={() => setPaymentHistoryOpen(false)}
@@ -1727,7 +1697,6 @@ export default function App() {
         isDark={isDark}
       />
 
-      {/* Shared Chats Modal */}
       <SharedChatsModal
         isOpen={sharedChatsOpen}
         onClose={() => setSharedChatsOpen(false)}
@@ -1738,7 +1707,6 @@ export default function App() {
         }}
       />
 
-      {/* Hugging Face Token Guide */}
       <TokenGuideModal
         isOpen={tokenGuideOpen}
         onClose={() => setTokenGuideOpen(false)}
@@ -1748,7 +1716,6 @@ export default function App() {
         isDark={isDark}
       />
 
-      {/* Share warning modal */}
       {shareWarningOpen && (
         <div
           className="fixed inset-0 z-[80] flex items-center justify-center bg-black/70 backdrop-blur-sm px-4"
@@ -1799,7 +1766,6 @@ export default function App() {
         </div>
       )}
 
-      {/* Permanent delete confirmation modal */}
       {confirmPermanentDelete && (
         <div
           className="fixed inset-0 z-[80] flex items-center justify-center bg-black/70 backdrop-blur-sm px-4"
@@ -1849,7 +1815,6 @@ export default function App() {
         </div>
       )}
 
-      {/* Delete-to-trash toast */}
       {deleteToast && (
         <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-[90] animate-in fade-in slide-in-from-bottom-4 duration-200">
           <div
