@@ -29,6 +29,7 @@ import {
   fetchServerChatById,
   fetchServerChats,
   fetchTrashChats,
+  generateImage,
   getAuthToken,
   isGuestUser,
   permanentlyDeleteServerChat,
@@ -1014,6 +1015,88 @@ export default function App() {
     }
     setIsStreaming(false);
   };
+  // Image generation — triggered by "/image <prompt>" or via the image button.
+  const handleGenerateImage = async (prompt: string) => {
+    if (!prompt.trim() || isStreaming) return;
+
+    // Ensure we have a chat target
+    let targetChatId = activeChatId;
+    if (!isTempChatActive && (!targetChatId || !currentChat)) {
+      const title = `🎨 ${prompt.slice(0, 28)}`;
+      const newSession: ChatSession = {
+        id: 'chat_' + Date.now(),
+        title,
+        messages: [],
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+      };
+      targetChatId = newSession.id;
+      setChats((prev) => (isGuestUser(currentUser) ? [newSession] : [newSession, ...prev]));
+      setActiveChatId(newSession.id);
+    }
+
+    const userMsg: Message = {
+      id: 'msg_user_' + Date.now(),
+      role: 'user',
+      content: `🎨 Generate image: ${prompt}`,
+      timestamp: Date.now(),
+    };
+
+    const assistantId = 'msg_assistant_' + (Date.now() + 1);
+    const assistantMsg: Message = {
+      id: assistantId,
+      role: 'assistant',
+      content: '',
+      timestamp: Date.now() + 1,
+      status: 'streaming',
+      imagePrompt: prompt,
+    };
+
+    if (isTempChatActive) {
+      setTempChatMessages((prev) => [...prev, userMsg, assistantMsg]);
+    } else {
+      setChats((prev) =>
+        prev.map((c) => {
+          if (c.id !== targetChatId) return c;
+          return { ...c, updatedAt: Date.now(), messages: [...c.messages, userMsg, assistantMsg] };
+        })
+      );
+    }
+
+    try {
+      const res = await generateImage(getApiUrl, prompt, { width: 1024, height: 1024 });
+
+      const updateMsg = (m: Message) =>
+        m.id === assistantId
+          ? { ...m, content: `Here is your image for: **${prompt}**`, imageUrl: res.imageUrl, status: 'complete' as const }
+          : m;
+
+      if (isTempChatActive) {
+        setTempChatMessages((prev) => prev.map(updateMsg));
+      } else {
+        setChats((prev) =>
+          prev.map((c) => (c.id === targetChatId ? { ...c, messages: c.messages.map(updateMsg) } : c))
+        );
+      }
+
+      if (settings.notificationsEnabled) playNotificationChime();
+    } catch (err: any) {
+      console.error('Image generation failed:', err);
+      const errorMsg =
+        err?.message || 'Image generate nahi ho payi. Thodi der baad try karo.';
+      const updateMsg = (m: Message) =>
+        m.id === assistantId
+          ? { ...m, content: `⚠️ ${errorMsg}`, status: 'error' as const }
+          : m;
+      if (isTempChatActive) {
+        setTempChatMessages((prev) => prev.map(updateMsg));
+      } else {
+        setChats((prev) =>
+          prev.map((c) => (c.id === targetChatId ? { ...c, messages: c.messages.map(updateMsg) } : c))
+        );
+      }
+    }
+  };
 
   // Main streaming request to the Llama REST API
   const handleSendMessage = async (
@@ -1025,6 +1108,13 @@ export default function App() {
     const contextMessageId = options?.contextMessageId;
     if (contextText) setAskAbout(null);
     if (!text.trim() || isStreaming) return;
+
+    // "/image <prompt>" short-circuits to image generation
+    const imgMatch = text.trim().match(/^\/image\s+(.+)$/i);
+    if (imgMatch && !editedMessageId) {
+      await handleGenerateImage(imgMatch[1].trim());
+      return;
+    }
 
     let targetChatId = activeChatId;
     let targetTitle = 'New Conversation';
@@ -1452,6 +1542,7 @@ export default function App() {
           onSendMessage={handleSendMessage}
           onAskAbout={(text, messageId) => setAskAbout({ text, messageId })}
           onJumpToSource={handleJumpToSource}
+          onGenerateImage={handleGenerateImage}
           renderCenteredInput={() => (
             <ChatInput
               onSendMessage={handleSendMessage}

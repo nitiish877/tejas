@@ -6,9 +6,11 @@ export interface Message {
   content: string;
   timestamp: number;
   status?: 'streaming' | 'complete' | 'error';
-  // "Ask about this" — reference to a snippet the user selected from an earlier message
   contextText?: string;
   contextMessageId?: string;
+  // Image generation result (assistant messages only)
+  imageUrl?: string;
+  imagePrompt?: string;
 }
 
 export interface ChatSession {

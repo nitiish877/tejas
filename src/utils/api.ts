@@ -303,3 +303,32 @@ export interface ShareRecord {
 
 export const fetchMyShares = (getUrl: UrlBuilder) =>
   request<{ shares: ShareRecord[] }>(getUrl, '/api/shares', {}, true);
+
+// ---------------- IMAGE GENERATION ----------------
+export interface ImageResult {
+  ok: boolean;
+  imageUrl: string;
+  prompt: string;
+  width: number;
+  height: number;
+  seed: number;
+}
+
+export const generateImage = (
+  getUrl: UrlBuilder,
+  prompt: string,
+  opts?: { width?: number; height?: number }
+) =>
+  request<ImageResult>(
+    getUrl,
+    '/api/image',
+    {
+      method: 'POST',
+      body: JSON.stringify({
+        prompt,
+        width: opts?.width,
+        height: opts?.height,
+      }),
+    },
+    true
+  );

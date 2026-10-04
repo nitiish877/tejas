@@ -53,6 +53,7 @@ interface ChatAreaProps {
   onSendMessage?: (text: string, options?: { editedMessageId?: string }) => void;
   onAskAbout?: (text: string, messageId: string) => void;
   onJumpToSource?: (messageId: string, selectedText: string) => void;
+  onGenerateImage?: (prompt: string) => void;
 }
 
 export const ChatArea: React.FC<ChatAreaProps> = ({
@@ -83,6 +84,7 @@ export const ChatArea: React.FC<ChatAreaProps> = ({
   onSendMessage,
   onAskAbout,
   onJumpToSource,
+  onGenerateImage,
 }) => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -752,7 +754,36 @@ export const ChatArea: React.FC<ChatAreaProps> = ({
                             isDark ? 'prose-invert' : ''
                           } max-w-none break-words leading-relaxed text-sm sm:text-base prose-headings:font-semibold prose-headings:mt-5 prose-headings:mb-2 prose-p:my-2 prose-li:my-0.5 prose-code:before:content-none prose-code:after:content-none`}
                         >
-                          <MarkdownMessage content={msg.content} isDark={isDark} />
+                          {msg.imageUrl ? (
+                            <div className="not-prose flex flex-col gap-3">
+                              <div
+                                className={`relative overflow-hidden rounded-2xl border ${
+                                  isDark ? 'border-zinc-700 bg-zinc-900' : 'border-zinc-200 bg-zinc-50'
+                                }`}
+                              >
+                                <img
+                                  src={msg.imageUrl}
+                                  alt={msg.imagePrompt || 'Generated image'}
+                                  className="w-full max-w-md h-auto block"
+                                  loading="lazy"
+                                />
+                              </div>
+                              {msg.content && (
+                                <p className={`text-xs ${isDark ? 'text-zinc-400' : 'text-zinc-500'}`}>
+                                  {msg.content.replace(/\*\*/g, '')}
+                                </p>
+                              )}
+                            </div>
+                          ) : msg.status === 'streaming' && msg.imagePrompt ? (
+                            <div className="not-prose flex flex-col items-center justify-center py-6 gap-3">
+                              {renderTypingSpinner(getSpinnerVariant(msg.id))}
+                              <p className={`text-xs ${isDark ? 'text-zinc-500' : 'text-zinc-400'}`}>
+                                Generating image…
+                              </p>
+                            </div>
+                          ) : (
+                            <MarkdownMessage content={msg.content} isDark={isDark} />
+                          )}
 
                           {isStreaming && isLastAssistant && msg.content.trim().length === 0 && (
                             regenState ? (
