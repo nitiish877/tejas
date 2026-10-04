@@ -99,7 +99,6 @@ export const ChatArea: React.FC<ChatAreaProps> = ({
     variant: 'A' | 'B' | 'C';
   } | null>(null);
 
-  // Selection → floating "Ask about this" button
   const [askAboutButton, setAskAboutButton] = useState<{
     text: string;
     messageId: string;
@@ -112,7 +111,6 @@ export const ChatArea: React.FC<ChatAreaProps> = ({
       if (modelMenuRef.current && !modelMenuRef.current.contains(e.target as Node)) {
         setModelDropdownOpen(false);
       }
-      // Close Ask About button if clicked outside (but only if it's not the button itself — button has its own onClick)
       const target = e.target as HTMLElement;
       if (!target.closest('[data-ask-about-btn]')) {
         setAskAboutButton(null);
@@ -141,14 +139,14 @@ export const ChatArea: React.FC<ChatAreaProps> = ({
           name: 'Cat (3B)',
           badge: daysRemaining !== null ? `${daysRemaining}d` : '₹1 Test',
           isPro: true,
-          plan: 'cat',
+          plan: 'cat' as SubscriptionPlanType,
         };
       case 'deepseek-ai/DeepSeek-R1-Distill-Llama-8B':
         return {
           name: 'Chetak (8B)',
           badge: daysRemaining !== null ? `${daysRemaining}d` : '₹299/mo',
           isPro: true,
-          plan: 'chetak',
+          plan: 'chetak' as SubscriptionPlanType,
         };
       case 'meta-llama/Llama-3.3-70B-Instruct':
       case 'meta-llama/Llama-3-70B-Instruct':
@@ -156,7 +154,7 @@ export const ChatArea: React.FC<ChatAreaProps> = ({
           name: 'Arka (70B)',
           badge: daysRemaining !== null ? `${daysRemaining}d` : '₹799/mo',
           isPro: true,
-          plan: 'arka',
+          plan: 'arka' as SubscriptionPlanType,
         };
       case 'Qwen/Qwen2.5-1.5B-Instruct':
       default:
@@ -164,7 +162,7 @@ export const ChatArea: React.FC<ChatAreaProps> = ({
           name: '1.5B',
           badge: 'Free',
           isPro: false,
-          plan: 'free',
+          plan: 'free' as SubscriptionPlanType,
         };
     }
   };
@@ -220,7 +218,6 @@ export const ChatArea: React.FC<ChatAreaProps> = ({
     if (!el) return;
     const distanceFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
     stickToBottomRef.current = distanceFromBottom < 120;
-    // Any active selection-aware button should hide when scrolling
     setAskAboutButton(null);
   };
 
@@ -240,9 +237,7 @@ export const ChatArea: React.FC<ChatAreaProps> = ({
     setTimeout(() => setCopiedMessageId(null), 2000);
   };
 
-  // ---- Selection detection ----
   const handleSelectionCheck = (_e: React.MouseEvent | React.TouchEvent) => {
-    // Wait for the browser to update the selection, then read it
     setTimeout(() => {
       try {
         const sel = window.getSelection();
@@ -268,7 +263,6 @@ export const ChatArea: React.FC<ChatAreaProps> = ({
           return;
         }
         const rect = range.getBoundingClientRect();
-        // Clamp so button stays on-screen
         const x = Math.min(rect.right + 6, window.innerWidth - 150);
         const y = Math.min(rect.bottom + 6, window.innerHeight - 50);
         setAskAboutButton({ text, messageId, x, y });
@@ -285,7 +279,6 @@ export const ChatArea: React.FC<ChatAreaProps> = ({
     window.getSelection()?.removeAllRanges();
   };
 
-  // ---- Edit ----
   const handleStartEdit = (msg: Message) => {
     setEditingMessageId(msg.id);
     setEditingText(msg.content);
@@ -307,7 +300,6 @@ export const ChatArea: React.FC<ChatAreaProps> = ({
     }, 60);
   };
 
-  // ---- Regenerate ----
   const handleRegenerateClick = () => {
     const lastAssistant = [...messages].reverse().find((m) => m.role === 'assistant');
     if (!lastAssistant) return;
@@ -479,6 +471,7 @@ export const ChatArea: React.FC<ChatAreaProps> = ({
                         </div>
                         <span className="text-[10px] opacity-70">{item.desc}</span>
                       </div>
+
                       <div className="flex items-center gap-1.5">
                         <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${item.badgeClass}`}>
                           {item.badge}
@@ -544,7 +537,8 @@ export const ChatArea: React.FC<ChatAreaProps> = ({
                 <Sparkles className="w-3.5 h-3.5 text-blue-300" />
               )}
               <span className="hidden sm:inline">
-              subscriptionPlan: MODEL_TO_PLAN[modelId] || 'free',
+                {subscriptionPlan === 'arka'
+                  ? 'Arka Pro'
                   : subscriptionPlan === 'chetak'
                   ? 'Chetak Active'
                   : subscriptionPlan === 'cat'
@@ -556,7 +550,6 @@ export const ChatArea: React.FC<ChatAreaProps> = ({
         </div>
       </header>
 
-      {/* Update banner */}
       {updateInfo && updateInfo.version && updateInfo.version !== getClientVersion() && (
         <div className="w-full bg-gradient-to-r from-blue-600/20 via-indigo-600/20 to-blue-600/20 border-b border-blue-500/30 px-4 py-2 flex items-center justify-between text-xs text-blue-200 transition-all shadow-sm shrink-0">
           <div className="flex items-center gap-2">
@@ -580,7 +573,6 @@ export const ChatArea: React.FC<ChatAreaProps> = ({
         </div>
       )}
 
-      {/* Main content */}
       {isLoadingMessages ? (
         <div className="flex-1 min-h-0 flex flex-col items-center justify-center px-4">
           <div className="flex flex-col items-center gap-3">
@@ -725,7 +717,6 @@ export const ChatArea: React.FC<ChatAreaProps> = ({
                           </div>
                         ) : (
                           <div className="flex flex-col gap-2">
-                            {/* Reference chip if user's message was "Ask about this" */}
                             {msg.contextText && (
                               <button
                                 type="button"
@@ -841,7 +832,7 @@ export const ChatArea: React.FC<ChatAreaProps> = ({
                       </div>
                     )}
 
-                                       {isUser && !isEditingThis && !isStreaming && (
+                    {isUser && !isEditingThis && !isStreaming && (
                       <div className="flex items-center justify-end gap-1 mt-1 mr-1 text-zinc-400">
                         <button
                           type="button"
@@ -886,7 +877,6 @@ export const ChatArea: React.FC<ChatAreaProps> = ({
         </div>
       )}
 
-      {/* Floating "Ask about this" button */}
       {askAboutButton && (
         <button
           data-ask-about-btn
