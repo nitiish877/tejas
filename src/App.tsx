@@ -1170,6 +1170,7 @@ export default function App() {
       let buffer = '';
       let accumulatedText = '';
       let streamError = '';
+      let streamErrorFriendly = false;
 
       while (true) {
         const { done, value } = await reader.read();
@@ -1187,7 +1188,10 @@ export default function App() {
             const dataStr = trimmed.slice(5).trim();
             try {
               const parsed = JSON.parse(dataStr);
-              if (parsed.error) streamError = String(parsed.error);
+              if (parsed.error) {
+                streamError = String(parsed.error);
+                streamErrorFriendly = !!parsed.friendly;
+              }
               if (parsed.text) {
                 accumulatedText += parsed.text;
 
@@ -1257,10 +1261,15 @@ export default function App() {
       } else {
         console.error('Chat streaming error:', err);
         const friendly =
-          err.message === 'Failed to fetch'
+          streamErrorFriendly
+            ? streamError
+            : err.message === 'Failed to fetch'
             ? 'Could not reach the backend. Check your backend URL (VITE_BACKEND_URL) and the server status.'
             : err.message || 'Failed to connect to the Llama 3.2 model endpoint';
-        const errorText = `\n\n⚠️ *Streaming error: ${friendly}*`;
+        // Friendly messages don't get the scary "Streaming error:" prefix.
+        const errorText = streamErrorFriendly
+          ? `\n\n⚠️ ${friendly}`
+          : `\n\n⚠️ *Streaming error: ${friendly}*`;
         if (isTempChatActive) {
           setTempChatMessages((prev) =>
             prev.map((m) =>
