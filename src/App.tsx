@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { ChatSession, Message, UserProfile, AppSettings, HFStatus, ThemeMode, SubscriptionPlanType, MODEL_TO_PLAN } from './types';
+import { ChatSession, Message, UserProfile, AppSettings, HFStatus, ThemeMode, SubscriptionPlanType, MODEL_TO_PLAN, LEGACY_MODEL_MAP } from './types';
 import { Sidebar } from './components/Sidebar';
 import { ChatArea } from './components/ChatArea';
 import { ChatInput } from './components/ChatInput';
@@ -59,7 +59,7 @@ const DEFAULT_SETTINGS: AppSettings = {
   customHfToken: '',
   customBackendUrl: '',
   systemPrompt: 'You are Tejas, an intelligent, fast, and polite AI assistant. Always match the response length directly to the user\'s query: keep simple questions concise and direct (1-3 sentences), and provide structured explanations only for complex or coding queries.',
-  selectedModel: 'meta-llama/Llama-3.2-1B-Instruct',
+    selectedModel: 'Qwen/Qwen2.5-1.5B-Instruct',
   subscriptionPlan: 'free',
   ownedPlans: [],
   planExpiries: {},
@@ -123,6 +123,10 @@ export default function App() {
           }
         } else if (!parsed.planExpiries) {
           parsed.planExpiries = {};
+        }
+        // Migrate any legacy model ID to the new one.
+        if (parsed.selectedModel && LEGACY_MODEL_MAP[parsed.selectedModel]) {
+          parsed.selectedModel = LEGACY_MODEL_MAP[parsed.selectedModel];
         }
         return { ...DEFAULT_SETTINGS, ...parsed };
       }
@@ -214,7 +218,7 @@ export default function App() {
     setSettings((prev) => ({
       ...prev,
       subscriptionPlan: 'free',
-      selectedModel: 'meta-llama/Llama-3.2-1B-Instruct',
+      selectedModel: 'Qwen/Qwen2.5-1.5B-Instruct',
     }));
   };
 
@@ -254,9 +258,9 @@ export default function App() {
         }).catch((e) => console.error('Subscription sync failed', e));
 
         const planNames: Record<SubscriptionPlanType, { name: string; modelId: string }> = {
-          free: { name: 'Free Tier', modelId: 'meta-llama/Llama-3.2-1B-Instruct' },
-          cat: { name: 'Tejas Cat (3B) Test Tier', modelId: 'meta-llama/Llama-3.2-3B-Instruct' },
-          chetak: { name: 'Tejas Chetak (8B)', modelId: 'meta-llama/Llama-3.1-8B-Instruct' },
+          free: { name: 'Free Tier', modelId: 'Qwen/Qwen2.5-1.5B-Instruct' },
+          cat: { name: 'Tejas Cat (3B) Test Tier', modelId: 'Qwen/Qwen2.5-3B-Instruct' },
+          chetak: { name: 'Tejas Chetak (8B)', modelId: 'deepseek-ai/DeepSeek-R1-Distill-Llama-8B' },
           arka: { name: 'Tejas Arka (70B)', modelId: 'meta-llama/Llama-3.3-70B-Instruct' },
         };
         const info = planNames[plan] || planNames.free;
@@ -317,7 +321,7 @@ export default function App() {
           subscriptionPlan: stillOwned ? currentPlan : 'free',
           selectedModel: stillOwned
             ? prev.selectedModel
-            : 'meta-llama/Llama-3.2-1B-Instruct',
+            : 'Qwen/Qwen2.5-1.5B-Instruct',
           subscriptionExpiresAt: stillOwned ? prev.subscriptionExpiresAt : undefined,
         };
 

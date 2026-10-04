@@ -54,11 +54,19 @@ export interface AppSettings {
 }
 
 export const MODEL_TO_PLAN: Record<string, SubscriptionPlanType> = {
-  'meta-llama/Llama-3.2-1B-Instruct': 'free',
-  'meta-llama/Llama-3.2-3B-Instruct': 'cat',
-  'meta-llama/Llama-3.1-8B-Instruct': 'chetak',
+  'Qwen/Qwen2.5-1.5B-Instruct': 'free',
+  'Qwen/Qwen2.5-3B-Instruct': 'cat',
+  'deepseek-ai/DeepSeek-R1-Distill-Llama-8B': 'chetak',
   'meta-llama/Llama-3.3-70B-Instruct': 'arka',
   'meta-llama/Llama-3-70B-Instruct': 'arka',
+};
+
+// Migrate any legacy model IDs found in saved settings to the new ones.
+export const LEGACY_MODEL_MAP: Record<string, string> = {
+  'meta-llama/Llama-3.2-1B-Instruct': 'Qwen/Qwen2.5-1.5B-Instruct',
+  'meta-llama/Llama-3.2-3B-Instruct': 'Qwen/Qwen2.5-3B-Instruct',
+  'meta-llama/Llama-3.1-8B-Instruct': 'deepseek-ai/DeepSeek-R1-Distill-Llama-8B',
+  'meta-llama/Llama-3-70B-Instruct': 'meta-llama/Llama-3.3-70B-Instruct',
 };
 
 export interface HFStatus {

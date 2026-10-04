@@ -64,7 +64,7 @@ export const ChatArea: React.FC<ChatAreaProps> = ({
   currentUser,
   onRegenerate,
   onSelectPromptSuggestion,
-  selectedModel = 'meta-llama/Llama-3.2-1B-Instruct',
+  selectedModel = 'Qwen/Qwen2.5-1.5B-Instruct',
   onSelectModel,
   subscriptionPlan = 'free',
   ownedPlans = [],
@@ -136,14 +136,14 @@ export const ChatArea: React.FC<ChatAreaProps> = ({
 
   const getModelLabel = () => {
     switch (selectedModel) {
-      case 'meta-llama/Llama-3.2-3B-Instruct':
+      case 'Qwen/Qwen2.5-3B-Instruct':
         return {
           name: 'Cat (3B)',
           badge: daysRemaining !== null ? `${daysRemaining}d` : '₹1 Test',
           isPro: true,
           plan: 'cat',
         };
-      case 'meta-llama/Llama-3.1-8B-Instruct':
+      case 'deepseek-ai/DeepSeek-R1-Distill-Llama-8B':
         return {
           name: 'Chetak (8B)',
           badge: daysRemaining !== null ? `${daysRemaining}d` : '₹299/mo',
@@ -158,10 +158,10 @@ export const ChatArea: React.FC<ChatAreaProps> = ({
           isPro: true,
           plan: 'arka',
         };
-      case 'meta-llama/Llama-3.2-1B-Instruct':
+      case 'Qwen/Qwen2.5-1.5B-Instruct':
       default:
         return {
-          name: '1B',
+          name: '1.5B',
           badge: 'Free',
           isPro: false,
           plan: 'free',
@@ -174,8 +174,8 @@ export const ChatArea: React.FC<ChatAreaProps> = ({
   const availableModels = useMemo(() => {
     const list = [
       {
-        id: 'meta-llama/Llama-3.2-1B-Instruct',
-        name: '1B (Free)',
+        id: 'Qwen/Qwen2.5-1.5B-Instruct',
+        name: '1.5B (Free)',
         desc: 'Fast, lightweight & free for all',
         badge: 'Free',
         badgeClass: 'bg-zinc-700/50 text-zinc-300',
@@ -184,7 +184,7 @@ export const ChatArea: React.FC<ChatAreaProps> = ({
     ];
     if (ownedPlans.includes('cat')) {
       list.push({
-        id: 'meta-llama/Llama-3.2-3B-Instruct',
+        id: 'Qwen/Qwen2.5-3B-Instruct',
         name: 'Cat (3B)',
         desc: 'Balanced reasoning & speed',
         badge: 'Active',
@@ -194,9 +194,9 @@ export const ChatArea: React.FC<ChatAreaProps> = ({
     }
     if (ownedPlans.includes('chetak')) {
       list.push({
-        id: 'meta-llama/Llama-3.1-8B-Instruct',
+        id: 'deepseek-ai/DeepSeek-R1-Distill-Llama-8B',
         name: 'Chetak (8B)',
-        desc: 'Pro reasoning & coding',
+        desc: 'DeepSeek reasoning & coding',
         badge: 'Active',
         badgeClass: 'bg-blue-500/20 text-blue-300 border border-blue-500/30',
         plan: 'chetak' as SubscriptionPlanType,
@@ -544,8 +544,7 @@ export const ChatArea: React.FC<ChatAreaProps> = ({
                 <Sparkles className="w-3.5 h-3.5 text-blue-300" />
               )}
               <span className="hidden sm:inline">
-                {subscriptionPlan === 'arka'
-                  ? 'Arka Pro'
+              subscriptionPlan: MODEL_TO_PLAN[modelId] || 'free',
                   : subscriptionPlan === 'chetak'
                   ? 'Chetak Active'
                   : subscriptionPlan === 'cat'
