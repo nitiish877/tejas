@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { ArrowUp, Square, Smile, Quote, X } from 'lucide-react';
+import { ArrowUp, Square, Smile, Quote, X, ImagePlus } from 'lucide-react';
 import { EmojiPicker } from './EmojiPicker';
 
 interface ChatInputProps {
@@ -15,6 +15,7 @@ interface ChatInputProps {
   contextText?: string;
   contextMessageId?: string;
   onClearContext?: () => void;
+  onGenerateImage?: (prompt: string) => void;
 }
 
 export const ChatInput: React.FC<ChatInputProps> = ({
@@ -27,14 +28,15 @@ export const ChatInput: React.FC<ChatInputProps> = ({
   contextText,
   contextMessageId,
   onClearContext,
+  onGenerateImage,
 }) => {
   const [text, setText] = useState('');
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [imageMode, setImageMode] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // Auto-type: cursor input box me na ho aur user keyboard se kuch type/paste kare to
-  // wo apne aap chat box me focus hokar likha jaye.
+  // Auto-type: focus the chat box when the user types anywhere on the page.
   useEffect(() => {
     if (disableAutoType) return;
 
@@ -72,7 +74,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
     };
   }, [disableAutoType]);
 
-  // Auto-focus textarea when a context is added so the user can type immediately
+  // Focus textarea when a context is added.
   useEffect(() => {
     if (contextText) textareaRef.current?.focus();
   }, [contextText]);
@@ -95,6 +97,14 @@ export const ChatInput: React.FC<ChatInputProps> = ({
       textareaRef.current.style.height = 'auto';
     }
     setShowEmojiPicker(false);
+
+    if (imageMode && onGenerateImage) {
+      // Image mode: hand the typed text over to the image generator.
+      onGenerateImage(message);
+      setImageMode(false);
+      return;
+    }
+
     onSendMessage(message, contextText ? { contextText, contextMessageId } : undefined);
   };
 
@@ -123,6 +133,18 @@ export const ChatInput: React.FC<ChatInputProps> = ({
     }, 10);
   };
 
+  const toggleImageMode = () => {
+    setImageMode((prev) => !prev);
+    setShowEmojiPicker(false);
+    textareaRef.current?.focus();
+  };
+
+  const placeholder = imageMode
+    ? 'Describe the image you want to generate…'
+    : contextText
+    ? 'Ask something about the selected text…'
+    : 'Ask here...';
+
   return (
     <div
       ref={containerRef}
@@ -140,8 +162,8 @@ export const ChatInput: React.FC<ChatInputProps> = ({
         />
       )}
 
-      {/* Context chip — shows the selected text the user is asking about */}
-      {contextText && (
+      {/* Context chip */}
+      {contextText && !imageMode && (
         <div
           className={`mb-2 flex items-start gap-2 rounded-xl border-l-2 border-cyan-400/80 px-3 py-2 ${
             isDark ? 'bg-zinc-800/70' : 'bg-zinc-100'
@@ -180,76 +202,142 @@ export const ChatInput: React.FC<ChatInputProps> = ({
         </div>
       )}
 
+      {/* Image mode chip (inside the input box, above the textarea row) */}
       <div
-        className={`relative flex items-end gap-2 rounded-2xl border p-2 sm:p-2.5 transition-all shadow-sm ${
-          isDark
+        className={`relative flex flex-col rounded-2xl border transition-all shadow-sm ${
+          imageMode
+            ? isDark
+              ? 'bg-gradient-to-br from-fuchsia-900/20 via-purple-900/15 to-indigo-900/20 border-fuchsia-500/50'
+              : 'bg-gradient-to-br from-fuchsia-50 via-purple-50 to-indigo-50 border-fuchsia-400'
+            : isDark
             ? 'bg-[#2f2f2f] border-zinc-700/70 focus-within:border-zinc-500 text-zinc-100'
             : 'bg-white border-zinc-300 focus-within:border-zinc-500 text-zinc-900 shadow-sm'
-        } ${isCentered ? 'shadow-md py-3 px-3.5 sm:px-4 rounded-3xl' : ''}`}
+        } ${isCentered ? 'py-2.5 px-3 sm:px-3.5 rounded-3xl' : 'p-2 sm:p-2.5'}`}
       >
-        <button
-          id="toggle-emoji-btn"
-          type="button"
-          onClick={() => setShowEmojiPicker((prev) => !prev)}
-          title="Add emoji"
-          className={`p-2 rounded-xl shrink-0 transition-colors ${
-            showEmojiPicker
-              ? isDark
-                ? 'bg-zinc-700 text-zinc-200'
-                : 'bg-zinc-200 text-zinc-800'
-              : isDark
-              ? 'hover:bg-zinc-700/60 text-zinc-400 hover:text-zinc-200'
-              : 'hover:bg-zinc-100 text-zinc-500 hover:text-zinc-800'
-          }`}
-        >
-          <Smile className="w-5 h-5" />
-        </button>
+        {/* Image mode banner */}
+        {imageMode && (
+          <div className="flex items-center justify-between gap-2 pb-2 mb-1 border-b border-fuchsia-500/20">
+            <div className="flex items-center gap-2 min-w-0">
+              <div className={`p-1 rounded-md shrink-0 ${
+                isDark ? 'bg-fuchsia-500/25 text-fuchsia-300' : 'bg-fuchsia-200 text-fuchsia-800'
+              }`}>
+                <ImagePlus className="w-3 h-3" />
+              </div>
+              <span className={`text-[11px] font-semibold truncate ${
+                isDark ? 'text-fuchsia-200' : 'text-fuchsia-800'
+              }`}>
+                Image mode
+              </span>
+              <span className={`text-[10px] truncate ${
+                isDark ? 'text-zinc-400' : 'text-zinc-500'
+              }`}>
+                — describe your image, then press send
+              </span>
+            </div>
+            <button
+              type="button"
+              onClick={() => setImageMode(false)}
+              title="Exit image mode"
+              className={`shrink-0 p-1 rounded-md transition-colors ${
+                isDark ? 'hover:bg-fuchsia-500/20 text-fuchsia-300' : 'hover:bg-fuchsia-100 text-fuchsia-700'
+              }`}
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        )}
 
-        <textarea
-          id="chat-message-input"
-          ref={textareaRef}
-          rows={1}
-          value={text}
-          onChange={handleInputChange}
-          onKeyDown={handleKeyDown}
-          placeholder={contextText ? 'Ask something about the selected text…' : 'Ask here...'}
-          className={`flex-1 max-h-44 resize-none bg-transparent py-1.5 px-1 text-sm sm:text-base focus:outline-none leading-relaxed ${
-            isDark
-              ? 'text-zinc-100 placeholder-zinc-400'
-              : 'text-zinc-900 placeholder-zinc-500'
-          }`}
-        />
+        {/* Input row */}
+        <div className="flex items-end gap-2">
+          {/* Image button */}
+          {onGenerateImage && (
+            <button
+              type="button"
+              onClick={toggleImageMode}
+              title={imageMode ? 'Exit image mode' : 'Generate an image'}
+              className={`p-2 rounded-xl shrink-0 transition-colors ${
+                imageMode
+                  ? isDark
+                    ? 'bg-fuchsia-500/25 text-fuchsia-300'
+                    : 'bg-fuchsia-200 text-fuchsia-800'
+                  : isDark
+                  ? 'hover:bg-zinc-700/60 text-zinc-400 hover:text-zinc-200'
+                  : 'hover:bg-zinc-100 text-zinc-500 hover:text-zinc-800'
+              }`}
+            >
+              <ImagePlus className="w-5 h-5" />
+            </button>
+          )}
 
-        {isStreaming ? (
+          {/* Emoji button */}
           <button
-            id="stop-streaming-btn"
+            id="toggle-emoji-btn"
             type="button"
-            onClick={onStopStreaming}
-            title="Stop generating"
-            className="p-2.5 rounded-full bg-zinc-200 text-zinc-900 dark:bg-zinc-100 dark:text-zinc-900 flex items-center justify-center shrink-0 transition-transform active:scale-95"
-          >
-            <Square className="w-3.5 h-3.5 fill-current" />
-          </button>
-        ) : (
-          <button
-            id="send-message-btn"
-            type="button"
-            onClick={() => handleSubmit()}
-            disabled={!text.trim()}
-            title="Send message"
-            className={`p-2.5 rounded-full flex items-center justify-center shrink-0 transition-all ${
-              text.trim()
+            onClick={() => {
+              setShowEmojiPicker((prev) => !prev);
+            }}
+            title="Add emoji"
+            className={`p-2 rounded-xl shrink-0 transition-colors ${
+              showEmojiPicker
                 ? isDark
-                  ? 'bg-white text-zinc-950 hover:bg-zinc-200 active:scale-95'
-                  : 'bg-zinc-900 text-white hover:bg-zinc-800 active:scale-95'
+                  ? 'bg-zinc-700 text-zinc-200'
+                  : 'bg-zinc-200 text-zinc-800'
                 : isDark
-                ? 'bg-zinc-700/50 text-zinc-500 cursor-not-allowed'
-                : 'bg-zinc-200 text-zinc-400 cursor-not-allowed'
+                ? 'hover:bg-zinc-700/60 text-zinc-400 hover:text-zinc-200'
+                : 'hover:bg-zinc-100 text-zinc-500 hover:text-zinc-800'
             }`}
           >
-            <ArrowUp className="w-4 h-4 stroke-[2.5]" />
+            <Smile className="w-5 h-5" />
           </button>
-        )}
+
+          <textarea
+            id="chat-message-input"
+            ref={textareaRef}
+            rows={1}
+            value={text}
+            onChange={handleInputChange}
+            onKeyDown={handleKeyDown}
+            placeholder={placeholder}
+            className={`flex-1 max-h-44 resize-none bg-transparent py-1.5 px-1 text-sm sm:text-base focus:outline-none leading-relaxed ${
+              isDark
+                ? 'text-zinc-100 placeholder-zinc-400'
+                : 'text-zinc-900 placeholder-zinc-500'
+            }`}
+          />
+
+          {isStreaming ? (
+            <button
+              id="stop-streaming-btn"
+              type="button"
+              onClick={onStopStreaming}
+              title="Stop generating"
+              className="p-2.5 rounded-full bg-zinc-200 text-zinc-900 dark:bg-zinc-100 dark:text-zinc-900 flex items-center justify-center shrink-0 transition-transform active:scale-95"
+            >
+              <Square className="w-3.5 h-3.5 fill-current" />
+            </button>
+          ) : (
+            <button
+              id="send-message-btn"
+              type="button"
+              onClick={() => handleSubmit()}
+              disabled={!text.trim()}
+              title={imageMode ? 'Generate image' : 'Send message'}
+              className={`p-2.5 rounded-full flex items-center justify-center shrink-0 transition-all ${
+                text.trim()
+                  ? imageMode
+                    ? 'bg-gradient-to-r from-fuchsia-600 to-indigo-600 hover:from-fuchsia-500 hover:to-indigo-500 text-white active:scale-95'
+                    : isDark
+                    ? 'bg-white text-zinc-950 hover:bg-zinc-200 active:scale-95'
+                    : 'bg-zinc-900 text-white hover:bg-zinc-800 active:scale-95'
+                  : isDark
+                  ? 'bg-zinc-700/50 text-zinc-500 cursor-not-allowed'
+                  : 'bg-zinc-200 text-zinc-400 cursor-not-allowed'
+              }`}
+            >
+              <ArrowUp className="w-4 h-4 stroke-[2.5]" />
+            </button>
+          )}
+        </div>
       </div>
 
       <div className="text-center mt-2 px-2">

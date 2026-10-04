@@ -1533,6 +1533,7 @@ export default function App() {
               contextText={askAbout?.text}
               contextMessageId={askAbout?.messageId}
               onClearContext={() => setAskAbout(null)}
+              onGenerateImage={handleGenerateImage}
             />
           )}
         />
@@ -1548,6 +1549,7 @@ export default function App() {
             contextText={askAbout?.text}
             contextMessageId={askAbout?.messageId}
             onClearContext={() => setAskAbout(null)}
+            onGenerateImage={handleGenerateImage}
           />
         )}
       </main>
