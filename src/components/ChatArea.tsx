@@ -24,7 +24,6 @@ import {
   Quote,
   MessageCircleQuestion,
   Download,
-  Paintbrush,
 } from 'lucide-react';
 
 interface ChatAreaProps {
@@ -823,6 +822,7 @@ export const ChatArea: React.FC<ChatAreaProps> = ({
                                   alt={msg.imagePrompt || 'Generated image'}
                                   className="w-full max-w-md h-auto block"
                                   loading="lazy"
+                                  style={{ animation: 'imageFadeIn 0.35s ease-out' }}
                                 />
 
                                 <div className="absolute top-2.5 right-2.5 flex items-center gap-1.5 z-10">
@@ -844,43 +844,158 @@ export const ChatArea: React.FC<ChatAreaProps> = ({
                                   </button>
                                 </div>
                               </div>
-                              {msg.content && (
-                                <p className={`text-xs ${isDark ? 'text-zinc-400' : 'text-zinc-500'}`}>
-                                  {msg.content.replace(/\*\*/g, '')}
-                                </p>
-                              )}
                             </div>
                           ) : msg.status === 'streaming' && msg.imagePrompt ? (
-                            <div className="not-prose flex flex-col items-center justify-center py-4">
-                              <div className="relative w-56 h-56 sm:w-64 sm:h-64 rounded-2xl border-2 border-dashed border-fuchsia-500/40 overflow-hidden bg-gradient-to-br from-zinc-900 via-zinc-950 to-zinc-900 shadow-inner">
-                                {/* Pulsing grid cells — "painting" different parts */}
-                                <div className="absolute inset-0 grid grid-cols-4 grid-rows-4">
-                                  {Array.from({ length: 16 }).map((_, i) => (
+                            /* --- Cat painting animation --- */
+                            <div className="not-prose flex flex-col items-center justify-center py-2">
+                              <div
+                                className={`relative w-56 h-56 sm:w-64 sm:h-64 rounded-2xl overflow-hidden border ${
+                                  isDark
+                                    ? 'bg-zinc-800 border-zinc-700'
+                                    : 'bg-zinc-200 border-zinc-300'
+                                }`}
+                              >
+                                {/* Small paint dots appearing on canvas */}
+                                <div className="absolute inset-0">
+                                  {[
+                                    { top: '18%', left: '22%', delay: 0 },
+                                    { top: '30%', left: '58%', delay: 0.25 },
+                                    { top: '46%', left: '30%', delay: 0.5 },
+                                    { top: '22%', left: '72%', delay: 0.75 },
+                                    { top: '58%', left: '48%', delay: 1.0 },
+                                    { top: '70%', left: '24%', delay: 1.25 },
+                                    { top: '38%', left: '18%', delay: 1.5 },
+                                    { top: '60%', left: '76%', delay: 1.75 },
+                                  ].map((dot, i) => (
                                     <div
                                       key={i}
+                                      className="absolute w-2 h-2 rounded-full bg-fuchsia-400/70"
                                       style={{
-                                        animation: `canvasCellPaint 2.8s ease-in-out ${i * 0.15}s infinite`,
+                                        top: dot.top,
+                                        left: dot.left,
+                                        animation: `paintDotAppear 2.4s ease-in-out ${dot.delay}s infinite`,
                                       }}
                                     />
                                   ))}
                                 </div>
 
-                                {/* Brush sweeping across the canvas */}
-                                <div className="absolute inset-0 overflow-hidden">
-                                  <div
-                                    className="absolute"
-                                    style={{ animation: 'brushSweep 2.8s ease-in-out infinite' }}
+                                {/* The white cat */}
+                                <div
+                                  className="absolute"
+                                  style={{
+                                    bottom: '6%',
+                                    right: '8%',
+                                    animation: 'catBodyBob 1.1s ease-in-out infinite',
+                                  }}
+                                >
+                                  <svg
+                                    width="92"
+                                    height="92"
+                                    viewBox="0 0 100 100"
+                                    fill="none"
+                                    xmlns="http://www.w3.org/2000/svg"
                                   >
-                                    <div className="relative">
-                                      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-fuchsia-500/40 blur-md" />
-                                      <Paintbrush className="relative w-6 h-6 text-fuchsia-300 drop-shadow-[0_0_8px_rgba(217,70,239,0.9)]" />
-                                    </div>
-                                  </div>
+                                    {/* Tail */}
+                                    <g
+                                      style={{
+                                        transformOrigin: '20px 82px',
+                                        animation: 'catTailWag 1.1s ease-in-out infinite',
+                                      }}
+                                    >
+                                      <path
+                                        d="M 22 82 Q 6 74 8 58"
+                                        stroke="#f8fafc"
+                                        strokeWidth="6"
+                                        strokeLinecap="round"
+                                        fill="none"
+                                      />
+                                    </g>
+
+                                    {/* Body */}
+                                    <ellipse cx="48" cy="76" rx="22" ry="16" fill="#f8fafc" />
+
+                                    {/* Colored patches */}
+                                    <ellipse cx="58" cy="78" rx="9" ry="8" fill="#f59e0b" />
+                                    <ellipse cx="38" cy="74" rx="6" ry="5" fill="#8b5cf6" />
+                                    <ellipse cx="50" cy="86" rx="5" ry="4" fill="#ef4444" />
+
+                                    {/* Head */}
+                                    <circle cx="66" cy="56" r="20" fill="#f8fafc" />
+
+                                    {/* Ears */}
+                                    <polygon points="50,42 46,24 62,38" fill="#f8fafc" />
+                                    <polygon points="80,42 84,24 70,38" fill="#f8fafc" />
+                                    <polygon points="53,40 51,28 61,38" fill="#fbcfe8" />
+                                    <polygon points="77,40 79,28 69,38" fill="#fbcfe8" />
+
+                                    {/* Head patch */}
+                                    <ellipse cx="54" cy="50" rx="7" ry="5" fill="#8b5cf6" />
+
+                                    {/* Eyes */}
+                                    <ellipse cx="61" cy="56" rx="2.6" ry="3.4" fill="#0f172a" />
+                                    <ellipse cx="74" cy="56" rx="2.6" ry="3.4" fill="#0f172a" />
+                                    <circle cx="61.8" cy="55" r="0.9" fill="#ffffff" />
+                                    <circle cx="74.8" cy="55" r="0.9" fill="#ffffff" />
+
+                                    {/* Nose */}
+                                    <polygon points="67,63 65,66 69,66" fill="#f472b6" />
+
+                                    {/* Mouth */}
+                                    <path
+                                      d="M 67 66 Q 64 69 62 67 M 67 66 Q 70 69 72 67"
+                                      stroke="#94a3b8"
+                                      strokeWidth="0.8"
+                                      fill="none"
+                                    />
+
+                                    {/* Whiskers */}
+                                    <line x1="42" y1="62" x2="56" y2="63" stroke="#94a3b8" strokeWidth="0.7" />
+                                    <line x1="42" y1="66" x2="56" y2="66" stroke="#94a3b8" strokeWidth="0.7" />
+                                    <line x1="90" y1="62" x2="76" y2="63" stroke="#94a3b8" strokeWidth="0.7" />
+                                    <line x1="90" y1="66" x2="76" y2="66" stroke="#94a3b8" strokeWidth="0.7" />
+
+                                    {/* Front arm extending left */}
+                                    <path
+                                      d="M 32 72 Q 22 62 18 58"
+                                      stroke="#f8fafc"
+                                      strokeWidth="8"
+                                      strokeLinecap="round"
+                                      fill="none"
+                                    />
+
+                                    {/* Paw */}
+                                    <circle cx="18" cy="58" r="5" fill="#f8fafc" />
+                                    <circle cx="16" cy="56" r="1.4" fill="#e2e8f0" />
+                                    <circle cx="19" cy="55" r="1.4" fill="#e2e8f0" />
+                                    <circle cx="21" cy="58" r="1.4" fill="#e2e8f0" />
+                                  </svg>
                                 </div>
 
-                                {/* Text */}
-                                <div className="absolute bottom-3 left-0 right-0 text-center">
-                                  <p className="text-[10px] tracking-widest uppercase font-bold text-fuchsia-300/90">
+                                {/* Brush — sweeps across the canvas */}
+                                <div
+                                  className="absolute"
+                                  style={{
+                                    bottom: '46%',
+                                    right: '42%',
+                                    animation: 'catBrushPaint 1.4s ease-in-out infinite',
+                                    transformOrigin: 'right center',
+                                  }}
+                                >
+                                  <svg width="46" height="20" viewBox="0 0 46 20">
+                                    <rect x="20" y="8" width="24" height="4" rx="1" fill="#b45309" />
+                                    <rect x="14" y="7" width="7" height="6" rx="0.6" fill="#cbd5e1" />
+                                    <path d="M 3 8 Q 14 9 14 10 Q 14 11 3 12 Z" fill="#f472b6" />
+                                    <path d="M 5 9 Q 12 10 12 10" stroke="#db2777" strokeWidth="0.6" fill="none" />
+                                  </svg>
+                                </div>
+
+                                {/* Small "Painting..." label */}
+                                <div className="absolute top-3 left-0 right-0 text-center">
+                                  <p
+                                    className={`text-[10px] tracking-widest uppercase font-semibold ${
+                                      isDark ? 'text-zinc-400' : 'text-zinc-500'
+                                    }`}
+                                  >
                                     Painting
                                     <span className="inline-flex gap-0.5 ml-1">
                                       <span style={{ animation: 'paintingDotBlink 1.4s ease-in-out infinite' }}>.</span>
@@ -895,7 +1010,7 @@ export const ChatArea: React.FC<ChatAreaProps> = ({
                             <MarkdownMessage content={msg.content} isDark={isDark} />
                           )}
 
-                          {isStreaming && isLastAssistant && msg.content.trim().length === 0 && (
+                          {isStreaming && isLastAssistant && msg.content.trim().length === 0 && !msg.imagePrompt && (
                             regenState ? (
                               <>
                                 {regenState.variant === 'A' && (

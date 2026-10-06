@@ -1051,7 +1051,7 @@ export default function App() {
 
       const updateMsg = (m: Message) =>
         m.id === assistantId
-          ? { ...m, content: `Here is your image for: **${prompt}**`, imageUrl: res.imageUrl, status: 'complete' as const }
+          ? { ...m,imageUrl: res.imageUrl, status: 'complete' as const }
           : m;
       if (isTempChatActive) {
         setTempChatMessages((prev) => prev.map(updateMsg));
@@ -1096,6 +1096,39 @@ export default function App() {
     if (imgMatch && !editedMessageId) {
       await handleGenerateImage(imgMatch[1].trim());
       return;
+    }
+
+    // AUTO-DETECT: if the user's plain text is asking for an image, generate
+    // one automatically — no need to click the image button.
+    if (!editedMessageId && !contextText) {
+      const trimmed = text.trim();
+      const lower = trimmed.toLowerCase();
+
+      // Triggers like "draw a cat", "generate image of...", "make a picture of..."
+      const imageIntent =
+        /^(?:please\s+)?(?:draw|paint|sketch|render|illustrate)\s+(.{2,})$/i.test(trimmed) ||
+        /^(?:please\s+)?(?:generate|create|make|show)\s+(?:me\s+)?(?:an?\s+)?(?:image|picture|photo|illustration|artwork|drawing|sketch)\s+(?:of\s+)?(.{2,})$/i.test(trimmed) ||
+        /^(?:image|picture|photo|illustration)\s+of\s+(.{2,})$/i.test(trimmed) ||
+        /\b(?:generate|create|make|draw|paint|sketch)\s+(?:me\s+)?(?:an?\s+)?(?:image|picture|photo|illustration|artwork)\b/i.test(trimmed);
+
+      // Don't hijack messages that also look like questions or code requests
+      const looksLikeQuestion =
+        /\?$/.test(trimmed) ||
+        /^(what|why|how|when|where|who|which|explain|describe|tell me|code|write|fix|debug)\b/i.test(lower);
+
+      if (imageIntent && !looksLikeQuestion && trimmed.length <= 300) {
+        // Strip the leading trigger words to get a cleaner prompt for the model
+        let prompt = trimmed
+          .replace(/^(?:please\s+)?(?:draw|paint|sketch|render|illustrate)\s+/i, '')
+          .replace(/^(?:please\s+)?(?:generate|create|make|show)\s+(?:me\s+)?(?:an?\s+)?(?:image|picture|photo|illustration|artwork|drawing|sketch)\s+(?:of\s+)?/i, '')
+          .replace(/^(?:image|picture|photo|illustration)\s+of\s+/i, '')
+          .trim();
+
+        if (prompt.length >= 2) {
+          await handleGenerateImage(prompt);
+          return;
+        }
+      }
     }
 
     let targetChatId = activeChatId;
