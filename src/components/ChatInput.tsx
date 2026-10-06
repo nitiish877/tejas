@@ -99,7 +99,6 @@ export const ChatInput: React.FC<ChatInputProps> = ({
     setShowEmojiPicker(false);
 
     if (imageMode && onGenerateImage) {
-      // Image mode: hand the typed text over to the image generator.
       onGenerateImage(message);
       setImageMode(false);
       return;
@@ -162,7 +161,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
         />
       )}
 
-      {/* Context chip */}
+      {/* Context chip (hidden in image mode) */}
       {contextText && !imageMode && (
         <div
           className={`mb-2 flex items-start gap-2 rounded-xl border-l-2 border-cyan-400/80 px-3 py-2 ${
@@ -202,7 +201,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
         </div>
       )}
 
-      {/* Image mode chip (inside the input box, above the textarea row) */}
+      {/* Input box */}
       <div
         className={`relative flex flex-col rounded-2xl border transition-all shadow-sm ${
           imageMode
@@ -214,7 +213,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
             : 'bg-white border-zinc-300 focus-within:border-zinc-500 text-zinc-900 shadow-sm'
         } ${isCentered ? 'py-2.5 px-3 sm:px-3.5 rounded-3xl' : 'p-2 sm:p-2.5'}`}
       >
-        {/* Image mode banner */}
+        {/* Image mode banner (inside the input box) */}
         {imageMode && (
           <div className="flex items-center justify-between gap-2 pb-2 mb-1 border-b border-fuchsia-500/20">
             <div className="flex items-center gap-2 min-w-0">
@@ -249,26 +248,6 @@ export const ChatInput: React.FC<ChatInputProps> = ({
 
         {/* Input row */}
         <div className="flex items-end gap-2">
-          {/* Image button */}
-          {onGenerateImage && (
-            <button
-              type="button"
-              onClick={toggleImageMode}
-              title={imageMode ? 'Exit image mode' : 'Generate an image'}
-              className={`p-2 rounded-xl shrink-0 transition-colors ${
-                imageMode
-                  ? isDark
-                    ? 'bg-fuchsia-500/25 text-fuchsia-300'
-                    : 'bg-fuchsia-200 text-fuchsia-800'
-                  : isDark
-                  ? 'hover:bg-zinc-700/60 text-zinc-400 hover:text-zinc-200'
-                  : 'hover:bg-zinc-100 text-zinc-500 hover:text-zinc-800'
-              }`}
-            >
-              <ImagePlus className="w-5 h-5" />
-            </button>
-          )}
-
           {/* Emoji button */}
           <button
             id="toggle-emoji-btn"
@@ -340,7 +319,38 @@ export const ChatInput: React.FC<ChatInputProps> = ({
         </div>
       </div>
 
-      <div className="text-center mt-2 px-2">
+      {/* Bottom row — Generate Image button + Disclaimer */}
+      <div className="mt-2 px-2 flex flex-col sm:flex-row items-center justify-between gap-2">
+        {onGenerateImage ? (
+          <button
+            type="button"
+            onClick={toggleImageMode}
+            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-semibold border transition-all active:scale-95 ${
+              imageMode
+                ? isDark
+                  ? 'bg-fuchsia-500/20 border-fuchsia-500/50 text-fuchsia-200'
+                  : 'bg-fuchsia-100 border-fuchsia-400 text-fuchsia-800'
+                : isDark
+                ? 'bg-zinc-800/60 hover:bg-zinc-800 border-zinc-700/70 text-zinc-300 hover:text-zinc-100'
+                : 'bg-zinc-100 hover:bg-zinc-200 border-zinc-200 text-zinc-600 hover:text-zinc-900'
+            }`}
+          >
+            {imageMode ? (
+              <>
+                <X className="w-3 h-3" />
+                <span>Cancel Image Mode</span>
+              </>
+            ) : (
+              <>
+                <ImagePlus className="w-3 h-3" />
+                <span>Generate Image</span>
+              </>
+            )}
+          </button>
+        ) : (
+          <span />
+        )}
+
         <p className={`text-[11px] select-none ${isDark ? 'text-zinc-500' : 'text-zinc-400'}`}>
           tejas is ai can make mistakes please double chek response
         </p>
