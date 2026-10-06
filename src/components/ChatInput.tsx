@@ -150,7 +150,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
       className={`relative w-full transition-all duration-300 ${
         isCentered
           ? 'max-w-2xl mx-auto px-4 my-auto'
-          : 'w-full px-3 sm:px-6 pb-2 pt-1'
+          : 'w-full px-4 pb-2 pt-1'
       }`}
     >
       {showEmojiPicker && (

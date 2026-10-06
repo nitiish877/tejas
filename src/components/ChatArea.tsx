@@ -695,7 +695,7 @@ export const ChatArea: React.FC<ChatAreaProps> = ({
           onScroll={handleMessagesScroll}
           onMouseUp={handleSelectionCheck}
           onTouchEnd={handleSelectionCheck}
-          className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-4 sm:px-6 py-6 space-y-6"
+          className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-4 py-6 space-y-6"
         >
           <div className="w-full space-y-6">
             {messages.map((msg, index) => {
@@ -723,7 +723,7 @@ export const ChatArea: React.FC<ChatAreaProps> = ({
                     </div>
                   )}
 
-                  <div className="relative w-full max-w-[85%] sm:max-w-[80%] lg:max-w-[820px] flex flex-col">
+          <div className="relative flex-1 min-w-0 max-w-[88%] sm:max-w-[85%] lg:max-w-[calc(100%-3rem)] flex flex-col">
                     <div
                       className={`relative rounded-2xl px-4 py-2.5 text-sm sm:text-base leading-relaxed ${
                         isUser
