@@ -235,7 +235,12 @@ export const ChatArea: React.FC<ChatAreaProps> = ({
     }
   }, [messages, isStreaming]);
 
-  // Download a generated image to the user's device.
+  const handleCopy = (id: string, text: string) => {
+    navigator.clipboard.writeText(text);
+    setCopiedMessageId(id);
+    setTimeout(() => setCopiedMessageId(null), 2000);
+  };
+
   const handleDownloadImage = (imageUrl: string, prompt?: string) => {
     try {
       const a = document.createElement('a');
@@ -256,7 +261,6 @@ export const ChatArea: React.FC<ChatAreaProps> = ({
     }
   };
 
-  // Share a generated image via the Web Share API. Falls back to download.
   const handleShareImage = async (imageUrl: string, prompt?: string) => {
     try {
       const res = await fetch(imageUrl);
@@ -266,7 +270,6 @@ export const ChatArea: React.FC<ChatAreaProps> = ({
         type: blob.type || 'image/jpeg',
       });
 
-      // Web Share API Level 2 — supports files (mostly mobile)
       if (navigator.canShare && navigator.canShare({ files: [file] })) {
         await navigator.share({
           files: [file],
@@ -276,7 +279,6 @@ export const ChatArea: React.FC<ChatAreaProps> = ({
         return;
       }
 
-      // Fallback 1: plain text share
       if (navigator.share) {
         await navigator.share({
           title: 'Tejas AI',
@@ -285,7 +287,6 @@ export const ChatArea: React.FC<ChatAreaProps> = ({
         return;
       }
 
-      // Fallback 2 (desktop): just download it
       handleDownloadImage(imageUrl, prompt);
     } catch (err: any) {
       if (err?.name !== 'AbortError') {
@@ -824,7 +825,6 @@ export const ChatArea: React.FC<ChatAreaProps> = ({
                                   loading="lazy"
                                 />
 
-                                {/* Action buttons — always visible at top-right */}
                                 <div className="absolute top-2.5 right-2.5 flex items-center gap-1.5 z-10">
                                   <button
                                     type="button"
@@ -851,7 +851,6 @@ export const ChatArea: React.FC<ChatAreaProps> = ({
                               )}
                             </div>
                           ) : msg.status === 'streaming' && msg.imagePrompt ? (
-                            /* Painting animation while the image is generating */
                             <div className="not-prose flex flex-col items-center justify-center py-4">
                               <div className="relative w-56 h-56 sm:w-64 sm:h-64 rounded-2xl border-2 border-dashed border-fuchsia-500/40 overflow-hidden bg-gradient-to-br from-zinc-900 via-zinc-950 to-zinc-900 shadow-inner">
                                 {/* Pulsing grid cells — "painting" different parts */}
@@ -959,7 +958,7 @@ export const ChatArea: React.FC<ChatAreaProps> = ({
                           )}
                         </button>
 
-                        {isLastAssistant && (
+                        {isLastAssistant && !msg.imageUrl && (
                           <button
                             type="button"
                             onClick={handleRegenerateClick}
