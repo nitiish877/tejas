@@ -305,59 +305,41 @@ export const fetchMyShares = (getUrl: UrlBuilder) =>
   request<{ shares: ShareRecord[] }>(getUrl, '/api/shares', {}, true);
 
 // ---------------- IMAGE GENERATION ----------------
-export interface ImageResult {
-  ok: boolean;
-  imageUrl: string;
-  prompt: string;
-  width: number;
-  height: number;
-  seed: number;
-}
-
-// The /api/image endpoint returns raw image bytes (not JSON). We fetch it as a blob
-// and create an object URL the app can display via <img src="...">.
+// The /api/image endpoint streams raw image bytes (not JSON). We fetch it as a blob
+// and convert it into a base64 data URL so the image:
+//   • survives page reloads,
+//   • can be saved inside the chat message in the database,
+//   • works across devices (once the chat syncs to the server).
 export const generateImage = async (
   getUrl: UrlBuilder,
   prompt: string,
   opts?: { width?: number; height?: number }
-): Promise<ImageResult> => {
-  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+): Promise<{ imageUrl: string; prompt: string }> => {
   const token = getAuthToken();
-  if (token) headers.Authorization = `Bearer ${token}`;
-
-  let res: Response;
-  try {
-    res = await fetch(getUrl('/api/image'), {
-      method: 'POST',
-      headers,
-      body: JSON.stringify({
-        prompt,
-        width: opts?.width,
-        height: opts?.height,
-      }),
-    });
-  } catch {
-    throw new ApiError('Could not reach the server. Check your internet or backend URL.', 0);
-  }
-
+  const res = await fetch(getUrl('/api/image'), {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    body: JSON.stringify({ prompt, width: opts?.width, height: opts?.height }),
+  });
   if (!res.ok) {
-    let msg = `Image generation failed (${res.status})`;
+    let msg = `Request failed (${res.status})`;
     try {
-      const data = await res.json();
-      if (data?.error) msg = data.error;
+      const d = await res.json();
+      if (d?.error) msg = d.error;
     } catch {}
     throw new ApiError(msg, res.status);
   }
-
   const blob = await res.blob();
-  const objectUrl = URL.createObjectURL(blob);
 
-  return {
-    ok: true,
-    imageUrl: objectUrl,
-    prompt,
-    width: opts?.width || 1024,
-    height: opts?.height || 1024,
-    seed: 0,
-  };
+  const dataUrl: string = await new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onloadend = () => resolve(String(reader.result || ''));
+    reader.onerror = () => reject(new ApiError('Could not read image data', 500));
+    reader.readAsDataURL(blob);
+  });
+
+  return { imageUrl: dataUrl, prompt };
 };

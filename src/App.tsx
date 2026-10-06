@@ -1047,13 +1047,12 @@ export default function App() {
     }
 
     try {
-      const res = await generateImage(getApiUrl, prompt, { width: 1024, height: 1024 });
+           const res = await generateImage(getApiUrl, prompt, { width: 1024, height: 1024 });
 
       const updateMsg = (m: Message) =>
         m.id === assistantId
           ? { ...m, content: `Here is your image for: **${prompt}**`, imageUrl: res.imageUrl, status: 'complete' as const }
           : m;
-
       if (isTempChatActive) {
         setTempChatMessages((prev) => prev.map(updateMsg));
       } else {
