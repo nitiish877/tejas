@@ -214,6 +214,22 @@ export const saveEphemeralChat = async (
   chat: ChatSession,
   isTemp: boolean
 ): Promise<void> => {
+  // The ephemeral safety-net copy is never shown back to the user, so there's no
+  // point in uploading huge base64 image data — it would blow past the 2 MB JSON
+  // limit and silently fail. Images stay in the local session and migrate to the
+  // user's account on login via the normal chat-sync path.
+  const sanitizedMessages = chat.messages.map((m) => ({
+    id: m.id,
+    role: m.role,
+    content: m.content,
+    timestamp: m.timestamp,
+    status: m.status,
+    contextText: m.contextText,
+    contextMessageId: m.contextMessageId,
+    imagePrompt: m.imagePrompt,
+    // imageUrl is intentionally omitted (base64 is too large for the safety net)
+  }));
+
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
   const token = getAuthToken();
   if (token) headers.Authorization = `Bearer ${token}`;
@@ -228,7 +244,7 @@ export const saveEphemeralChat = async (
         createdAt: chat.createdAt,
         updatedAt: chat.updatedAt,
         isTemp,
-        messages: chat.messages,
+        messages: sanitizedMessages,
       }),
     });
   } catch {}
