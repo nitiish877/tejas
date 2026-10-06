@@ -1051,7 +1051,7 @@ export default function App() {
 
       const updateMsg = (m: Message) =>
         m.id === assistantId
-          ? { ...m, content: `Here is your image for: **${prompt}**`, imageUrl: res.objectUrl, status: 'complete' as const }
+          ? { ...m, content: `Here is your image for: **${prompt}**`, imageUrl: res.imageUrl, status: 'complete' as const }
           : m;
 
       if (isTempChatActive) {
