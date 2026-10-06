@@ -715,15 +715,8 @@ export const ChatArea: React.FC<ChatAreaProps> = ({
                     isUser ? 'justify-end' : 'justify-start'
                   } items-start`}
                 >
-                  {!isUser && (
-                    <div className="shrink-0 pt-0.5">
-                      <div className="w-7 h-7 rounded-full bg-zinc-800 border border-zinc-700 flex items-center justify-center">
-                        <Logo size="xs" glowing={false} />
-                      </div>
-                    </div>
-                  )}
 
-          <div className="relative flex-1 min-w-0 max-w-[88%] sm:max-w-[85%] lg:max-w-[calc(100%-3rem)] flex flex-col">
+              <div className="relative flex-1 min-w-0 flex flex-col">
                     <div
                       className={`relative rounded-2xl px-4 py-2.5 text-sm sm:text-base leading-relaxed ${
                         isUser
@@ -1134,13 +1127,6 @@ export const ChatArea: React.FC<ChatAreaProps> = ({
                     )}
                   </div>
 
-                  {isUser && (
-                    <div className="shrink-0 pt-0.5">
-                      <div className="w-7 h-7 rounded-full bg-zinc-700 text-zinc-200 flex items-center justify-center font-medium text-xs">
-                        {currentUser.name ? currentUser.name[0].toUpperCase() : 'U'}
-                      </div>
-                    </div>
-                  )}
                 </div>
               );
             })}
