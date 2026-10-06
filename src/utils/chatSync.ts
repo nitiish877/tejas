@@ -1,57 +1,104 @@
 import { ChatSession } from '../types';
 import {
   ApiError,
-  ChatSyncState,
   appendServerMessages,
   chatMeta,
+  ChatSyncState,
   messageFingerprint,
   saveServerChat,
 } from './api';
 
-// Logged-in user ki chats ko DB se sync karo. Normal case me sirf NAYE messages bhejta hai (append),
-// poori chat tabhi jaati hai jab purane messages badle ho (jaise Regenerate) ya server ki copy alag ho.
-// false return = session expire (401).
+type UrlBuilder = (path: string) => string;
+
+function arraysEqual(a: string[], b: string[]): boolean {
+  if (a.length !== b.length) return false;
+  for (let i = 0; i < a.length; i++) {
+    if (a[i] !== b[i]) return false;
+  }
+  return true;
+}
+
+/**
+ * Sync local chats to the server.
+ *
+ * Strategy:
+ * - If only NEW messages were appended (no existing message changed), send just those
+ *   via POST /chats/:id/append — the payload stays tiny.
+ * - If existing messages changed (regenerate, edit, first-time save), fall back to a
+ *   full PUT /chats/:id.
+ * - Chats whose messages haven't been loaded yet (metadata-only) are skipped entirely.
+ *
+ * Messages are always sorted by `timestamp` before saving. This keeps the server-side
+ * order consistent even when text replies and image generations happen quickly in the
+ * same chat (they carry slightly different timestamps, and a stale in-memory order can
+ * otherwise persist a wrong sequence).
+ *
+ * Returns false if a 401 (session expired) is encountered, true otherwise.
+ */
 export async function syncChatsToServer(
   chats: ChatSession[],
   synced: Map<string, ChatSyncState>,
   unloaded: Set<string>,
-  getUrl: (path: string) => string
+  getApiUrl: UrlBuilder
 ): Promise<boolean> {
   for (const chat of chats) {
-    if (chat.isTemp || chat.messages.length === 0) continue;
-    if (unloaded.has(chat.id)) continue; // server ke messages abhi load nahi hue, overwrite ka risk
+    if (chat.isTemp) continue;
+    if (chat.messages.length === 0) continue;
+    // Chat metadata came from the server but messages haven't been fetched yet — skip.
+    if (unloaded.has(chat.id)) continue;
 
-    const known: ChatSyncState = synced.get(chat.id) || { fp: [], meta: '' };
-    const fpNow = chat.messages.map(messageFingerprint);
-    const metaNow = chatMeta(chat);
-    // Server pe jo messages hain wo abhi bhi bilkul waise hi hain? (Regenerate ne badla to false)
-    const prefixOk = known.fp.length <= fpNow.length && known.fp.every((f, i) => f === fpNow[i]);
+    // Ensure messages are in strict chronological order before saving.
+    // This prevents image and text messages from being saved out of sequence
+    // when both are being generated in the same chat.
+    const sortedMessages = [...chat.messages].sort((a, b) => a.timestamp - b.timestamp);
+
+    const prev = synced.get(chat.id);
+    const meta = chatMeta(chat);
+    const fp = sortedMessages.map(messageFingerprint);
+
+    // Nothing changed at all
+    if (prev && prev.meta === meta && arraysEqual(prev.fp, fp)) continue;
+
+    // Can we append? Only if:
+    //   - we have a previous sync state
+    //   - the previous fingerprint is a strict prefix of the new one (only new messages added)
+    const canAppend =
+      !!prev &&
+      prev.fp.length > 0 &&
+      prev.fp.length <= fp.length &&
+      prev.fp.every((v, i) => v === fp[i]);
 
     try {
-      if (prefixOk) {
-        // Sirf naye messages bhejo. Jo message abhi stream ho raha hai use baad ke liye chhod do.
-        let newMsgs = chat.messages.slice(known.fp.length);
-        const streamingIdx = newMsgs.findIndex((m) => m.status === 'streaming');
-        if (streamingIdx !== -1) newMsgs = newMsgs.slice(0, streamingIdx);
-        if (newMsgs.length === 0 && known.meta === metaNow) continue; // kuch badla hi nahi
+      if (canAppend && prev) {
+        const baseCount = prev.fp.length;
+        const newMsgs = sortedMessages.slice(baseCount);
 
-        try {
-          await appendServerMessages(getUrl, chat, known.fp.length, newMsgs);
-          synced.set(chat.id, { fp: fpNow.slice(0, known.fp.length + newMsgs.length), meta: metaNow });
-        } catch (e) {
-          if (e instanceof ApiError && e.status === 409) {
-            // Server ki copy alag hai (dusra device, ya pehle save fail hua): poori chat bhejkar theek karo
-            await saveServerChat(getUrl, chat);
-            synced.set(chat.id, { fp: fpNow, meta: metaNow });
-          } else {
-            throw e;
+        if (newMsgs.length === 0) {
+          // Only meta (title / pin) changed — a light PUT keeps the server consistent.
+          await saveServerChat(getApiUrl, chat);
+        } else {
+          try {
+            const res = await appendServerMessages(getApiUrl, chat, baseCount, newMsgs);
+            if (res?.skipped === 'trashed') {
+              // Server had already trashed this chat — record state and move on.
+              synced.set(chat.id, { fp, meta });
+              continue;
+            }
+          } catch (e: any) {
+            if (e instanceof ApiError && e.status === 409) {
+              // Server count mismatch → resync with a full PUT.
+              await saveServerChat(getApiUrl, chat);
+            } else {
+              throw e;
+            }
           }
         }
       } else {
-        // Purane messages badle (jaise Regenerate): poori chat replace karo
-        await saveServerChat(getUrl, chat);
-        synced.set(chat.id, { fp: fpNow, meta: metaNow });
+        // Full PUT — first save, or something deeper changed (regenerate / edit).
+        await saveServerChat(getApiUrl, chat);
       }
+
+      synced.set(chat.id, { fp, meta });
     } catch (e) {
       if (e instanceof ApiError && e.status === 401) return false;
       console.error('Chat sync failed', e);

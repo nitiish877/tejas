@@ -55,6 +55,7 @@ interface ChatAreaProps {
   onAskAbout?: (text: string, messageId: string) => void;
   onJumpToSource?: (messageId: string, selectedText: string) => void;
   onGenerateImage?: (prompt: string) => void;
+  isImageGenerating?: boolean;
 }
 
 export const ChatArea: React.FC<ChatAreaProps> = ({
@@ -86,6 +87,7 @@ export const ChatArea: React.FC<ChatAreaProps> = ({
   onAskAbout,
   onJumpToSource,
   onGenerateImage,
+  isImageGenerating = false,
 }) => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -260,7 +262,11 @@ export const ChatArea: React.FC<ChatAreaProps> = ({
     }
   };
 
-  const handleShareImage = async (imageUrl: string, prompt?: string) => {
+  const handleShareImage = async (imageUrl: string, _prompt?: string) => {
+    // Fixed invite message — deliberately does NOT include the user's prompt.
+    const SHARE_TEXT =
+      '✨ Generated with Tejas AI\n\nChat and generate images for free:\nhttps://tejassai.vercel.app/';
+
     try {
       const res = await fetch(imageUrl);
       const blob = await res.blob();
@@ -269,28 +275,38 @@ export const ChatArea: React.FC<ChatAreaProps> = ({
         type: blob.type || 'image/jpeg',
       });
 
+      // Preferred: share the image file + the invite text
       if (navigator.canShare && navigator.canShare({ files: [file] })) {
         await navigator.share({
           files: [file],
           title: 'Tejas AI',
-          text: prompt ? `Generated with Tejas AI: ${prompt}` : 'Generated with Tejas AI',
+          text: SHARE_TEXT,
         });
         return;
       }
 
+      // Fallback: share just the text + link
       if (navigator.share) {
         await navigator.share({
           title: 'Tejas AI',
-          text: prompt ? `Generated with Tejas AI: ${prompt}` : 'Generated with Tejas AI',
+          text: SHARE_TEXT,
         });
         return;
       }
 
-      handleDownloadImage(imageUrl, prompt);
+      // Last resort (desktop Chrome without Web Share): copy the invite text
+      // to the clipboard and download the image so the user can paste it manually.
+      try {
+        await navigator.clipboard.writeText(SHARE_TEXT);
+      } catch {}
+      handleDownloadImage(imageUrl, undefined);
     } catch (err: any) {
       if (err?.name !== 'AbortError') {
         console.error('Share failed:', err);
-        handleDownloadImage(imageUrl, prompt);
+        try {
+          await navigator.clipboard.writeText(SHARE_TEXT);
+        } catch {}
+        handleDownloadImage(imageUrl, undefined);
       }
     }
   };

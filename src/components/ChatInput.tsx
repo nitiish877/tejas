@@ -204,31 +204,29 @@ export const ChatInput: React.FC<ChatInputProps> = ({
       {/* Input box */}
       <div
         className={`relative flex flex-col rounded-2xl border transition-all shadow-sm ${
-          imageMode
-            ? isDark
-              ? 'bg-gradient-to-br from-fuchsia-900/20 via-purple-900/15 to-indigo-900/20 border-fuchsia-500/50'
-              : 'bg-gradient-to-br from-fuchsia-50 via-purple-50 to-indigo-50 border-fuchsia-400'
-            : isDark
+          isDark
             ? 'bg-[#2f2f2f] border-zinc-700/70 focus-within:border-zinc-500 text-zinc-100'
             : 'bg-white border-zinc-300 focus-within:border-zinc-500 text-zinc-900 shadow-sm'
         } ${isCentered ? 'py-2.5 px-3 sm:px-3.5 rounded-3xl' : 'p-2 sm:p-2.5'}`}
       >
         {/* Image mode banner (inside the input box) */}
         {imageMode && (
-          <div className="flex items-center justify-between gap-2 pb-2 mb-1 border-b border-fuchsia-500/20">
+          <div className={`flex items-center justify-between gap-2 pb-2 mb-1 border-b ${
+            isDark ? 'border-zinc-700/60' : 'border-zinc-200'
+          }`}>
             <div className="flex items-center gap-2 min-w-0">
               <div className={`p-1 rounded-md shrink-0 ${
-                isDark ? 'bg-fuchsia-500/25 text-fuchsia-300' : 'bg-fuchsia-200 text-fuchsia-800'
+                isDark ? 'bg-zinc-700 text-zinc-200' : 'bg-zinc-200 text-zinc-700'
               }`}>
                 <ImagePlus className="w-3 h-3" />
               </div>
               <span className={`text-[11px] font-semibold truncate ${
-                isDark ? 'text-fuchsia-200' : 'text-fuchsia-800'
+                isDark ? 'text-zinc-200' : 'text-zinc-800'
               }`}>
                 Image mode
               </span>
               <span className={`text-[10px] truncate ${
-                isDark ? 'text-zinc-400' : 'text-zinc-500'
+                isDark ? 'text-zinc-500' : 'text-zinc-500'
               }`}>
                 — describe your image, then press send
               </span>
@@ -238,7 +236,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
               onClick={() => setImageMode(false)}
               title="Exit image mode"
               className={`shrink-0 p-1 rounded-md transition-colors ${
-                isDark ? 'hover:bg-fuchsia-500/20 text-fuchsia-300' : 'hover:bg-fuchsia-100 text-fuchsia-700'
+                isDark ? 'hover:bg-zinc-700 text-zinc-400' : 'hover:bg-zinc-200 text-zinc-500'
               }`}
             >
               <X className="w-3.5 h-3.5" />
@@ -303,9 +301,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
               title={imageMode ? 'Generate image' : 'Send message'}
               className={`p-2.5 rounded-full flex items-center justify-center shrink-0 transition-all ${
                 text.trim()
-                  ? imageMode
-                    ? 'bg-gradient-to-r from-fuchsia-600 to-indigo-600 hover:from-fuchsia-500 hover:to-indigo-500 text-white active:scale-95'
-                    : isDark
+                  ? isDark
                     ? 'bg-white text-zinc-950 hover:bg-zinc-200 active:scale-95'
                     : 'bg-zinc-900 text-white hover:bg-zinc-800 active:scale-95'
                   : isDark
@@ -328,8 +324,8 @@ export const ChatInput: React.FC<ChatInputProps> = ({
             className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-semibold border transition-all active:scale-95 ${
               imageMode
                 ? isDark
-                  ? 'bg-fuchsia-500/20 border-fuchsia-500/50 text-fuchsia-200'
-                  : 'bg-fuchsia-100 border-fuchsia-400 text-fuchsia-800'
+                  ? 'bg-zinc-700 border-zinc-600 text-zinc-100'
+                  : 'bg-zinc-200 border-zinc-400 text-zinc-900'
                 : isDark
                 ? 'bg-zinc-800/60 hover:bg-zinc-800 border-zinc-700/70 text-zinc-300 hover:text-zinc-100'
                 : 'bg-zinc-100 hover:bg-zinc-200 border-zinc-200 text-zinc-600 hover:text-zinc-900'

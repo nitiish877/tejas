@@ -142,6 +142,8 @@ export default function App() {
   const [tempChatMessages, setTempChatMessages] = useState<Message[]>([]);
   const [isStreaming, setIsStreaming] = useState(false);
   const abortControllerRef = useRef<AbortController | null>(null);
+    // True while an image is being generated — blocks text messages and vice versa.
+  const [isImageGenerating, setIsImageGenerating] = useState(false);
 
   // "/share/<id>" URL
   const [sharedChatId] = useState<string | null>(() => {
@@ -771,13 +773,24 @@ export default function App() {
     setLoadingMessageIds((prev) => ({ ...prev, [chatId]: true }));
     try {
       const { chat: fullChat } = await fetchServerChatById(getApiUrl, chatId);
+      // Ensure messages from server are in timestamp order.
+      const sortedServerMsgs = [...fullChat.messages].sort((a, b) => a.timestamp - b.timestamp);
       syncedRef.current.set(chatId, {
-        fp: fullChat.messages.map(messageFingerprint),
+        fp: sortedServerMsgs.map(messageFingerprint),
         meta: chatMeta(fullChat),
       });
       unloadedRef.current.delete(chatId);
       setChats((prev) =>
-        prev.map((c) => (c.id === chatId ? { ...c, messages: [...fullChat.messages, ...c.messages] } : c))
+        prev.map((c) =>
+          c.id === chatId
+            ? {
+                ...c,
+                messages: [...sortedServerMsgs, ...c.messages].sort(
+                  (a, b) => a.timestamp - b.timestamp
+                ),
+              }
+            : c
+        )
       );
     } catch (e) {
       console.error('Failed to load chat messages', e);
@@ -1001,7 +1014,8 @@ export default function App() {
 
   // Image generation — triggered by "/image <prompt>" or via the image button.
   const handleGenerateImage = async (prompt: string) => {
-    if (!prompt.trim() || isStreaming) return;
+    if (!prompt.trim() || isStreaming || isImageGenerating) return;
+    setIsImageGenerating(true);
 
     let targetChatId = activeChatId;
     if (!isTempChatActive && (!targetChatId || !currentChat)) {
@@ -1077,6 +1091,8 @@ export default function App() {
           prev.map((c) => (c.id === targetChatId ? { ...c, messages: c.messages.map(updateMsg) } : c))
         );
       }
+    } finally {
+      setIsImageGenerating(false);
     }
   };
 
@@ -1089,7 +1105,7 @@ export default function App() {
     const contextText = options?.contextText;
     const contextMessageId = options?.contextMessageId;
     if (contextText) setAskAbout(null);
-    if (!text.trim() || isStreaming) return;
+    if (!text.trim() || isStreaming || isImageGenerating) return;
 
     // "/image <prompt>" short-circuits to image generation
     const imgMatch = text.trim().match(/^\/image\s+(.+)$/i);
@@ -1554,6 +1570,7 @@ export default function App() {
           onAskAbout={(text, messageId) => setAskAbout({ text, messageId })}
           onJumpToSource={handleJumpToSource}
           onGenerateImage={handleGenerateImage}
+          isImageGenerating={isImageGenerating}
           renderCenteredInput={() => (
             <ChatInput
               onSendMessage={handleSendMessage}
