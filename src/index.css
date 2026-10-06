@@ -238,3 +238,30 @@
 .streaming-cursor-x .x-line-2 {
   animation-name: drawXSecondStroke;
 }
+
+/* ---------- Image generation painting animation ---------- */
+
+/* Grid cells "painting" one by one */
+@keyframes canvasCellPaint {
+  0%, 15%   { background-color: rgba(217, 70, 239, 0); }
+  20%, 45%  { background-color: rgba(217, 70, 239, 0.18); }
+  50%, 100% { background-color: rgba(217, 70, 239, 0); }
+}
+
+/* Brush sweeping diagonally across the canvas */
+@keyframes brushSweep {
+  0%   { top: 12%; left: 4%;  transform: rotate(-25deg); opacity: 0; }
+  8%   { opacity: 1; }
+  22%  { top: 22%; left: 22%; transform: rotate(-15deg); }
+  45%  { top: 40%; left: 42%; transform: rotate(-35deg); }
+  68%  { top: 58%; left: 62%; transform: rotate(-10deg); }
+  85%  { top: 72%; left: 82%; transform: rotate(-30deg); opacity: 1; }
+  95%  { opacity: 0; }
+  100% { top: 12%; left: 4%;  transform: rotate(-25deg); opacity: 0; }
+}
+
+/* Blinking dots in "Painting..." text */
+@keyframes paintingDotBlink {
+  0%, 100% { opacity: 0.25; }
+  50%      { opacity: 1; }
+}

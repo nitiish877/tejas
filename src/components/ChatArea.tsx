@@ -23,6 +23,8 @@ import {
   X,
   Quote,
   MessageCircleQuestion,
+  Download,
+  Paintbrush,
 } from 'lucide-react';
 
 interface ChatAreaProps {
@@ -233,10 +235,64 @@ export const ChatArea: React.FC<ChatAreaProps> = ({
     }
   }, [messages, isStreaming]);
 
-  const handleCopy = (id: string, text: string) => {
-    navigator.clipboard.writeText(text);
-    setCopiedMessageId(id);
-    setTimeout(() => setCopiedMessageId(null), 2000);
+  // Download a generated image to the user's device.
+  const handleDownloadImage = (imageUrl: string, prompt?: string) => {
+    try {
+      const a = document.createElement('a');
+      a.href = imageUrl;
+      const safeName = (prompt || 'tejas-image')
+        .replace(/[^a-z0-9]+/gi, '-')
+        .toLowerCase()
+        .replace(/^-+|-+$/g, '')
+        .slice(0, 40);
+      a.download = `${safeName || 'tejas-image'}.jpg`;
+      a.style.display = 'none';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    } catch (e) {
+      console.error('Image download failed:', e);
+      window.open(imageUrl, '_blank');
+    }
+  };
+
+  // Share a generated image via the Web Share API. Falls back to download.
+  const handleShareImage = async (imageUrl: string, prompt?: string) => {
+    try {
+      const res = await fetch(imageUrl);
+      const blob = await res.blob();
+      const ext = (blob.type.split('/')[1] || 'jpeg').replace('jpeg', 'jpg');
+      const file = new File([blob], `tejas-image.${ext}`, {
+        type: blob.type || 'image/jpeg',
+      });
+
+      // Web Share API Level 2 — supports files (mostly mobile)
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        await navigator.share({
+          files: [file],
+          title: 'Tejas AI',
+          text: prompt ? `Generated with Tejas AI: ${prompt}` : 'Generated with Tejas AI',
+        });
+        return;
+      }
+
+      // Fallback 1: plain text share
+      if (navigator.share) {
+        await navigator.share({
+          title: 'Tejas AI',
+          text: prompt ? `Generated with Tejas AI: ${prompt}` : 'Generated with Tejas AI',
+        });
+        return;
+      }
+
+      // Fallback 2 (desktop): just download it
+      handleDownloadImage(imageUrl, prompt);
+    } catch (err: any) {
+      if (err?.name !== 'AbortError') {
+        console.error('Share failed:', err);
+        handleDownloadImage(imageUrl, prompt);
+      }
+    }
   };
 
   const handleSelectionCheck = (_e: React.MouseEvent | React.TouchEvent) => {
@@ -767,6 +823,26 @@ export const ChatArea: React.FC<ChatAreaProps> = ({
                                   className="w-full max-w-md h-auto block"
                                   loading="lazy"
                                 />
+
+                                {/* Action buttons — always visible at top-right */}
+                                <div className="absolute top-2.5 right-2.5 flex items-center gap-1.5 z-10">
+                                  <button
+                                    type="button"
+                                    onClick={() => handleDownloadImage(msg.imageUrl!, msg.imagePrompt)}
+                                    title="Download image"
+                                    className="p-2 rounded-lg backdrop-blur-md bg-black/55 hover:bg-black/75 text-white border border-white/20 transition-all active:scale-95 shadow-lg"
+                                  >
+                                    <Download className="w-3.5 h-3.5" />
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleShareImage(msg.imageUrl!, msg.imagePrompt)}
+                                    title="Share image"
+                                    className="p-2 rounded-lg backdrop-blur-md bg-black/55 hover:bg-black/75 text-white border border-white/20 transition-all active:scale-95 shadow-lg"
+                                  >
+                                    <Share2 className="w-3.5 h-3.5" />
+                                  </button>
+                                </div>
                               </div>
                               {msg.content && (
                                 <p className={`text-xs ${isDark ? 'text-zinc-400' : 'text-zinc-500'}`}>
@@ -775,11 +851,46 @@ export const ChatArea: React.FC<ChatAreaProps> = ({
                               )}
                             </div>
                           ) : msg.status === 'streaming' && msg.imagePrompt ? (
-                            <div className="not-prose flex flex-col items-center justify-center py-6 gap-3">
-                              {renderTypingSpinner(getSpinnerVariant(msg.id))}
-                              <p className={`text-xs ${isDark ? 'text-zinc-500' : 'text-zinc-400'}`}>
-                                Generating image…
-                              </p>
+                            /* Painting animation while the image is generating */
+                            <div className="not-prose flex flex-col items-center justify-center py-4">
+                              <div className="relative w-56 h-56 sm:w-64 sm:h-64 rounded-2xl border-2 border-dashed border-fuchsia-500/40 overflow-hidden bg-gradient-to-br from-zinc-900 via-zinc-950 to-zinc-900 shadow-inner">
+                                {/* Pulsing grid cells — "painting" different parts */}
+                                <div className="absolute inset-0 grid grid-cols-4 grid-rows-4">
+                                  {Array.from({ length: 16 }).map((_, i) => (
+                                    <div
+                                      key={i}
+                                      style={{
+                                        animation: `canvasCellPaint 2.8s ease-in-out ${i * 0.15}s infinite`,
+                                      }}
+                                    />
+                                  ))}
+                                </div>
+
+                                {/* Brush sweeping across the canvas */}
+                                <div className="absolute inset-0 overflow-hidden">
+                                  <div
+                                    className="absolute"
+                                    style={{ animation: 'brushSweep 2.8s ease-in-out infinite' }}
+                                  >
+                                    <div className="relative">
+                                      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-fuchsia-500/40 blur-md" />
+                                      <Paintbrush className="relative w-6 h-6 text-fuchsia-300 drop-shadow-[0_0_8px_rgba(217,70,239,0.9)]" />
+                                    </div>
+                                  </div>
+                                </div>
+
+                                {/* Text */}
+                                <div className="absolute bottom-3 left-0 right-0 text-center">
+                                  <p className="text-[10px] tracking-widest uppercase font-bold text-fuchsia-300/90">
+                                    Painting
+                                    <span className="inline-flex gap-0.5 ml-1">
+                                      <span style={{ animation: 'paintingDotBlink 1.4s ease-in-out infinite' }}>.</span>
+                                      <span style={{ animation: 'paintingDotBlink 1.4s ease-in-out 0.2s infinite' }}>.</span>
+                                      <span style={{ animation: 'paintingDotBlink 1.4s ease-in-out 0.4s infinite' }}>.</span>
+                                    </span>
+                                  </p>
+                                </div>
+                              </div>
                             </div>
                           ) : (
                             <MarkdownMessage content={msg.content} isDark={isDark} />
