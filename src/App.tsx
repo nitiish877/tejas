@@ -3,6 +3,7 @@ import { ChatSession, Message, UserProfile, AppSettings, HFStatus, ThemeMode, Su
 import { Sidebar } from './components/Sidebar';
 import { ChatArea } from './components/ChatArea';
 import { ChatInput } from './components/ChatInput';
+import type { PreparedAttachment } from './utils/attachments';
 import { UserProfileModal } from './components/UserProfileModal';
 import { SettingsModal } from './components/SettingsModal';
 import { AuthModal } from './components/AuthModal';
@@ -371,7 +372,14 @@ export default function App() {
   useEffect(() => {
     try {
       if (isGuestUser(currentUser)) {
-        sessionStorage.setItem(STORAGE_KEY_CHATS, JSON.stringify(chats));
+        const chatsWithoutImagePayloads = chats.map((chat) => ({
+          ...chat,
+          messages: chat.messages.map((message) => ({
+            ...message,
+            attachments: message.attachments?.map(({ imageDataUrl: _imageDataUrl, ...attachment }) => attachment),
+          })),
+        }));
+        sessionStorage.setItem(STORAGE_KEY_CHATS, JSON.stringify(chatsWithoutImagePayloads));
       } else {
         sessionStorage.removeItem(STORAGE_KEY_CHATS);
       }
@@ -1099,25 +1107,27 @@ export default function App() {
   // Main streaming request to Pollinations.
   const handleSendMessage = async (
     text: string,
-    options?: { editedMessageId?: string; contextText?: string; contextMessageId?: string }
+    options?: { editedMessageId?: string; contextText?: string; contextMessageId?: string; attachments?: PreparedAttachment[] }
   ) => {
     const editedMessageId = options?.editedMessageId;
     const contextText = options?.contextText;
     const contextMessageId = options?.contextMessageId;
+    const attachments = options?.attachments || [];
+    const messageText = text.trim() || (attachments.length ? 'Please analyze the attached file(s).' : '');
     if (contextText) setAskAbout(null);
-    if (!text.trim() || isStreaming || isImageGenerating) return;
+    if (!messageText || isStreaming || isImageGenerating) return;
 
     // "/image <prompt>" short-circuits to image generation
     const imgMatch = text.trim().match(/^\/image\s+(.+)$/i);
-    if (imgMatch && !editedMessageId) {
+    if (imgMatch && !editedMessageId && attachments.length === 0) {
       await handleGenerateImage(imgMatch[1].trim());
       return;
     }
 
     // AUTO-DETECT: if the user's plain text is asking for an image, generate
     // one automatically — no need to click the image button.
-    if (!editedMessageId && !contextText) {
-      const trimmed = text.trim();
+    if (!editedMessageId && !contextText && attachments.length === 0) {
+      const trimmed = messageText;
       const lower = trimmed.toLowerCase();
 
       // Triggers like "draw a cat", "generate image of...", "make a picture of..."
@@ -1151,7 +1161,8 @@ export default function App() {
     let targetTitle = 'New Conversation';
 
     if (!editedMessageId && !isTempChatActive && (!targetChatId || !currentChat)) {
-      targetTitle = text.slice(0, 32) + (text.length > 32 ? '...' : '');
+      const firstTitle = text.trim() || attachments[0]?.name || 'Uploaded files';
+      targetTitle = firstTitle.slice(0, 32) + (firstTitle.length > 32 ? '...' : '');
       const newSession: ChatSession = {
         id: 'chat_' + Date.now(),
         title: targetTitle,
@@ -1188,12 +1199,25 @@ export default function App() {
       const userMessage: Message = {
         id: 'msg_user_' + Date.now(),
         role: 'user',
-        content: text,
+        content: messageText,
         timestamp: Date.now(),
         contextText: contextText || undefined,
         contextMessageId: contextMessageId || undefined,
+        attachments: attachments.map(({ name, kind, text: extractedText, mimeType, dataUrl }) => ({
+          name,
+          kind,
+          text: extractedText,
+          mimeType,
+          imageDataUrl: dataUrl,
+        })),
       };
-      historyForModel = [...activeMessages, userMessage];
+      const hasNewImage = attachments.some((attachment) => attachment.kind === 'image');
+      const previousMessages = hasNewImage
+        ? activeMessages.map((message) => message.attachments?.some((attachment) => attachment.imageDataUrl)
+          ? { ...message, attachments: message.attachments.map((attachment) => ({ ...attachment, imageDataUrl: undefined })) }
+          : message)
+        : activeMessages;
+      historyForModel = [...previousMessages, userMessage];
     }
 
     if (isTempChatActive) {
@@ -1207,7 +1231,7 @@ export default function App() {
           return [...head, assistantMessage];
         });
       } else {
-        setTempChatMessages((prev) => [...prev, historyForModel[historyForModel.length - 1], assistantMessage]);
+        setTempChatMessages([...historyForModel, assistantMessage]);
       }
     } else {
       setChats((prev) =>
@@ -1222,13 +1246,13 @@ export default function App() {
             return { ...c, updatedAt: Date.now(), messages: [...head, assistantMessage] };
           } else {
             const isFirst = c.messages.length === 0;
-            const updatedTitle = isFirst ? text.slice(0, 32) + (text.length > 32 ? '...' : '') : c.title;
-            const newUserMsg = historyForModel[historyForModel.length - 1];
+            const firstTitle = text.trim() || attachments[0]?.name || 'Uploaded files';
+            const updatedTitle = isFirst ? firstTitle.slice(0, 32) + (firstTitle.length > 32 ? '...' : '') : c.title;
             return {
               ...c,
               title: updatedTitle,
               updatedAt: Date.now(),
-              messages: [...c.messages, newUserMsg, assistantMessage],
+              messages: [...historyForModel, assistantMessage],
             };
           }
         })
@@ -1256,7 +1280,21 @@ export default function App() {
       };
       const historyToSend = historyForModel
         .filter((m) => m.content.trim().length > 0)
-        .map(expandForModel);
+        .map((message) => {
+          const expanded = expandForModel(message);
+          const attachmentText = expanded.attachments
+            ?.filter((attachment) => attachment.text)
+            .map((attachment) => `\n\n--- Extracted attachment: ${attachment.name} ---\n${attachment.text}\n--- End attachment ---`)
+            .join('');
+          const imageAttachments = expanded.attachments?.filter((attachment) => attachment.imageDataUrl).map((attachment) => ({
+            name: attachment.name,
+            kind: attachment.kind,
+            mimeType: attachment.mimeType,
+            imageDataUrl: attachment.imageDataUrl,
+          }));
+          const content = attachmentText ? `${expanded.content}${attachmentText}` : expanded.content;
+          return { role: expanded.role, content, ...(imageAttachments?.length ? { attachments: imageAttachments } : {}) };
+        });
 
       const response = await fetch(getApiUrl('/api/chat'), {
         method: 'POST',
@@ -1542,6 +1580,10 @@ export default function App() {
           isStreaming={isStreaming}
           isTempChatActive={isTempChatActive}
           onOpenSidebar={() => setSidebarOpen(true)}
+          onUserSend={() => {
+            const container = document.querySelector('[data-chat-scroll-container]') as HTMLDivElement | null;
+            container?.scrollTo({ top: container.scrollHeight, behavior: 'smooth' });
+          }}
           currentUser={currentUser}
           onRegenerate={handleRegenerate}
           onSelectPromptSuggestion={(prompt) => handleSendMessage(prompt)}
@@ -1574,6 +1616,10 @@ export default function App() {
           renderCenteredInput={() => (
             <ChatInput
               onSendMessage={handleSendMessage}
+              onBeforeSend={() => {
+                const container = document.querySelector('[data-chat-scroll-container]') as HTMLDivElement | null;
+                container?.scrollTo({ top: container.scrollHeight, behavior: 'smooth' });
+              }}
               isStreaming={isStreaming}
               onStopStreaming={handleStopStreaming}
               isDark={isDark}
@@ -1590,6 +1636,10 @@ export default function App() {
         {activeMessages.length > 0 && (
           <ChatInput
             onSendMessage={handleSendMessage}
+            onBeforeSend={() => {
+              const container = document.querySelector('[data-chat-scroll-container]') as HTMLDivElement | null;
+              container?.scrollTo({ top: container.scrollHeight, behavior: 'smooth' });
+            }}
             isStreaming={isStreaming}
             onStopStreaming={handleStopStreaming}
             isDark={isDark}

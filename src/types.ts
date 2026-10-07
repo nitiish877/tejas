@@ -8,6 +8,13 @@ export interface Message {
   status?: 'streaming' | 'complete' | 'error';
   contextText?: string;
   contextMessageId?: string;
+  attachments?: Array<{
+    name: string;
+    kind: 'image' | 'document';
+    text?: string;
+    mimeType?: string;
+    imageDataUrl?: string;
+  }>;
   // Image generation result (assistant messages only)
   imageUrl?: string;
   imagePrompt?: string;

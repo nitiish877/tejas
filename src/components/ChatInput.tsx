@@ -1,12 +1,14 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { ArrowUp, Square, Smile, Quote, X, ImagePlus } from 'lucide-react';
-import { EmojiPicker } from './EmojiPicker';
+import { ArrowUp, Square, Quote, X, ImagePlus, Plus, FileText, Loader2 } from 'lucide-react';
+import { MAX_FILES_PER_UPLOAD, prepareAttachments, releaseAttachmentPreviews } from '../utils/attachments';
+import type { PreparedAttachment } from '../utils/attachments';
 
 interface ChatInputProps {
   onSendMessage: (
     content: string,
-    options?: { contextText?: string; contextMessageId?: string }
+    options?: { contextText?: string; contextMessageId?: string; attachments?: PreparedAttachment[] }
   ) => void;
+  onBeforeSend?: () => void;
   isStreaming: boolean;
   onStopStreaming: () => void;
   isDark: boolean;
@@ -20,6 +22,7 @@ interface ChatInputProps {
 
 export const ChatInput: React.FC<ChatInputProps> = ({
   onSendMessage,
+  onBeforeSend,
   isStreaming,
   onStopStreaming,
   isDark,
@@ -31,10 +34,13 @@ export const ChatInput: React.FC<ChatInputProps> = ({
   onGenerateImage,
 }) => {
   const [text, setText] = useState('');
-  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [attachments, setAttachments] = useState<PreparedAttachment[]>([]);
+  const [isPreparingFiles, setIsPreparingFiles] = useState(false);
+  const [attachmentError, setAttachmentError] = useState('');
   const [imageMode, setImageMode] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Auto-type: focus the chat box when the user types anywhere on the page.
   useEffect(() => {
@@ -89,22 +95,29 @@ export const ChatInput: React.FC<ChatInputProps> = ({
 
   const handleSubmit = (e?: React.FormEvent) => {
     if (e) e.preventDefault();
-    if (!text.trim() || isStreaming) return;
+    if ((!text.trim() && attachments.length === 0) || isStreaming || isPreparingFiles) return;
 
     const message = text.trim();
     setText('');
     if (textareaRef.current) {
       textareaRef.current.style.height = 'auto';
     }
-    setShowEmojiPicker(false);
 
-    if (imageMode && onGenerateImage) {
+    if (imageMode && onGenerateImage && attachments.length === 0) {
+      onBeforeSend?.();
       onGenerateImage(message);
       setImageMode(false);
       return;
     }
 
-    onSendMessage(message, contextText ? { contextText, contextMessageId } : undefined);
+    onBeforeSend?.();
+    setImageMode(false);
+    onSendMessage(message, {
+      ...(contextText ? { contextText, contextMessageId } : {}),
+      attachments: attachments.length ? attachments : undefined,
+    });
+    releaseAttachmentPreviews(attachments);
+    setAttachments([]);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -114,27 +127,51 @@ export const ChatInput: React.FC<ChatInputProps> = ({
     }
   };
 
-  const handleEmojiSelect = (emoji: string) => {
-    const textarea = textareaRef.current;
-    if (!textarea) {
-      setText((prev) => prev + emoji);
+  const handleFilesSelected = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(event.target.files || []);
+    event.target.value = '';
+    if (!files.length) return;
+    if (attachments.length + files.length > MAX_FILES_PER_UPLOAD) {
+      setAttachmentError(`Attach up to ${MAX_FILES_PER_UPLOAD} files in one message.`);
       return;
     }
+    setAttachmentError('');
+    setImageMode(false);
+    setIsPreparingFiles(true);
+    try {
+      const prepared = await prepareAttachments(files);
+      setAttachments((current) => {
+        const currentImageCount = current.filter((attachment) => attachment.kind === 'image').length;
+        const nextImageCount = prepared.filter((attachment) => attachment.kind === 'image').length;
+        const encodedImageChars = [...current, ...prepared]
+          .filter((attachment) => attachment.kind === 'image')
+          .reduce((total, attachment) => total + (attachment.dataUrl?.length || 0), 0);
+        if (currentImageCount + nextImageCount > 5 || encodedImageChars > 4 * 1024 * 1024) {
+          releaseAttachmentPreviews(prepared);
+          setAttachmentError(currentImageCount + nextImageCount > 5
+            ? 'Attach up to 5 images in one message.'
+            : 'Processed images in one message can total up to 3 MB.');
+          return current;
+        }
+        return [...current, ...prepared];
+      });
+    } catch (error: any) {
+      setAttachmentError(error?.message || 'Could not read the selected file.');
+    } finally {
+      setIsPreparingFiles(false);
+    }
+  };
 
-    const start = textarea.selectionStart;
-    const end = textarea.selectionEnd;
-    const newText = text.substring(0, start) + emoji + text.substring(end);
-    setText(newText);
-
-    setTimeout(() => {
-      textarea.focus();
-      textarea.selectionStart = textarea.selectionEnd = start + emoji.length;
-    }, 10);
+  const removeAttachment = (id: string) => {
+    setAttachments((current) => {
+      const removed = current.find((attachment) => attachment.id === id);
+      if (removed) releaseAttachmentPreviews([removed]);
+      return current.filter((attachment) => attachment.id !== id);
+    });
   };
 
   const toggleImageMode = () => {
     setImageMode((prev) => !prev);
-    setShowEmojiPicker(false);
     textareaRef.current?.focus();
   };
 
@@ -153,13 +190,30 @@ export const ChatInput: React.FC<ChatInputProps> = ({
           : 'w-full px-4 pb-2 pt-1'
       }`}
     >
-      {showEmojiPicker && (
-        <EmojiPicker
-          onSelectEmoji={handleEmojiSelect}
-          onClose={() => setShowEmojiPicker(false)}
-          isDark={isDark}
-        />
+      <input
+        ref={fileInputRef}
+        type="file"
+        multiple
+        accept="image/png,image/jpeg,image/webp,image/gif,image/bmp,.pdf,.docx,.pptx,.xlsx,.csv,.tsv,.txt,.md,.json,.jsonl,.xml,.html,.htm,.yaml,.yml,.zip,.js,.jsx,.ts,.tsx,.css,.py,.java,.go,.rs,.c,.cpp,.h,.sql,.sh,.ps1,.toml,.ini,.log,.svg"
+        onChange={handleFilesSelected}
+        className="hidden"
+      />
+
+      {!!attachments.length && (
+        <div className="mb-2 flex flex-wrap gap-2">
+          {attachments.map((attachment) => (
+            <div key={attachment.id} className={`flex max-w-full items-center gap-2 rounded-xl border px-2 py-1.5 text-xs ${isDark ? 'border-zinc-700 bg-zinc-800' : 'border-zinc-200 bg-zinc-50'}`}>
+              {attachment.previewUrl ? (
+                <img src={attachment.previewUrl} alt={attachment.name} className="h-8 w-8 rounded-md object-cover" />
+              ) : <FileText className="h-4 w-4 shrink-0 text-cyan-500" />}
+              <span className="max-w-48 truncate">{attachment.name}</span>
+              <button type="button" onClick={() => removeAttachment(attachment.id)} aria-label={`Remove ${attachment.name}`} className="rounded p-0.5 opacity-70 hover:opacity-100"><X className="h-3.5 w-3.5" /></button>
+            </div>
+          ))}
+        </div>
       )}
+      {attachmentError && <p role="alert" className="mb-2 px-2 text-xs text-red-400">{attachmentError}</p>}
+      {isPreparingFiles && <p className="mb-2 flex items-center gap-1.5 px-2 text-xs text-zinc-400"><Loader2 className="h-3.5 w-3.5 animate-spin" />Reading files…</p>}
 
       {/* Context chip (hidden in image mode) */}
       {contextText && !imageMode && (
@@ -246,25 +300,19 @@ export const ChatInput: React.FC<ChatInputProps> = ({
 
         {/* Input row */}
         <div className="flex items-end gap-2">
-          {/* Emoji button */}
+          {/* Attach files */}
           <button
-            id="toggle-emoji-btn"
+            id="attach-files-btn"
             type="button"
+            disabled={isPreparingFiles}
             onClick={() => {
-              setShowEmojiPicker((prev) => !prev);
+              fileInputRef.current?.click();
             }}
-            title="Add emoji"
-            className={`p-2 rounded-xl shrink-0 transition-colors ${
-              showEmojiPicker
-                ? isDark
-                  ? 'bg-zinc-700 text-zinc-200'
-                  : 'bg-zinc-200 text-zinc-800'
-                : isDark
-                ? 'hover:bg-zinc-700/60 text-zinc-400 hover:text-zinc-200'
-                : 'hover:bg-zinc-100 text-zinc-500 hover:text-zinc-800'
-            }`}
+            title="Attach images or files"
+            aria-label="Attach images or files"
+            className={`rounded-xl p-2 transition-colors ${isDark ? 'text-zinc-400 hover:bg-zinc-700/60 hover:text-zinc-200' : 'text-zinc-500 hover:bg-zinc-100 hover:text-zinc-800'}`}
           >
-            <Smile className="w-5 h-5" />
+            <Plus className="h-5 w-5" />
           </button>
 
           <textarea
@@ -297,7 +345,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
               id="send-message-btn"
               type="button"
               onClick={() => handleSubmit()}
-              disabled={!text.trim()}
+              disabled={!text.trim() && attachments.length === 0 || isPreparingFiles}
               title={imageMode ? 'Generate image' : 'Send message'}
               className={`p-2.5 rounded-full flex items-center justify-center shrink-0 transition-all ${
                 text.trim()

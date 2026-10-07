@@ -24,6 +24,8 @@ import {
   Quote,
   MessageCircleQuestion,
   Download,
+  FileText,
+  ImagePlus,
 } from 'lucide-react';
 
 interface ChatAreaProps {
@@ -56,6 +58,7 @@ interface ChatAreaProps {
   onJumpToSource?: (messageId: string, selectedText: string) => void;
   onGenerateImage?: (prompt: string) => void;
   isImageGenerating?: boolean;
+  onUserSend?: () => void;
 }
 
 export const ChatArea: React.FC<ChatAreaProps> = ({
@@ -88,6 +91,7 @@ export const ChatArea: React.FC<ChatAreaProps> = ({
   onJumpToSource,
   onGenerateImage,
   isImageGenerating = false,
+  onUserSend,
 }) => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -98,6 +102,7 @@ export const ChatArea: React.FC<ChatAreaProps> = ({
 
   const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
   const [editingText, setEditingText] = useState('');
+  const [showScrollToBottom, setShowScrollToBottom] = useState(false);
 
   const [regenState, setRegenState] = useState<{
     oldContent: string;
@@ -223,7 +228,16 @@ export const ChatArea: React.FC<ChatAreaProps> = ({
     if (!el) return;
     const distanceFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
     stickToBottomRef.current = distanceFromBottom < 120;
+    setShowScrollToBottom(distanceFromBottom >= 120);
     setAskAboutButton(null);
+  };
+
+  const scrollToBottom = () => {
+    const el = scrollContainerRef.current;
+    if (!el) return;
+    stickToBottomRef.current = true;
+    el.scrollTo({ top: el.scrollHeight, behavior: 'smooth' });
+    setShowScrollToBottom(false);
   };
 
   useEffect(() => {
@@ -233,6 +247,10 @@ export const ChatArea: React.FC<ChatAreaProps> = ({
     if (lastMsg?.role === 'user') stickToBottomRef.current = true;
     if (stickToBottomRef.current) {
       el.scrollTo({ top: el.scrollHeight, behavior: isStreaming ? 'auto' : 'smooth' });
+      setShowScrollToBottom(false);
+    } else {
+      const distanceFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
+      setShowScrollToBottom(distanceFromBottom >= 120);
     }
   }, [messages, isStreaming]);
 
@@ -364,6 +382,7 @@ export const ChatArea: React.FC<ChatAreaProps> = ({
   const handleSaveEdit = (msgId: string) => {
     const trimmed = editingText.trim();
     if (!trimmed) return;
+    onUserSend?.();
     setEditingMessageId(null);
     setEditingText('');
     stickToBottomRef.current = true;
@@ -372,6 +391,16 @@ export const ChatArea: React.FC<ChatAreaProps> = ({
       const el = scrollContainerRef.current;
       if (el) el.scrollTo({ top: el.scrollHeight, behavior: 'smooth' });
     }, 60);
+  };
+
+  const handleSendFromChat = (text: string) => {
+    onUserSend?.();
+    onSendMessage?.(text);
+  };
+
+  const handlePromptSuggestion = (text: string) => {
+    onUserSend?.();
+    onSelectPromptSuggestion(text);
   };
 
   const handleRegenerateClick = () => {
@@ -676,7 +705,7 @@ export const ChatArea: React.FC<ChatAreaProps> = ({
                 <button
                   key={idx}
                   type="button"
-                  onClick={() => onSelectPromptSuggestion(prompt)}
+                  onClick={() => handlePromptSuggestion(prompt)}
                   className={`px-3 py-1.5 rounded-full text-xs border transition-all ${
                     isDark
                       ? 'bg-zinc-800/40 hover:bg-zinc-800 border-zinc-700/60 text-zinc-300'
@@ -692,6 +721,7 @@ export const ChatArea: React.FC<ChatAreaProps> = ({
       ) : (
         <div
           ref={scrollContainerRef}
+          data-chat-scroll-container
           onScroll={handleMessagesScroll}
           onMouseUp={handleSelectionCheck}
           onTouchEnd={handleSelectionCheck}
@@ -810,6 +840,16 @@ export const ChatArea: React.FC<ChatAreaProps> = ({
                                 </div>
                               </button>
                             )}
+                            {msg.attachments?.length ? (
+                              <div className="mb-2 flex flex-wrap gap-1.5">
+                                {msg.attachments.map((attachment, attachmentIndex) => (
+                                  <span key={`${attachment.name}-${attachmentIndex}`} className={`inline-flex items-center gap-1 rounded-lg border px-2 py-1 text-[11px] ${isDark ? 'border-zinc-600 bg-zinc-700/60 text-zinc-200' : 'border-zinc-300 bg-white/70 text-zinc-700'}`}>
+                                    {attachment.kind === 'image' ? <ImagePlus className="h-3 w-3" /> : <FileText className="h-3 w-3" />}
+                                    <span className="max-w-40 truncate">{attachment.name}</span>
+                                  </span>
+                                ))}
+                              </div>
+                            ) : null}
                             <div className="whitespace-pre-wrap break-words">{msg.content}</div>
                           </div>
                         )
@@ -1133,6 +1173,22 @@ export const ChatArea: React.FC<ChatAreaProps> = ({
             <div ref={messagesEndRef} />
           </div>
         </div>
+      )}
+
+      {showScrollToBottom && messages.length > 0 && (
+        <button
+          type="button"
+          onClick={scrollToBottom}
+          aria-label="Scroll to latest message"
+          title="Go to latest message"
+          className={`absolute bottom-24 left-1/2 z-30 -translate-x-1/2 rounded-full border p-2.5 shadow-lg transition-all hover:scale-105 active:scale-95 ${
+            isDark
+              ? 'border-zinc-700 bg-zinc-800 text-zinc-100 hover:bg-zinc-700'
+              : 'border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-100'
+          }`}
+        >
+          <ChevronDown className="h-5 w-5" />
+        </button>
       )}
 
       {askAboutButton && (

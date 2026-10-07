@@ -173,7 +173,8 @@ export interface ChatSyncState {
   fp: string[];
   meta: string;
 }
-export const messageFingerprint = (m: Message): string => `${m.id}:${m.role}:${m.content.length}:${m.status || ''}`;
+export const messageFingerprint = (m: Message): string =>
+  `${m.id}:${m.role}:${m.content.length}:${m.status || ''}:${m.attachments?.map((attachment) => `${attachment.name}:${attachment.text?.length || 0}:${attachment.imageDataUrl?.length || 0}`).join(',') || ''}`;
 export const chatMeta = (c: ChatSession): string => `${c.isPinned ? 1 : 0}|${c.title}`;
 
 // Move chat to trash (soft delete). Share link is revoked server-side.
@@ -226,6 +227,7 @@ export const saveEphemeralChat = async (
     status: m.status,
     contextText: m.contextText,
     contextMessageId: m.contextMessageId,
+    attachments: m.attachments?.map(({ name, kind, text, mimeType }) => ({ name, kind, text, mimeType })),
     imagePrompt: m.imagePrompt,
     // imageUrl is intentionally omitted (base64 is too large for the safety net)
   }));
