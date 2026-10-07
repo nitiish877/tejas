@@ -268,7 +268,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
       <div
         className={`relative flex flex-col rounded-2xl border transition-all shadow-sm ${
           isDark
-            ? 'bg-[#1e303b] border-zinc-700/70 focus-within:border-cyan-700 text-zinc-100'
+            ? 'bg-[#252a2e] border-zinc-700/70 focus-within:border-cyan-700 text-zinc-100'
             : 'bg-white border-zinc-300 focus-within:border-cyan-700 text-zinc-900 shadow-sm'
         } ${isCentered ? 'py-2.5 px-3 sm:px-3.5 rounded-3xl' : 'p-2 sm:p-2.5'}`}
       >

@@ -608,7 +608,7 @@ export default function App() {
   useEffect(() => {
     if (isDark) {
       document.documentElement.classList.add('dark');
-      document.body.style.backgroundColor = '#101e28';
+      document.body.style.backgroundColor = '#16191c';
     } else {
       document.documentElement.classList.remove('dark');
       document.body.style.backgroundColor = '#f5f8fa';
@@ -1565,7 +1565,7 @@ export default function App() {
   return (
     <div
       className={`flex h-[100dvh] w-full overflow-hidden ${
-        isDark ? 'bg-[#111e28] text-zinc-100' : 'bg-[#f5f8fa] text-zinc-900'
+        isDark ? 'bg-[#16191c] text-zinc-100' : 'bg-[#f5f8fa] text-zinc-900'
       }`}
     >
       <Sidebar

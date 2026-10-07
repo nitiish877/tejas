@@ -495,7 +495,7 @@ export const ChatArea: React.FC<ChatAreaProps> = ({
       <header
         className={`h-14 px-4 flex items-center justify-between border-b shrink-0 z-10 transition-colors ${
           isDark
-            ? 'bg-[#111e28] border-zinc-800 text-zinc-100'
+            ? 'bg-[#16191c] border-zinc-800 text-zinc-100'
             : 'bg-[#f5f8fa] border-zinc-200 text-zinc-900'
         }`}
       >
@@ -755,7 +755,7 @@ export const ChatArea: React.FC<ChatAreaProps> = ({
                       className={`relative rounded-2xl px-4 py-2.5 text-sm sm:text-base leading-relaxed ${
                         isUser
                           ? isDark
-                            ? 'bg-[#1e303b] text-zinc-100 self-end'
+                            ? 'bg-[#252a2e] text-zinc-100 self-end'
                             : 'bg-[#eaf1f4] text-zinc-900 self-end'
                           : 'text-inherit self-start px-0 sm:px-1'
                       }`}

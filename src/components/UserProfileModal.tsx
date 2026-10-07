@@ -44,7 +44,7 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
       <div
         className={`w-full max-w-md my-auto max-h-[92vh] flex flex-col rounded-2xl border shadow-xl p-5 sm:p-6 relative overflow-y-auto ${
           isDark
-            ? 'bg-[#111e28] border-zinc-800 text-zinc-100'
+            ? 'bg-[#16191c] border-zinc-800 text-zinc-100'
             : 'bg-white border-zinc-200 text-zinc-900'
         }`}
       >

@@ -144,8 +144,8 @@ const CodeBlock: React.FC<{ code: string; language: string }> = ({ code, languag
   };
 
   return (
-    <div className="not-prose my-4 overflow-hidden rounded-xl border border-cyan-800/60 shadow-md shadow-slate-950/10">
-      <div className="flex items-center justify-between gap-2 px-3 py-2 bg-[#1d303c] border-b border-cyan-800/50">
+      <div className="not-prose my-4 overflow-hidden rounded-xl border border-cyan-900/70 shadow-md shadow-black/20">
+      <div className="flex items-center justify-between gap-2 px-3 py-2 bg-[#242a2e] border-b border-zinc-700">
         <div className="flex items-center gap-2 min-w-0">
           <span className="flex gap-1.5 shrink-0" aria-hidden="true">
             <span className="w-2.5 h-2.5 rounded-full bg-rose-400" />
@@ -185,7 +185,7 @@ const CodeBlock: React.FC<{ code: string; language: string }> = ({ code, languag
         </div>
       </div>
 
-      <div className="overflow-x-auto bg-[#172631]">
+      <div className="overflow-x-auto bg-[#1b2024]">
         <SyntaxHighlighter
           language={lang}
           style={codeTheme}

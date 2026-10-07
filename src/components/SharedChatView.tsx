@@ -35,11 +35,11 @@ export const SharedChatView: React.FC<SharedChatViewProps> = ({ shareId, getApiU
   }, [shareId, getApiUrl]);
 
   return (
-    <div className={`min-h-[100dvh] w-full flex flex-col ${isDark ? 'bg-[#111e28] text-zinc-100' : 'bg-[#f5f8fa] text-zinc-900'}`}>
+    <div className={`min-h-[100dvh] w-full flex flex-col ${isDark ? 'bg-[#16191c] text-zinc-100' : 'bg-[#f5f8fa] text-zinc-900'}`}>
       {/* Header */}
       <header
         className={`h-14 px-4 flex items-center justify-between border-b shrink-0 ${
-          isDark ? 'bg-[#111e28] border-zinc-800' : 'bg-[#f5f8fa] border-zinc-200'
+          isDark ? 'bg-[#16191c] border-zinc-800' : 'bg-[#f5f8fa] border-zinc-200'
         }`}
       >
         <div className="flex items-center gap-2.5">
@@ -101,7 +101,7 @@ export const SharedChatView: React.FC<SharedChatViewProps> = ({ shareId, getApiU
                       className={`relative max-w-[85%] sm:max-w-[80%] rounded-2xl px-4 py-2.5 text-sm sm:text-base leading-relaxed ${
                         isUser
                           ? isDark
-                            ? 'bg-[#1e303b] text-zinc-100'
+                            ? 'bg-[#252a2e] text-zinc-100'
                             : 'bg-[#eaf1f4] text-zinc-900'
                           : 'text-inherit px-0 sm:px-1'
                       }`}

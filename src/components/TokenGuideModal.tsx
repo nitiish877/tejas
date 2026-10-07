@@ -45,7 +45,7 @@ export const TokenGuideModal: React.FC<TokenGuideModalProps> = ({
       <div
         className={`w-full max-w-xl max-h-[90vh] overflow-y-auto rounded-2xl border shadow-xl p-6 sm:p-7 relative ${
           isDark
-            ? 'bg-[#111e28] border-zinc-800 text-zinc-100'
+            ? 'bg-[#16191c] border-zinc-800 text-zinc-100'
             : 'bg-white border-zinc-200 text-zinc-900'
         }`}
       >

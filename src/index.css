@@ -58,6 +58,21 @@
   --color-fuchsia-700: #765a74;
 }
 
+/* Dark mode uses a quieter graphite scale; the light palette above stays intact. */
+.dark {
+  --color-zinc-50: #f4f6f7;
+  --color-zinc-100: #e7ebee;
+  --color-zinc-200: #d1d8dc;
+  --color-zinc-300: #bac4ca;
+  --color-zinc-400: #929fa6;
+  --color-zinc-500: #6f7c83;
+  --color-zinc-600: #545f66;
+  --color-zinc-700: #3b444a;
+  --color-zinc-800: #292f34;
+  --color-zinc-900: #1e2327;
+  --color-zinc-950: #14181b;
+}
+
 @layer base {
   * {
     scrollbar-width: thin;

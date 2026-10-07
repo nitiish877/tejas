@@ -355,7 +355,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           isOpen ? 'translate-x-0' : isCollapsed ? '-translate-x-full' : '-translate-x-full md:translate-x-0'
         } ${
           isDark
-            ? 'bg-[#14232e] border-zinc-800 text-zinc-200'
+            ? 'bg-[#191c1f] border-zinc-800 text-zinc-200'
             : 'bg-[#f2f7f9] border-zinc-200 text-zinc-800'
         }`}
       >
