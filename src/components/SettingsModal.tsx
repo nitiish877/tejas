@@ -173,7 +173,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     <div className="fixed inset-0 z-50 overflow-y-auto p-3 sm:p-4 bg-black/60 backdrop-blur-sm flex justify-center items-start sm:items-center min-h-screen animate-in fade-in duration-200">
       <div
         className={`w-full max-w-md my-auto max-h-[92vh] flex flex-col rounded-2xl border shadow-xl p-5 sm:p-6 relative overflow-y-auto ${
-          isDark ? 'bg-[#212121] border-zinc-800 text-zinc-100' : 'bg-white border-zinc-200 text-zinc-900'
+          isDark ? 'bg-[#111e28] border-zinc-800 text-zinc-100' : 'bg-[#f5f8fa] border-zinc-200 text-zinc-900'
         }`}
       >
         {/* Header */}

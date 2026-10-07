@@ -169,7 +169,7 @@ export const PaymentHistoryModal: React.FC<PaymentHistoryModalProps> = ({
               <button
                 type="button"
                 onClick={() => downloadReceipt(selected)}
-                className="w-full py-2.5 rounded-xl text-sm font-semibold bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white flex items-center justify-center gap-2 transition-all shadow-md shadow-emerald-900/20"
+                className="w-full py-2.5 rounded-xl text-sm font-semibold bg-gradient-to-r from-cyan-700 to-blue-700 hover:from-cyan-600 hover:to-blue-600 text-white flex items-center justify-center gap-2 transition-all shadow-md shadow-cyan-950/20"
               >
                 <Download className="w-4 h-4" />
                 Download Receipt (.txt)

@@ -31,7 +31,41 @@ const LANGS: Record<string, any> = {
   javascript, typescript, jsx, tsx, python, bash, json, css, markup, java, c, cpp, csharp, sql, go, rust, yaml, php,
 };
 Object.entries(LANGS).forEach(([name, def]) => SyntaxHighlighter.registerLanguage(name, unwrap(def)));
-const codeTheme = unwrap(oneDark);
+const codeTheme = {
+  ...unwrap(oneDark),
+  'code[class*="language-"]': { color: '#d7e5eb', background: 'transparent' },
+  'pre[class*="language-"]': { color: '#d7e5eb', background: 'transparent' },
+  comment: { color: '#8298a2', fontStyle: 'italic' },
+  prolog: { color: '#8298a2' },
+  doctype: { color: '#8298a2' },
+  cdata: { color: '#8298a2' },
+  punctuation: { color: '#a9bbc3' },
+  'namespace': { color: '#a9bbc3', opacity: 0.85 },
+  property: { color: '#81c9d0' },
+  tag: { color: '#81c9d0' },
+  boolean: { color: '#d5b985' },
+  number: { color: '#d5b985' },
+  constant: { color: '#d5b985' },
+  symbol: { color: '#d5b985' },
+  deleted: { color: '#d49a9a' },
+  selector: { color: '#9bc9b1' },
+  'attr-name': { color: '#9bc9b1' },
+  string: { color: '#9bc9b1' },
+  char: { color: '#9bc9b1' },
+  builtin: { color: '#9bc9b1' },
+  inserted: { color: '#9bc9b1' },
+  operator: { color: '#86b7c4' },
+  entity: { color: '#86b7c4' },
+  url: { color: '#86b7c4' },
+  atrule: { color: '#77c3ca' },
+  'attr-value': { color: '#9bc9b1' },
+  keyword: { color: '#79c6cd' },
+  function: { color: '#9bb9df' },
+  'class-name': { color: '#a8b7db' },
+  regex: { color: '#d5b985' },
+  important: { color: '#d5b985', fontWeight: 'bold' },
+  variable: { color: '#d4a5c8' },
+};
 
 // Model kabhi "js", "py", "html" jaise short naam likhta hai
 const ALIASES: Record<string, string> = {
@@ -110,15 +144,15 @@ const CodeBlock: React.FC<{ code: string; language: string }> = ({ code, languag
   };
 
   return (
-    <div className="not-prose my-4 overflow-hidden rounded-xl border border-zinc-700/60 shadow-md">
-      <div className="flex items-center justify-between gap-2 px-3 py-2 bg-gradient-to-r from-fuchsia-600/25 via-indigo-600/25 to-cyan-600/25 border-b border-zinc-700/60">
+    <div className="not-prose my-4 overflow-hidden rounded-xl border border-cyan-800/60 shadow-md shadow-slate-950/10">
+      <div className="flex items-center justify-between gap-2 px-3 py-2 bg-[#1d303c] border-b border-cyan-800/50">
         <div className="flex items-center gap-2 min-w-0">
           <span className="flex gap-1.5 shrink-0" aria-hidden="true">
             <span className="w-2.5 h-2.5 rounded-full bg-rose-400" />
             <span className="w-2.5 h-2.5 rounded-full bg-amber-300" />
             <span className="w-2.5 h-2.5 rounded-full bg-emerald-400" />
           </span>
-          <span className="text-xs font-semibold tracking-wide text-cyan-200 truncate">
+          <span className="text-xs font-semibold tracking-wide text-[#a6dce0] truncate">
             {LANG_BADGE[lang] || '📝'} {language || 'code'}
           </span>
         </div>
@@ -133,7 +167,7 @@ const CodeBlock: React.FC<{ code: string; language: string }> = ({ code, languag
             className={`p-1.5 rounded-lg transition-all ${
               copied
                 ? 'text-emerald-300 bg-emerald-500/15'
-                : 'text-zinc-200 hover:text-white bg-white/5 hover:bg-white/10'
+                : 'text-zinc-300 hover:text-white bg-white/5 hover:bg-white/10'
             }`}
           >
             {copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
@@ -144,14 +178,14 @@ const CodeBlock: React.FC<{ code: string; language: string }> = ({ code, languag
             onClick={handleDownload}
             title="Download file"
             aria-label="Download code"
-            className="p-1.5 rounded-lg text-zinc-200 hover:text-white bg-white/5 hover:bg-white/10 transition-all"
+            className="p-1.5 rounded-lg text-zinc-300 hover:text-white bg-white/5 hover:bg-white/10 transition-all"
           >
             <Download className="w-3.5 h-3.5" />
           </button>
         </div>
       </div>
 
-      <div className="overflow-x-auto bg-[#282c34]">
+      <div className="overflow-x-auto bg-[#172631]">
         <SyntaxHighlighter
           language={lang}
           style={codeTheme}

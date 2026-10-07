@@ -608,10 +608,10 @@ export default function App() {
   useEffect(() => {
     if (isDark) {
       document.documentElement.classList.add('dark');
-      document.body.style.backgroundColor = '#090d16';
+      document.body.style.backgroundColor = '#101e28';
     } else {
       document.documentElement.classList.remove('dark');
-      document.body.style.backgroundColor = '#f8fafc';
+      document.body.style.backgroundColor = '#f5f8fa';
     }
   }, [isDark]);
 
@@ -1565,7 +1565,7 @@ export default function App() {
   return (
     <div
       className={`flex h-[100dvh] w-full overflow-hidden ${
-        isDark ? 'bg-[#212121] text-zinc-100' : 'bg-white text-zinc-900'
+        isDark ? 'bg-[#111e28] text-zinc-100' : 'bg-[#f5f8fa] text-zinc-900'
       }`}
     >
       <Sidebar
@@ -1791,7 +1791,7 @@ export default function App() {
                   <button
                     type="button"
                     onClick={async () => { if (shareLink && (await copyText(shareLink))) { setShareCopied(true); setTimeout(() => setShareCopied(false), 2000); } }}
-                    className="shrink-0 px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white transition-all"
+                    className="shrink-0 px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-gradient-to-r from-cyan-700 to-blue-700 hover:from-cyan-600 hover:to-blue-600 text-white transition-all"
                   >
                     {shareCopied ? 'Copied ✓' : 'Copy'}
                   </button>
@@ -1885,7 +1885,7 @@ export default function App() {
               <button
                 type="button"
                 onClick={proceedWithShare}
-                className="flex-1 py-2.5 rounded-xl text-xs font-semibold bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white transition-all shadow-sm"
+                className="flex-1 py-2.5 rounded-xl text-xs font-semibold bg-gradient-to-r from-cyan-700 to-blue-700 hover:from-cyan-600 hover:to-blue-600 text-white transition-all shadow-sm"
               >
                 Continue to Share
               </button>

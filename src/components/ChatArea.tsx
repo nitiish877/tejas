@@ -495,8 +495,8 @@ export const ChatArea: React.FC<ChatAreaProps> = ({
       <header
         className={`h-14 px-4 flex items-center justify-between border-b shrink-0 z-10 transition-colors ${
           isDark
-            ? 'bg-[#212121] border-zinc-800 text-zinc-100'
-            : 'bg-white border-zinc-200 text-zinc-900'
+            ? 'bg-[#111e28] border-zinc-800 text-zinc-100'
+            : 'bg-[#f5f8fa] border-zinc-200 text-zinc-900'
         }`}
       >
         <div className="flex items-center gap-3">
@@ -598,7 +598,7 @@ export const ChatArea: React.FC<ChatAreaProps> = ({
               onClick={onShareChat}
               disabled={isSharing}
               title="Share this chat"
-              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-semibold border border-transparent bg-gradient-to-r from-fuchsia-600 via-purple-600 to-indigo-600 hover:from-fuchsia-500 hover:via-purple-500 hover:to-indigo-500 text-white transition-all shadow-sm disabled:opacity-60"
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-semibold border border-cyan-300/20 bg-gradient-to-r from-cyan-700 via-teal-700 to-blue-700 hover:from-cyan-600 hover:via-teal-600 hover:to-blue-600 text-white transition-all shadow-sm shadow-cyan-950/15 disabled:opacity-60"
             >
               {isSharing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Share2 className="w-3.5 h-3.5" />}
               <span className="hidden sm:inline">Share</span>
@@ -633,7 +633,7 @@ export const ChatArea: React.FC<ChatAreaProps> = ({
                   ? 'bg-blue-500/15 text-blue-300 border border-blue-500/30 hover:bg-blue-500/25'
                   : subscriptionPlan === 'cat'
                   ? 'bg-purple-500/15 text-purple-300 border border-purple-500/30 hover:bg-purple-500/25'
-                  : 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white'
+                  : 'bg-gradient-to-r from-cyan-700 to-blue-700 hover:from-cyan-600 hover:to-blue-600 text-white'
               }`}
             >
               {subscriptionPlan === 'arka' ? (
@@ -658,11 +658,11 @@ export const ChatArea: React.FC<ChatAreaProps> = ({
       </header>
 
       {updateInfo && updateInfo.version && updateInfo.version !== getClientVersion() && (
-        <div className="w-full bg-gradient-to-r from-blue-600/20 via-indigo-600/20 to-blue-600/20 border-b border-blue-500/30 px-4 py-2 flex items-center justify-between text-xs text-blue-200 transition-all shadow-sm shrink-0">
+        <div className="w-full bg-gradient-to-r from-cyan-700/15 via-teal-700/15 to-blue-700/15 border-b border-cyan-600/25 px-4 py-2 flex items-center justify-between text-xs text-cyan-200 transition-all shadow-sm shrink-0">
           <div className="flex items-center gap-2">
             <span className="flex h-2 w-2 relative">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75" />
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-500" />
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-cyan-500" />
             </span>
             <span>
               <strong>Update Ready:</strong> Version <strong>v{updateInfo.version}</strong> is available.
@@ -672,7 +672,7 @@ export const ChatArea: React.FC<ChatAreaProps> = ({
             id="open-update-modal-banner-btn"
             type="button"
             onClick={onOpenUpdateModal}
-            className="px-2.5 py-1 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-semibold text-[11px] shadow-sm transition-all flex items-center gap-1 cursor-pointer"
+            className="px-2.5 py-1 rounded-lg bg-cyan-700 hover:bg-cyan-600 text-white font-semibold text-[11px] shadow-sm transition-all flex items-center gap-1 cursor-pointer"
           >
             <ArrowUpCircle className="w-3.5 h-3.5" />
             <span>Update Now</span>
@@ -755,8 +755,8 @@ export const ChatArea: React.FC<ChatAreaProps> = ({
                       className={`relative rounded-2xl px-4 py-2.5 text-sm sm:text-base leading-relaxed ${
                         isUser
                           ? isDark
-                            ? 'bg-[#2f2f2f] text-zinc-100 self-end'
-                            : 'bg-[#f4f4f4] text-zinc-900 self-end'
+                            ? 'bg-[#1e303b] text-zinc-100 self-end'
+                            : 'bg-[#eaf1f4] text-zinc-900 self-end'
                           : 'text-inherit self-start px-0 sm:px-1'
                       }`}
                     >

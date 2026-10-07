@@ -81,7 +81,7 @@ export const UpdateModal: React.FC<UpdateModalProps> = ({
 
         {/* Icon & Title */}
         <div className="flex items-center gap-3.5 mb-4">
-          <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-600 text-white flex items-center justify-center shadow-md shadow-blue-500/20">
+          <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-cyan-700 to-blue-700 text-white flex items-center justify-center shadow-md shadow-cyan-900/20">
             <Sparkles className="w-6 h-6 animate-pulse" />
           </div>
           <div>
@@ -124,7 +124,7 @@ export const UpdateModal: React.FC<UpdateModalProps> = ({
           <button
             type="button"
             onClick={handleInstantUpdate}
-            className="w-full py-3 px-4 rounded-xl font-semibold text-xs sm:text-sm bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white flex items-center justify-center gap-2 shadow-lg shadow-blue-600/20 transition-all cursor-pointer"
+            className="w-full py-3 px-4 rounded-xl font-semibold text-xs sm:text-sm bg-gradient-to-r from-cyan-700 to-blue-700 hover:from-cyan-600 hover:to-blue-600 text-white flex items-center justify-center gap-2 shadow-lg shadow-cyan-900/20 transition-all cursor-pointer"
           >
             <RefreshCw className="w-4 h-4" />
             <span>Update Now</span>

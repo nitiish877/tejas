@@ -35,11 +35,11 @@ export const SharedChatView: React.FC<SharedChatViewProps> = ({ shareId, getApiU
   }, [shareId, getApiUrl]);
 
   return (
-    <div className={`min-h-[100dvh] w-full flex flex-col ${isDark ? 'bg-[#212121] text-zinc-100' : 'bg-white text-zinc-900'}`}>
+    <div className={`min-h-[100dvh] w-full flex flex-col ${isDark ? 'bg-[#111e28] text-zinc-100' : 'bg-[#f5f8fa] text-zinc-900'}`}>
       {/* Header */}
       <header
         className={`h-14 px-4 flex items-center justify-between border-b shrink-0 ${
-          isDark ? 'bg-[#212121] border-zinc-800' : 'bg-white border-zinc-200'
+          isDark ? 'bg-[#111e28] border-zinc-800' : 'bg-[#f5f8fa] border-zinc-200'
         }`}
       >
         <div className="flex items-center gap-2.5">
@@ -55,7 +55,7 @@ export const SharedChatView: React.FC<SharedChatViewProps> = ({ shareId, getApiU
         </div>
         <a
           href="/"
-          className="px-3 py-1.5 rounded-xl text-xs font-semibold bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white transition-all"
+          className="px-3 py-1.5 rounded-xl text-xs font-semibold bg-gradient-to-r from-cyan-700 to-blue-700 hover:from-cyan-600 hover:to-blue-600 text-white transition-all"
         >
          try Tejas AI →
         </a>
@@ -101,8 +101,8 @@ export const SharedChatView: React.FC<SharedChatViewProps> = ({ shareId, getApiU
                       className={`relative max-w-[85%] sm:max-w-[80%] rounded-2xl px-4 py-2.5 text-sm sm:text-base leading-relaxed ${
                         isUser
                           ? isDark
-                            ? 'bg-[#2f2f2f] text-zinc-100'
-                            : 'bg-[#f4f4f4] text-zinc-900'
+                            ? 'bg-[#1e303b] text-zinc-100'
+                            : 'bg-[#eaf1f4] text-zinc-900'
                           : 'text-inherit px-0 sm:px-1'
                       }`}
                     >
@@ -125,7 +125,7 @@ export const SharedChatView: React.FC<SharedChatViewProps> = ({ shareId, getApiU
               <div className="pt-6 text-center">
                 <a
                   href="/"
-                  className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white transition-all"
+                  className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold bg-gradient-to-r from-cyan-700 to-blue-700 hover:from-cyan-600 hover:to-blue-600 text-white transition-all"
                 >
                   ✨ Start your own chat — Tejas AI
                 </a>

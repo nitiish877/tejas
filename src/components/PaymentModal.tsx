@@ -425,7 +425,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
                 type="button"
                 onClick={handleConfirmPayment}
                 disabled={isProcessing}
-                className="w-full py-3 px-4 rounded-xl text-sm font-bold bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white flex items-center justify-center gap-2 transition-all shadow-lg shadow-emerald-900/20 disabled:opacity-70 cursor-pointer"
+                className="w-full py-3 px-4 rounded-xl text-sm font-bold bg-gradient-to-r from-cyan-700 to-blue-700 hover:from-cyan-600 hover:to-blue-600 text-white flex items-center justify-center gap-2 transition-all shadow-lg shadow-cyan-950/20 disabled:opacity-70 cursor-pointer"
               >
                 {isProcessing ? (
                   <>

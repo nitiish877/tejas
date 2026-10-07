@@ -355,8 +355,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
           isOpen ? 'translate-x-0' : isCollapsed ? '-translate-x-full' : '-translate-x-full md:translate-x-0'
         } ${
           isDark
-            ? 'bg-[#171717] border-zinc-800 text-zinc-200'
-            : 'bg-[#f9f9f9] border-zinc-200 text-zinc-800'
+            ? 'bg-[#14232e] border-zinc-800 text-zinc-200'
+            : 'bg-[#f2f7f9] border-zinc-200 text-zinc-800'
         }`}
       >
         {/* Top Header */}
