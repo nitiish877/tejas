@@ -6,3 +6,5 @@ dist/
 push.py
 tmp
 output
+.vscode
+tejas-extension
