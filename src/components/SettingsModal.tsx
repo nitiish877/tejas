@@ -67,6 +67,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   const [view, setView] = useState<SettingsView>('menu');
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [showPcOnlyNotice, setShowPcOnlyNotice] = useState(false);
+  const [showInstallChooser, setShowInstallChooser] = useState(false);
+  const [selectedEditor, setSelectedEditor] = useState<string | null>(null);
   const [isMobileDevice, setIsMobileDevice] = useState(() =>
     typeof window !== 'undefined' && window.matchMedia('(max-width: 767px), (pointer: coarse)').matches,
   );
@@ -118,6 +120,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     setView('menu');
     setShowLogoutConfirm(false);
     setShowPcOnlyNotice(false);
+    setShowInstallChooser(false);
     onClose();
   };
 
@@ -125,6 +128,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     setView('menu');
     setShowLogoutConfirm(false);
     setShowPcOnlyNotice(false);
+    setShowInstallChooser(false);
   };
 
   // ---------- Shared UI helpers ----------
@@ -371,6 +375,17 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 </div>
               </div>
             </div>
+
+            <button
+              type="button"
+              onClick={() => {
+                setSelectedEditor(null);
+                setShowInstallChooser(true);
+              }}
+              className="w-full rounded-xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2 focus:ring-offset-zinc-900"
+            >
+              Install Tejas
+            </button>
 
             <div className={`rounded-xl border p-3.5 ${isDark ? 'border-amber-500/20 bg-amber-500/5' : 'border-amber-300 bg-amber-50'}`}>
               <div className="flex items-start gap-2.5">
@@ -645,6 +660,83 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
             >
               Got it
             </button>
+          </section>
+        </div>
+      )}
+
+      {showInstallChooser && (
+        <div
+          className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm"
+          onClick={() => setShowInstallChooser(false)}
+        >
+          <section
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="editor-installer-title"
+            className={`w-full max-w-md rounded-2xl border p-5 shadow-2xl ${isDark ? 'border-zinc-700 bg-[#16191c] text-zinc-100' : 'border-zinc-200 bg-white text-zinc-900'}`}
+            onClick={(event) => event.stopPropagation()}
+          >
+            <h3 id="editor-installer-title" className="text-base font-semibold">Choose your code editor</h3>
+            <p className={`mt-1 text-sm leading-relaxed ${isDark ? 'text-zinc-400' : 'text-zinc-600'}`}>
+              Select the editor you use. This website can’t inspect which desktop editors are installed, so choose one manually.
+            </p>
+
+            <div className="mt-4 space-y-2">
+              {[
+                { id: 'vscode', name: 'Visual Studio Code', detail: 'Recommended' },
+                { id: 'cursor', name: 'Cursor', detail: 'VS Code compatible' },
+                { id: 'windsurf', name: 'Windsurf', detail: 'VS Code compatible' },
+              ].map((editor) => {
+                const selected = selectedEditor === editor.id;
+                return (
+                  <button
+                    key={editor.id}
+                    type="button"
+                    onClick={() => setSelectedEditor(editor.id)}
+                    aria-pressed={selected}
+                    className={`flex w-full items-center justify-between rounded-xl border p-3 text-left transition-colors ${
+                      selected
+                        ? isDark
+                          ? 'border-blue-400 bg-blue-500/10'
+                          : 'border-blue-500 bg-blue-50'
+                        : isDark
+                        ? 'border-zinc-800 bg-zinc-900/60 hover:border-zinc-700'
+                        : 'border-zinc-200 bg-zinc-50 hover:border-zinc-300'
+                    }`}
+                  >
+                    <span>
+                      <span className="block text-sm font-medium">{editor.name}</span>
+                      <span className={`mt-0.5 block text-xs ${isDark ? 'text-zinc-500' : 'text-zinc-500'}`}>{editor.detail}</span>
+                    </span>
+                    {selected && <Check className="h-4 w-4 text-blue-500" />}
+                  </button>
+                );
+              })}
+            </div>
+
+            {selectedEditor && (
+              <p className={`mt-3 rounded-lg border p-3 text-xs leading-relaxed ${isDark ? 'border-amber-500/20 bg-amber-500/5 text-amber-100/80' : 'border-amber-300 bg-amber-50 text-amber-900'}`}>
+                The Tejas extension listing is not available yet, so this app can’t open its editor install page. Your selected editor is {selectedEditor === 'vscode' ? 'Visual Studio Code' : selectedEditor === 'cursor' ? 'Cursor' : 'Windsurf'}.
+              </p>
+            )}
+
+            <div className="mt-4 flex gap-2">
+              <button
+                type="button"
+                onClick={() => setShowInstallChooser(false)}
+                className={`flex-1 rounded-xl border px-4 py-2.5 text-sm font-medium transition-colors ${isDark ? 'border-zinc-700 text-zinc-300 hover:bg-zinc-800' : 'border-zinc-300 text-zinc-700 hover:bg-zinc-100'}`}
+              >
+                Close
+              </button>
+              <button
+                type="button"
+                disabled={!selectedEditor}
+                onClick={() => setShowInstallChooser(false)}
+                className="flex-1 rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {selectedEditor ? 'Done' : 'Select an editor'}
+              </button>
+            </div>
           </section>
         </div>
       )}
