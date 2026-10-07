@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { AppSettings, SubscriptionPlanType, ThemeMode, UserProfile } from '../types';
 import {
   Settings,
@@ -22,6 +22,9 @@ import {
   ChevronRight,
   ArrowLeft,
   Palette,
+  Code2,
+  MonitorCheck,
+  Laptop,
 } from 'lucide-react';
 import { getClientVersion } from '../version';
 import { isGuestUser } from '../utils/api';
@@ -43,7 +46,7 @@ interface SettingsModalProps {
   isCheckingUpdates?: boolean;
 }
 
-type SettingsView = 'menu' | 'preferences' | 'subscriptions' | 'account';
+type SettingsView = 'menu' | 'preferences' | 'subscriptions' | 'account' | 'editor';
 
 export const SettingsModal: React.FC<SettingsModalProps> = ({
   isOpen,
@@ -63,7 +66,19 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 }) => {
   const [view, setView] = useState<SettingsView>('menu');
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+  const [showPcOnlyNotice, setShowPcOnlyNotice] = useState(false);
+  const [isMobileDevice, setIsMobileDevice] = useState(() =>
+    typeof window !== 'undefined' && window.matchMedia('(max-width: 767px), (pointer: coarse)').matches,
+  );
   const isGuest = isGuestUser(currentUser);
+
+  useEffect(() => {
+    const mediaQuery = window.matchMedia('(max-width: 767px), (pointer: coarse)');
+    const updateDevice = () => setIsMobileDevice(mediaQuery.matches);
+    updateDevice();
+    mediaQuery.addEventListener('change', updateDevice);
+    return () => mediaQuery.removeEventListener('change', updateDevice);
+  }, []);
 
   if (!isOpen) return null;
 
@@ -102,12 +117,14 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   const handleClose = () => {
     setView('menu');
     setShowLogoutConfirm(false);
+    setShowPcOnlyNotice(false);
     onClose();
   };
 
   const handleBack = () => {
     setView('menu');
     setShowLogoutConfirm(false);
+    setShowPcOnlyNotice(false);
   };
 
   // ---------- Shared UI helpers ----------
@@ -117,16 +134,17 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     subtitle?: string;
     onClick?: () => void;
     disabled?: boolean;
+    muted?: boolean;
     rightHint?: React.ReactNode;
-  }> = ({ icon, title, subtitle, onClick, disabled, rightHint }) => (
+  }> = ({ icon, title, subtitle, onClick, disabled, muted, rightHint }) => (
     <button
       type="button"
       onClick={onClick}
       disabled={disabled}
       className={`w-full text-left p-3.5 rounded-xl border flex items-center justify-between gap-3 transition-all ${
         isDark
-          ? 'bg-zinc-900/60 border-zinc-800 hover:border-zinc-700 hover:bg-zinc-900 disabled:opacity-50'
-          : 'bg-zinc-50 border-zinc-200 hover:border-zinc-300 hover:bg-zinc-100 disabled:opacity-50'
+          ? `bg-zinc-900/60 border-zinc-800 ${muted ? 'opacity-60' : 'hover:border-zinc-700 hover:bg-zinc-900'} disabled:opacity-50`
+          : `bg-zinc-50 border-zinc-200 ${muted ? 'opacity-60' : 'hover:border-zinc-300 hover:bg-zinc-100'} disabled:opacity-50`
       }`}
     >
       <div className="flex items-center gap-3 min-w-0">
@@ -200,6 +218,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 ? 'Preferences'
                 : view === 'subscriptions'
                 ? 'Subscriptions'
+                : view === 'editor'
+                ? 'Code Editor'
                 : 'Account'}
             </h2>
             <p className={`text-xs truncate ${isDark ? 'text-zinc-400' : 'text-zinc-500'}`}>
@@ -209,6 +229,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 ? 'Theme & notifications'
                 : view === 'subscriptions'
                 ? 'Models, plans & payments'
+                : view === 'editor'
+                ? 'Connect your desktop editor'
                 : 'Profile, shares & app info'}
             </p>
           </div>
@@ -230,6 +252,26 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               title="Preferences"
               subtitle="Theme & sound notifications"
               onClick={() => setView('preferences')}
+            />
+
+            {/* Code editor connection */}
+            <RowButton
+              icon={<IconBox tone="emerald"><Code2 className="w-4 h-4" /></IconBox>}
+              title="Code Editor"
+              subtitle={isMobileDevice ? 'Connect VS Code • PC only' : 'Connect VS Code to edit local files'}
+              muted={isMobileDevice}
+              onClick={() => {
+                if (isMobileDevice) {
+                  setShowPcOnlyNotice(true);
+                  return;
+                }
+                setView('editor');
+              }}
+              rightHint={isMobileDevice ? (
+                <span className={`shrink-0 rounded-full border px-2 py-1 text-[10px] font-semibold ${isDark ? 'border-zinc-700 bg-zinc-800 text-zinc-300' : 'border-zinc-300 bg-zinc-100 text-zinc-600'}`}>
+                  PC only
+                </span>
+              ) : undefined}
             />
 
             {/* Subscriptions */}
@@ -311,6 +353,41 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                   }`}
                 />
               </button>
+            </div>
+          </div>
+        )}
+
+        {/* ==================== CODE EDITOR ==================== */}
+        {view === 'editor' && (
+          <div className="space-y-4">
+            <div className={`rounded-xl border p-4 ${isDark ? 'border-zinc-800 bg-zinc-900/60' : 'border-zinc-200 bg-zinc-50'}`}>
+              <div className="flex items-start gap-3">
+                <IconBox tone="emerald"><Laptop className="w-4 h-4" /></IconBox>
+                <div>
+                  <h3 className="text-sm font-semibold">Connect VS Code</h3>
+                  <p className={`mt-1 text-xs leading-relaxed ${isDark ? 'text-zinc-400' : 'text-zinc-600'}`}>
+                    Use the Tejas panel in VS Code to choose the open file, add more files, review line-by-line changes, and apply or undo edits.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className={`rounded-xl border p-3.5 ${isDark ? 'border-amber-500/20 bg-amber-500/5' : 'border-amber-300 bg-amber-50'}`}>
+              <div className="flex items-start gap-2.5">
+                <MonitorCheck className={`mt-0.5 h-4 w-4 shrink-0 ${isDark ? 'text-amber-300' : 'text-amber-700'}`} />
+                <p className={`text-xs leading-relaxed ${isDark ? 'text-amber-100/80' : 'text-amber-900'}`}>
+                  VS Code connection is designed for desktop computers. The extension installer is not linked in this app version yet.
+                </p>
+              </div>
+            </div>
+
+            <div className={`rounded-xl border p-3.5 ${isDark ? 'border-zinc-800 bg-zinc-900/40' : 'border-zinc-200 bg-white'}`}>
+              <p className="text-xs font-semibold">Planned connection flow</p>
+              <ol className={`mt-2 list-inside list-decimal space-y-1.5 text-xs ${isDark ? 'text-zinc-400' : 'text-zinc-600'}`}>
+                <li>Install the Tejas extension in VS Code.</li>
+                <li>Connect your Tejas account.</li>
+                <li>Review proposed file changes in VS Code before applying them.</li>
+              </ol>
             </div>
           </div>
         )}
@@ -540,6 +617,37 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
           </div>
         )}
       </div>
+
+      {showPcOnlyNotice && (
+        <div
+          className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm"
+          onClick={() => setShowPcOnlyNotice(false)}
+        >
+          <section
+            role="alertdialog"
+            aria-modal="true"
+            aria-labelledby="editor-pc-only-title"
+            className={`w-full max-w-sm rounded-2xl border p-5 shadow-2xl ${isDark ? 'border-zinc-700 bg-[#16191c] text-zinc-100' : 'border-zinc-200 bg-white text-zinc-900'}`}
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="mb-3 flex items-center gap-3">
+              <IconBox tone="blue"><Laptop className="h-4 w-4" /></IconBox>
+              <h3 id="editor-pc-only-title" className="text-base font-semibold">Available on PC or Mac</h3>
+            </div>
+            <p className={`text-sm leading-relaxed ${isDark ? 'text-zinc-400' : 'text-zinc-600'}`}>
+              VS Code connection needs the desktop editor, so it can’t be used from a phone. Open Tejas on your computer to connect your code editor.
+            </p>
+            <button
+              type="button"
+              autoFocus
+              onClick={() => setShowPcOnlyNotice(false)}
+              className={`mt-5 w-full rounded-xl px-4 py-2.5 text-sm font-semibold transition-colors ${isDark ? 'bg-zinc-100 text-zinc-900 hover:bg-white' : 'bg-zinc-900 text-white hover:bg-zinc-800'}`}
+            >
+              Got it
+            </button>
+          </section>
+        </div>
+      )}
     </div>
   );
 };
