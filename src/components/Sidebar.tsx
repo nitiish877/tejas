@@ -24,7 +24,9 @@ import {
 
 interface SidebarProps {
   isOpen: boolean;
+  isCollapsed?: boolean;
   onClose: () => void;
+  onToggleCollapsed?: () => void;
   chats: ChatSession[];
   activeChatId: string | null;
   onSelectChat: (id: string) => void;
@@ -89,7 +91,9 @@ function isRunningAsInstalledApp(): boolean {
 
 export const Sidebar: React.FC<SidebarProps> = ({
   isOpen,
+  isCollapsed = false,
   onClose,
+  onToggleCollapsed,
   chats,
   activeChatId,
   onSelectChat,
@@ -348,7 +352,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       <aside
         id="app-sidebar"
         className={`fixed top-0 bottom-0 left-0 z-50 w-72 sm:w-80 flex flex-col border-r transition-transform duration-300 ease-in-out ${
-          isOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'
+          isOpen ? 'translate-x-0' : isCollapsed ? '-translate-x-full' : '-translate-x-full md:translate-x-0'
         } ${
           isDark
             ? 'bg-[#171717] border-zinc-800 text-zinc-200'
@@ -378,12 +382,17 @@ export const Sidebar: React.FC<SidebarProps> = ({
           <button
             id="close-sidebar-btn"
             type="button"
-            onClick={onClose}
-            className={`p-1.5 rounded-lg md:hidden transition-colors ${
+            onClick={() => {
+              if (window.innerWidth >= 768) onToggleCollapsed?.();
+              else onClose();
+            }}
+            title="Close sidebar"
+            aria-label="Close sidebar"
+            className={`p-1.5 rounded-lg transition-colors ${
               isDark ? 'hover:bg-zinc-800 text-zinc-400' : 'hover:bg-zinc-200 text-zinc-600'
             }`}
           >
-            <X className="w-5 h-5" />
+            <X className="h-5 w-5" />
           </button>
         </div>
 

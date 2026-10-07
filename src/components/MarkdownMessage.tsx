@@ -21,7 +21,7 @@ import go from 'react-syntax-highlighter/dist/esm/languages/prism/go';
 import rust from 'react-syntax-highlighter/dist/esm/languages/prism/rust';
 import yaml from 'react-syntax-highlighter/dist/esm/languages/prism/yaml';
 import php from 'react-syntax-highlighter/dist/esm/languages/prism/php';
-import { Copy, Check, Download } from 'lucide-react';
+import { Copy, Check, Download, ExternalLink } from 'lucide-react';
 import { copyText } from '../utils/clipboard';
 
 // Kuch bundlers default export ko { default: fn } bana dete hain, isliye dono case handle
@@ -166,7 +166,23 @@ const CodeBlock: React.FC<{ code: string; language: string }> = ({ code, languag
   );
 };
 
-export const MarkdownMessage: React.FC<{ content: string; isDark: boolean }> = ({ content, isDark }) => (
+export const MarkdownMessage: React.FC<{ content: string; isDark: boolean; confirmExternalLinks?: boolean }> = ({ content, isDark, confirmExternalLinks = false }) => {
+  const [pendingUrl, setPendingUrl] = useState<string | null>(null);
+  const [copiedUrl, setCopiedUrl] = useState(false);
+
+  const copyPendingUrl = async () => {
+    if (!pendingUrl || !(await copyText(pendingUrl))) return;
+    setCopiedUrl(true);
+    window.setTimeout(() => setCopiedUrl(false), 1800);
+  };
+
+  const trustAndOpen = () => {
+    if (!pendingUrl) return;
+    window.open(pendingUrl, '_blank', 'noopener,noreferrer');
+    setPendingUrl(null);
+  };
+
+  return <>
   <ReactMarkdown
     remarkPlugins={[remarkGfm]}
     components={{
@@ -191,8 +207,19 @@ export const MarkdownMessage: React.FC<{ content: string; isDark: boolean }> = (
           </code>
         );
       },
-      a: ({ children, ...props }) => (
-        <a {...props} target="_blank" rel="noopener noreferrer">
+      a: ({ children, href, ...props }) => (
+        <a {...props} href={href} target="_blank" rel="noopener noreferrer" onClick={(event) => {
+          if (!confirmExternalLinks) return;
+          if (!href) return;
+          try {
+            const url = new URL(href, window.location.href);
+            if (url.protocol !== 'https:' && url.protocol !== 'http:') return;
+            event.preventDefault();
+            setPendingUrl(url.href);
+          } catch {
+            event.preventDefault();
+          }
+        }}>
           {children}
         </a>
       ),
@@ -200,4 +227,21 @@ export const MarkdownMessage: React.FC<{ content: string; isDark: boolean }> = (
   >
     {content}
   </ReactMarkdown>
-);
+  {pendingUrl && (
+    <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/60 p-4" role="presentation" onClick={() => setPendingUrl(null)}>
+      <section role="alertdialog" aria-modal="true" aria-labelledby="external-link-title" className={`w-full max-w-lg rounded-2xl border p-5 shadow-2xl ${isDark ? 'border-zinc-700 bg-zinc-900 text-zinc-100' : 'border-zinc-200 bg-white text-zinc-900'}`} onClick={(event) => event.stopPropagation()}>
+        <h2 id="external-link-title" className="text-base font-semibold">Open this link?</h2>
+        <p className={`mt-1 text-sm ${isDark ? 'text-zinc-400' : 'text-zinc-500'}`}>Only open it if you trust this destination.</p>
+        <div className={`mt-4 flex items-start gap-2 rounded-xl border p-3 ${isDark ? 'border-zinc-700 bg-zinc-800' : 'border-zinc-200 bg-zinc-50'}`}>
+          <a href={pendingUrl} onClick={(event) => event.preventDefault()} className="min-w-0 flex-1 break-all text-sm text-cyan-500 underline underline-offset-2">{pendingUrl}</a>
+          <button type="button" onClick={copyPendingUrl} title="Copy link" aria-label="Copy link" className={`shrink-0 rounded-lg p-2 ${isDark ? 'hover:bg-zinc-700' : 'hover:bg-zinc-200'}`}>{copiedUrl ? <Check className="h-4 w-4 text-emerald-500" /> : <Copy className="h-4 w-4" />}</button>
+        </div>
+        <div className="mt-5 flex justify-end gap-2">
+          <button type="button" onClick={() => setPendingUrl(null)} className={`rounded-xl px-4 py-2 text-sm font-medium ${isDark ? 'bg-zinc-800 hover:bg-zinc-700' : 'bg-zinc-100 hover:bg-zinc-200'}`}>Cancel</button>
+          <button type="button" onClick={trustAndOpen} className="inline-flex items-center gap-2 rounded-xl bg-cyan-600 px-4 py-2 text-sm font-semibold text-white hover:bg-cyan-500"><ExternalLink className="h-4 w-4" />Trust &amp; Open</button>
+        </div>
+      </section>
+    </div>
+  )}
+  </>;
+};

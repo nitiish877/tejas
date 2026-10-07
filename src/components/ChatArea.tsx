@@ -4,7 +4,6 @@ import { AppVersionInfo, getClientVersion } from '../version';
 import { Logo } from './Logo';
 import { MarkdownMessage } from './MarkdownMessage';
 import {
-  Menu,
   Copy,
   Check,
   RotateCcw,
@@ -95,6 +94,7 @@ export const ChatArea: React.FC<ChatAreaProps> = ({
 }) => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const confirmExternalLinks = messages.some((message) => message.role === 'user' && !!message.attachments?.length);
   const stickToBottomRef = useRef(true);
   const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null);
   const [modelDropdownOpen, setModelDropdownOpen] = useState(false);
@@ -504,12 +504,16 @@ export const ChatArea: React.FC<ChatAreaProps> = ({
             id="header-logo-btn"
             type="button"
             onClick={onOpenSidebar}
-            title="Open sidebar"
+            title="Toggle sidebar"
+            aria-label="Toggle sidebar"
             className={`flex items-center gap-2.5 p-1.5 rounded-lg transition-colors ${
               isDark ? 'hover:bg-zinc-800' : 'hover:bg-zinc-100'
             }`}
           >
-            <Logo size="sm" glowing={false} />
+            <span aria-hidden="true" className="flex w-6 flex-col items-start gap-1">
+              <span className="h-[3px] w-6 rounded-full bg-current" />
+              <span className="h-[4px] w-4 rounded-full bg-current" />
+            </span>
             <span className="font-bold text-lg tracking-tight">
               Tejas
             </span>
@@ -1056,7 +1060,7 @@ export const ChatArea: React.FC<ChatAreaProps> = ({
                               </div>
                             </div>
                           ) : (
-                            <MarkdownMessage content={msg.content} isDark={isDark} />
+                            <MarkdownMessage content={msg.content} isDark={isDark} confirmExternalLinks={confirmExternalLinks} />
                           )}
 
                           {isStreaming && isLastAssistant && msg.content.trim().length === 0 && !msg.imagePrompt && (
@@ -1064,7 +1068,7 @@ export const ChatArea: React.FC<ChatAreaProps> = ({
                               <>
                                 {regenState.variant === 'A' && (
                                   <div className="opacity-60">
-                                    <MarkdownMessage content={regenState.oldContent} isDark={isDark} />
+                                  <MarkdownMessage content={regenState.oldContent} isDark={isDark} confirmExternalLinks={confirmExternalLinks} />
                                   </div>
                                 )}
                                 {regenState.variant === 'B' && (
@@ -1076,7 +1080,7 @@ export const ChatArea: React.FC<ChatAreaProps> = ({
                                 {regenState.variant === 'C' && (
                                   <div>
                                     <div className="opacity-30">
-                                      <MarkdownMessage content={regenState.oldContent} isDark={isDark} />
+                                      <MarkdownMessage content={regenState.oldContent} isDark={isDark} confirmExternalLinks={confirmExternalLinks} />
                                     </div>
                                     <div className="flex items-center gap-2 text-zinc-400 mt-1">
                                       {renderTypingSpinner(getSpinnerVariant(msg.id))}

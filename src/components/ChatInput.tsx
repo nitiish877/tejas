@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { ArrowUp, Square, Quote, X, ImagePlus, Plus, FileText, Loader2 } from 'lucide-react';
+import { ArrowUp, Square, Quote, X, ImagePlus, Plus, FileText, Loader2, Images, Paperclip } from 'lucide-react';
 import { MAX_FILES_PER_UPLOAD, prepareAttachments, releaseAttachmentPreviews } from '../utils/attachments';
 import type { PreparedAttachment } from '../utils/attachments';
 
@@ -38,9 +38,11 @@ export const ChatInput: React.FC<ChatInputProps> = ({
   const [isPreparingFiles, setIsPreparingFiles] = useState(false);
   const [attachmentError, setAttachmentError] = useState('');
   const [imageMode, setImageMode] = useState(false);
+  const [attachMenuOpen, setAttachMenuOpen] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const imageInputRef = useRef<HTMLInputElement>(null);
+  const documentInputRef = useRef<HTMLInputElement>(null);
 
   // Auto-type: focus the chat box when the user types anywhere on the page.
   useEffect(() => {
@@ -191,10 +193,18 @@ export const ChatInput: React.FC<ChatInputProps> = ({
       }`}
     >
       <input
-        ref={fileInputRef}
+        ref={imageInputRef}
         type="file"
         multiple
-        accept="image/png,image/jpeg,image/webp,image/gif,image/bmp,.pdf,.docx,.pptx,.xlsx,.csv,.tsv,.txt,.md,.json,.jsonl,.xml,.html,.htm,.yaml,.yml,.zip,.js,.jsx,.ts,.tsx,.css,.py,.java,.go,.rs,.c,.cpp,.h,.sql,.sh,.ps1,.toml,.ini,.log,.svg"
+        accept="image/png,image/jpeg,image/webp,image/gif,image/bmp"
+        onChange={handleFilesSelected}
+        className="hidden"
+      />
+      <input
+        ref={documentInputRef}
+        type="file"
+        multiple
+        accept=".pdf,.docx,.pptx,.xlsx,.csv,.tsv,.txt,.md,.json,.jsonl,.xml,.html,.htm,.yaml,.yml,.zip,.js,.jsx,.ts,.tsx,.css,.py,.java,.go,.rs,.c,.cpp,.h,.sql,.sh,.ps1,.toml,.ini,.log,.svg"
         onChange={handleFilesSelected}
         className="hidden"
       />
@@ -212,7 +222,6 @@ export const ChatInput: React.FC<ChatInputProps> = ({
           ))}
         </div>
       )}
-      {attachmentError && <p role="alert" className="mb-2 px-2 text-xs text-red-400">{attachmentError}</p>}
       {isPreparingFiles && <p className="mb-2 flex items-center gap-1.5 px-2 text-xs text-zinc-400"><Loader2 className="h-3.5 w-3.5 animate-spin" />Reading files…</p>}
 
       {/* Context chip (hidden in image mode) */}
@@ -301,19 +310,29 @@ export const ChatInput: React.FC<ChatInputProps> = ({
         {/* Input row */}
         <div className="flex items-end gap-2">
           {/* Attach files */}
+          <div className="relative shrink-0">
           <button
             id="attach-files-btn"
             type="button"
             disabled={isPreparingFiles}
-            onClick={() => {
-              fileInputRef.current?.click();
-            }}
+            onClick={() => setAttachMenuOpen((open) => !open)}
             title="Attach images or files"
             aria-label="Attach images or files"
             className={`rounded-xl p-2 transition-colors ${isDark ? 'text-zinc-400 hover:bg-zinc-700/60 hover:text-zinc-200' : 'text-zinc-500 hover:bg-zinc-100 hover:text-zinc-800'}`}
           >
             <Plus className="h-5 w-5" />
           </button>
+          {attachMenuOpen && (
+            <div className={`absolute bottom-12 left-0 z-30 w-44 overflow-hidden rounded-xl border p-1 shadow-xl ${isDark ? 'border-zinc-700 bg-zinc-900' : 'border-zinc-200 bg-white'}`}>
+              <button type="button" onClick={() => { setAttachMenuOpen(false); imageInputRef.current?.click(); }} className={`flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-sm ${isDark ? 'hover:bg-zinc-800' : 'hover:bg-zinc-100'}`}>
+                <Images className="h-4 w-4 text-cyan-500" /> Images
+              </button>
+              <button type="button" onClick={() => { setAttachMenuOpen(false); documentInputRef.current?.click(); }} className={`flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-sm ${isDark ? 'hover:bg-zinc-800' : 'hover:bg-zinc-100'}`}>
+                <Paperclip className="h-4 w-4 text-violet-500" /> Files
+              </button>
+            </div>
+          )}
+          </div>
 
           <textarea
             id="chat-message-input"
@@ -348,7 +367,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
               disabled={!text.trim() && attachments.length === 0 || isPreparingFiles}
               title={imageMode ? 'Generate image' : 'Send message'}
               className={`p-2.5 rounded-full flex items-center justify-center shrink-0 transition-all ${
-                text.trim()
+                text.trim() || attachments.length > 0
                   ? isDark
                     ? 'bg-white text-zinc-950 hover:bg-zinc-200 active:scale-95'
                     : 'bg-zinc-900 text-white hover:bg-zinc-800 active:scale-95'
@@ -362,6 +381,17 @@ export const ChatInput: React.FC<ChatInputProps> = ({
           )}
         </div>
       </div>
+
+      {attachmentError && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 p-4" role="presentation" onClick={() => setAttachmentError('')}>
+          <section role="alertdialog" aria-modal="true" aria-labelledby="attachment-limit-title" className={`w-full max-w-md rounded-2xl border p-5 shadow-2xl ${isDark ? 'border-zinc-700 bg-zinc-900 text-zinc-100' : 'border-zinc-200 bg-white text-zinc-900'}`} onClick={(event) => event.stopPropagation()}>
+            <h2 id="attachment-limit-title" className="text-base font-semibold">File upload limit</h2>
+            <p className={`mt-2 text-sm ${isDark ? 'text-zinc-300' : 'text-zinc-600'}`}>{attachmentError}</p>
+            <p className={`mt-3 text-xs leading-relaxed ${isDark ? 'text-zinc-400' : 'text-zinc-500'}`}>Allowed size: images up to 10 MB each; PDF, Word, PowerPoint and Excel files up to 20 MB; text/code files up to 10 MB; ZIP files up to 20 MB (maximum 100 MB after extraction).</p>
+            <button type="button" autoFocus onClick={() => setAttachmentError('')} className="mt-4 w-full rounded-xl bg-cyan-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-cyan-500">Got it</button>
+          </section>
+        </div>
+      )}
 
       {/* Bottom row — Generate Image button + Disclaimer */}
       <div className="mt-2 px-2 flex flex-col sm:flex-row items-center justify-between gap-2">
