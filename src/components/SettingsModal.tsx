@@ -29,6 +29,10 @@ import {
 import { getClientVersion } from '../version';
 import { isGuestUser } from '../utils/api';
 
+const TEJAS_VSCODE_EXTENSION_ID = 'nitishVishwakarma.tejas';
+const TEJAS_VSCODE_EXTENSION_URI = `vscode:extension/${TEJAS_VSCODE_EXTENSION_ID}`;
+const TEJAS_VSCODE_MARKETPLACE_URL = `https://marketplace.visualstudio.com/items?itemName=${TEJAS_VSCODE_EXTENSION_ID}`;
+
 interface SettingsModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -391,7 +395,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               <div className="flex items-start gap-2.5">
                 <MonitorCheck className={`mt-0.5 h-4 w-4 shrink-0 ${isDark ? 'text-amber-300' : 'text-amber-700'}`} />
                 <p className={`text-xs leading-relaxed ${isDark ? 'text-amber-100/80' : 'text-amber-900'}`}>
-                  VS Code connection is designed for desktop computers. The extension installer is not linked in this app version yet.
+                  Tejas is published for VS Code. Install it from the editor, then open the Tejas panel in its Activity Bar.
                 </p>
               </div>
             </div>
@@ -683,16 +687,23 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 
             <div className="mt-4 space-y-2">
               {[
-                { id: 'vscode', name: 'Visual Studio Code', detail: 'Recommended' },
-                { id: 'cursor', name: 'Cursor', detail: 'VS Code compatible' },
-                { id: 'windsurf', name: 'Windsurf', detail: 'VS Code compatible' },
+                { id: 'vscode', name: 'Visual Studio Code', detail: 'Open Tejas in VS Code' },
+                { id: 'cursor', name: 'Cursor', detail: 'Install link not connected yet' },
+                { id: 'windsurf', name: 'Windsurf', detail: 'Install link not connected yet' },
               ].map((editor) => {
                 const selected = selectedEditor === editor.id;
                 return (
                   <button
                     key={editor.id}
                     type="button"
-                    onClick={() => setSelectedEditor(editor.id)}
+                    onClick={() => {
+                      if (editor.id === 'vscode') {
+                        setShowInstallChooser(false);
+                        window.location.href = TEJAS_VSCODE_EXTENSION_URI;
+                        return;
+                      }
+                      setSelectedEditor(editor.id);
+                    }}
                     aria-pressed={selected}
                     className={`flex w-full items-center justify-between rounded-xl border p-3 text-left transition-colors ${
                       selected
@@ -716,7 +727,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 
             {selectedEditor && (
               <p className={`mt-3 rounded-lg border p-3 text-xs leading-relaxed ${isDark ? 'border-amber-500/20 bg-amber-500/5 text-amber-100/80' : 'border-amber-300 bg-amber-50 text-amber-900'}`}>
-                The Tejas extension listing is not available yet, so this app can’t open its editor install page. Your selected editor is {selectedEditor === 'vscode' ? 'Visual Studio Code' : selectedEditor === 'cursor' ? 'Cursor' : 'Windsurf'}.
+                The Tejas Marketplace install link is currently connected for Visual Studio Code. {selectedEditor === 'cursor' ? 'Cursor' : 'Windsurf'} install routing has not been configured yet.
               </p>
             )}
 
@@ -728,14 +739,14 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               >
                 Close
               </button>
-              <button
-                type="button"
-                disabled={!selectedEditor}
-                onClick={() => setShowInstallChooser(false)}
-                className="flex-1 rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-50"
+              <a
+                href={TEJAS_VSCODE_MARKETPLACE_URL}
+                target="_blank"
+                rel="noreferrer"
+                className="flex flex-1 items-center justify-center rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-blue-500"
               >
-                {selectedEditor ? 'Done' : 'Select an editor'}
-              </button>
+                Marketplace page
+              </a>
             </div>
           </section>
         </div>
