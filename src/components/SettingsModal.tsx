@@ -29,9 +29,10 @@ import {
 import { getClientVersion } from '../version';
 import { isGuestUser } from '../utils/api';
 
-const TEJAS_VSCODE_EXTENSION_ID = 'nitishVishwakarma.tejas';
-const TEJAS_VSCODE_EXTENSION_URI = `vscode:extension/${TEJAS_VSCODE_EXTENSION_ID}`;
-const TEJAS_VSCODE_MARKETPLACE_URL = `https://marketplace.visualstudio.com/items?itemName=${TEJAS_VSCODE_EXTENSION_ID}`;
+// Keep the already-published Marketplace item identifier; the visible product name is Tossive.
+const TOSSIVE_MARKETPLACE_ITEM_ID = 'nitishVishwakarma.tejas';
+const TOSSIVE_MARKETPLACE_URL = `https://marketplace.visualstudio.com/items?itemName=${TOSSIVE_MARKETPLACE_ITEM_ID}`;
+const TOSSIVE_VSIX_URL = '/downloads/tossive-0.2.0.vsix';
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -266,7 +267,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
             <RowButton
               icon={<IconBox tone="emerald"><Code2 className="w-4 h-4" /></IconBox>}
               title="Code Editor"
-              subtitle={isMobileDevice ? 'Connect VS Code • PC only' : 'Connect VS Code to edit local files'}
+              subtitle={isMobileDevice ? 'Connect a code editor • PC only' : 'Connect a code editor to edit local files'}
               muted={isMobileDevice}
               onClick={() => {
                 if (isMobileDevice) {
@@ -372,9 +373,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               <div className="flex items-start gap-3">
                 <IconBox tone="emerald"><Laptop className="w-4 h-4" /></IconBox>
                 <div>
-                  <h3 className="text-sm font-semibold">Connect VS Code</h3>
+                  <h3 className="text-sm font-semibold">Connect a code editor</h3>
                   <p className={`mt-1 text-xs leading-relaxed ${isDark ? 'text-zinc-400' : 'text-zinc-600'}`}>
-                    Use the Tejas panel in VS Code to choose the open file, add more files, review line-by-line changes, and apply or undo edits.
+                    Use the Tossive panel in your desktop editor to select workspace files, generate projects, review changes, and accept or undo edits.
                   </p>
                 </div>
               </div>
@@ -388,24 +389,24 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               }}
               className="w-full rounded-xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2 focus:ring-offset-zinc-900"
             >
-              Install Tejas
+              Install Tossive
             </button>
 
             <div className={`rounded-xl border p-3.5 ${isDark ? 'border-amber-500/20 bg-amber-500/5' : 'border-amber-300 bg-amber-50'}`}>
               <div className="flex items-start gap-2.5">
                 <MonitorCheck className={`mt-0.5 h-4 w-4 shrink-0 ${isDark ? 'text-amber-300' : 'text-amber-700'}`} />
                 <p className={`text-xs leading-relaxed ${isDark ? 'text-amber-100/80' : 'text-amber-900'}`}>
-                  Tejas is published for VS Code. Install it from the editor, then open the Tejas panel in its Activity Bar.
+                  Select your editor to open the Tossive extension listing or download its install package. Then open the Tossive panel from the editor's sidebar.
                 </p>
               </div>
             </div>
 
             <div className={`rounded-xl border p-3.5 ${isDark ? 'border-zinc-800 bg-zinc-900/40' : 'border-zinc-200 bg-white'}`}>
-              <p className="text-xs font-semibold">Planned connection flow</p>
+              <p className="text-xs font-semibold">Get started</p>
               <ol className={`mt-2 list-inside list-decimal space-y-1.5 text-xs ${isDark ? 'text-zinc-400' : 'text-zinc-600'}`}>
-                <li>Install the Tejas extension in VS Code.</li>
-                <li>Connect your Tejas account.</li>
-                <li>Review proposed file changes in VS Code before applying them.</li>
+                <li>Choose VS Code, Cursor, or Windsurf and install Tossive.</li>
+                <li>Open a workspace and select Tossive from the editor sidebar.</li>
+                <li>Review proposed changes before applying them to existing files.</li>
               </ol>
             </div>
           </div>
@@ -654,7 +655,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               <h3 id="editor-pc-only-title" className="text-base font-semibold">Available on PC or Mac</h3>
             </div>
             <p className={`text-sm leading-relaxed ${isDark ? 'text-zinc-400' : 'text-zinc-600'}`}>
-              VS Code connection needs the desktop editor, so it can’t be used from a phone. Open Tejas on your computer to connect your code editor.
+              Tossive's code editor connection needs a desktop editor, so it can’t be used from a phone. Open Tossive on your computer to connect your code editor.
             </p>
             <button
               type="button"
@@ -687,23 +688,16 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 
             <div className="mt-4 space-y-2">
               {[
-                { id: 'vscode', name: 'Visual Studio Code', detail: 'Open Tejas in VS Code' },
-                { id: 'cursor', name: 'Cursor', detail: 'Install link not connected yet' },
-                { id: 'windsurf', name: 'Windsurf', detail: 'Install link not connected yet' },
+                { id: 'vscode', name: 'Visual Studio Code', detail: 'Open the Tossive Marketplace listing' },
+                { id: 'cursor', name: 'Cursor', detail: 'Open the listing or install the VSIX package' },
+                { id: 'windsurf', name: 'Windsurf', detail: 'Download the VSIX and install it in Windsurf' },
               ].map((editor) => {
                 const selected = selectedEditor === editor.id;
                 return (
                   <button
                     key={editor.id}
                     type="button"
-                    onClick={() => {
-                      if (editor.id === 'vscode') {
-                        setShowInstallChooser(false);
-                        window.location.href = TEJAS_VSCODE_EXTENSION_URI;
-                        return;
-                      }
-                      setSelectedEditor(editor.id);
-                    }}
+                    onClick={() => setSelectedEditor(editor.id)}
                     aria-pressed={selected}
                     className={`flex w-full items-center justify-between rounded-xl border p-3 text-left transition-colors ${
                       selected
@@ -726,8 +720,16 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
             </div>
 
             {selectedEditor && (
-              <p className={`mt-3 rounded-lg border p-3 text-xs leading-relaxed ${isDark ? 'border-amber-500/20 bg-amber-500/5 text-amber-100/80' : 'border-amber-300 bg-amber-50 text-amber-900'}`}>
-                The Tejas Marketplace install link is currently connected for Visual Studio Code. {selectedEditor === 'cursor' ? 'Cursor' : 'Windsurf'} install routing has not been configured yet.
+              <p className={`mt-3 rounded-lg border p-3 text-xs leading-relaxed ${isDark ? 'border-blue-500/20 bg-blue-500/5 text-blue-100/80' : 'border-blue-300 bg-blue-50 text-blue-900'}`}>
+                {selectedEditor === 'vscode'
+                  ? 'The extension listing opens in your browser. Use its Install button to add Tossive to VS Code.'
+                  : selectedEditor === 'cursor'
+                  ? <>
+                      Cursor supports VS Code extensions. Open the listing, or{' '}
+                      <a href={TOSSIVE_VSIX_URL} download className="font-semibold underline underline-offset-2">download the VSIX</a>
+                      {' '}and install it from Cursor’s Extensions panel.
+                    </>
+                  : 'Download the VSIX, then use Windsurf’s Extensions panel and choose Install from VSIX.'}
               </p>
             )}
 
@@ -739,14 +741,24 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               >
                 Close
               </button>
-              <a
-                href={TEJAS_VSCODE_MARKETPLACE_URL}
-                target="_blank"
-                rel="noreferrer"
-                className="flex flex-1 items-center justify-center rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-blue-500"
-              >
-                Marketplace page
-              </a>
+              {selectedEditor === 'windsurf' ? (
+                <a
+                  href={TOSSIVE_VSIX_URL}
+                  download
+                  className="flex flex-1 items-center justify-center rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-blue-500"
+                >
+                  Download VSIX
+                </a>
+              ) : (
+                <a
+                  href={TOSSIVE_MARKETPLACE_URL}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="flex flex-1 items-center justify-center rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-blue-500"
+                >
+                  Open extension page
+                </a>
+              )}
             </div>
           </section>
         </div>
