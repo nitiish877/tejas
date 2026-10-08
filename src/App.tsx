@@ -356,10 +356,8 @@ export default function App() {
   // Resolve the backend endpoint
   const getApiUrl = (path: string): string => {
     let base = (
-      import.meta.env.VITE_BACKEND_URL ||
-      import.meta.env.VITE_API_URL ||
       settings.customBackendUrl ||
-      ''
+      'https://tejas-backed.vercel.app'
     ).trim().replace(/\/$/, '');
 
     if (base && !base.startsWith('http://') && !base.startsWith('https://')) {
@@ -536,12 +534,7 @@ export default function App() {
 
     const checkServerHealth = async () => {
       const hasCustomUrl = Boolean(
-        (
-          settings.customBackendUrl ||
-          import.meta.env.VITE_API_URL ||
-          import.meta.env.VITE_BACKEND_URL ||
-          ''
-        ).trim()
+        (settings.customBackendUrl || '').trim()
       );
 
       const slowTimer = setTimeout(() => {
@@ -1336,7 +1329,7 @@ export default function App() {
       if (!response.ok && !response.headers.get('content-type')?.includes('event-stream')) {
         if (response.status === 404) {
           throw new Error(
-            'Backend server not reached (HTTP 404). Please ensure your backend URL is set in VITE_BACKEND_URL environment variable on Netlify.'
+            'Backend endpoint not found (HTTP 404). Check the backend URL configured for this app deployment.'
           );
         }
         throw new Error(`Server returned HTTP ${response.status}`);
@@ -1445,7 +1438,7 @@ export default function App() {
           streamErrorFriendly
             ? streamError
             : err.message === 'Failed to fetch'
-            ? 'Could not reach the backend. Check your backend URL (VITE_BACKEND_URL) and the server status.'
+            ? 'Could not reach the backend. Check the backend URL configured for this app deployment and the server status.'
             : err.message || 'Failed to connect to the LLM endpoint';
         const errorText = streamErrorFriendly
           ? `\n\n⚠️ ${friendly}`

@@ -29,10 +29,10 @@ import {
 import { getClientVersion } from '../version';
 import { isGuestUser } from '../utils/api';
 
-// Keep the already-published Marketplace item identifier; the visible product name is Tossive.
-const TOSSIVE_MARKETPLACE_ITEM_ID = 'nitishVishwakarma.tejas';
+// VS Code Marketplace extension identifier.
+const TOSSIVE_MARKETPLACE_ITEM_ID = 'nitishVishwakarma.tossive';
 const TOSSIVE_MARKETPLACE_URL = `https://marketplace.visualstudio.com/items?itemName=${TOSSIVE_MARKETPLACE_ITEM_ID}`;
-const TOSSIVE_VSIX_URL = '/downloads/tossive-0.2.0.vsix';
+const TOSSIVE_VSIX_URL = '/downloads/tossive-0.2.1.vsix';
 
 interface SettingsModalProps {
   isOpen: boolean;
