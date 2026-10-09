@@ -31,7 +31,9 @@ import { isGuestUser } from '../utils/api';
 
 // VS Code Marketplace extension identifier.
 const TOSSIVE_MARKETPLACE_ITEM_ID = 'nitishVishwakarma.tossive';
-const TOSSIVE_MARKETPLACE_URL = `https://marketplace.visualstudio.com/items?itemName=${TOSSIVE_MARKETPLACE_ITEM_ID}`;
+const TOSSIVE_VSCODE_URL = `vscode:extension/${TOSSIVE_MARKETPLACE_ITEM_ID}`;
+const TOSSIVE_CURSOR_URL = `cursor:extension/${TOSSIVE_MARKETPLACE_ITEM_ID}`;
+const TOSSIVE_WINDSURF_URL = `windsurf:extension/${TOSSIVE_MARKETPLACE_ITEM_ID}`;
 const TOSSIVE_VSIX_URL = '/downloads/tossive-0.2.3.vsix';
 
 interface SettingsModalProps {
@@ -688,9 +690,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 
             <div className="mt-4 space-y-2">
               {[
-                { id: 'vscode', name: 'Visual Studio Code', detail: 'Open the Tossive Marketplace listing' },
-                { id: 'cursor', name: 'Cursor', detail: 'Open the listing or install the VSIX package' },
-                { id: 'windsurf', name: 'Windsurf', detail: 'Download the VSIX and install it in Windsurf' },
+                { id: 'vscode', name: 'Visual Studio Code', detail: 'Open the Tossive extension page in VS Code' },
+                { id: 'cursor', name: 'Cursor', detail: 'Open the Tossive extension page in Cursor' },
+                { id: 'windsurf', name: 'Windsurf', detail: 'Open the Tossive extension page in Windsurf' },
               ].map((editor) => {
                 const selected = selectedEditor === editor.id;
                 return (
@@ -722,14 +724,18 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
             {selectedEditor && (
               <p className={`mt-3 rounded-lg border p-3 text-xs leading-relaxed ${isDark ? 'border-blue-500/20 bg-blue-500/5 text-blue-100/80' : 'border-blue-300 bg-blue-50 text-blue-900'}`}>
                 {selectedEditor === 'vscode'
-                  ? 'The extension listing opens in your browser. Use its Install button to add Tossive to VS Code.'
+                  ? 'Open the extension page in VS Code, then select Install.'
                   : selectedEditor === 'cursor'
                   ? <>
-                      Cursor supports VS Code extensions. Open the listing, or{' '}
+                      Open the extension page in Cursor, or{' '}
                       <a href={TOSSIVE_VSIX_URL} download className="font-semibold underline underline-offset-2">download the VSIX</a>
                       {' '}and install it from Cursor’s Extensions panel.
                     </>
-                  : 'Download the VSIX, then use Windsurf’s Extensions panel and choose Install from VSIX.'}
+                  : <>
+                      Open the extension page in Windsurf, or{' '}
+                      <a href={TOSSIVE_VSIX_URL} download className="font-semibold underline underline-offset-2">download the VSIX</a>
+                      {' '}and install it from Windsurf’s Extensions panel.
+                    </>}
               </p>
             )}
 
@@ -741,24 +747,22 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               >
                 Close
               </button>
-              {selectedEditor === 'windsurf' ? (
+              {selectedEditor ? (
                 <a
-                  href={TOSSIVE_VSIX_URL}
-                  download
+                  href={selectedEditor === 'vscode'
+                    ? TOSSIVE_VSCODE_URL
+                    : selectedEditor === 'cursor'
+                    ? TOSSIVE_CURSOR_URL
+                    : TOSSIVE_WINDSURF_URL}
                   className="flex flex-1 items-center justify-center rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-blue-500"
                 >
-                  Download VSIX
+                  {selectedEditor === 'vscode'
+                    ? 'Open in VS Code'
+                    : selectedEditor === 'cursor'
+                    ? 'Open in Cursor'
+                    : 'Open in Windsurf'}
                 </a>
-              ) : (
-                <a
-                  href={TOSSIVE_MARKETPLACE_URL}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="flex flex-1 items-center justify-center rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-blue-500"
-                >
-                  Open extension page
-                </a>
-              )}
+              ) : null}
             </div>
           </section>
         </div>
