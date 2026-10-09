@@ -725,7 +725,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               <div className={`mt-3 rounded-lg border p-3 text-xs leading-relaxed ${isDark ? 'border-blue-500/20 bg-blue-500/5 text-blue-100/80' : 'border-blue-300 bg-blue-50 text-blue-900'}`}>
                 <p className="font-semibold">Install Tossive in {selectedEditor === 'vscode' ? 'VS Code' : selectedEditor === 'cursor' ? 'Cursor' : 'Windsurf'}:</p>
                 <ol className="mt-1.5 list-inside list-decimal space-y-1">
-                  <li>Click <span className="font-semibold">Download VSIX</span> below to open the Marketplace page, then download the latest VSIX file.</li>
+                  <li>For direct install, click <span className="font-semibold">Open in {selectedEditor === 'vscode' ? 'VS Code' : selectedEditor === 'cursor' ? 'Cursor' : 'Windsurf'}</span> below, then click <span className="font-semibold">Install</span> on the extension page.</li>
+                  <li>Or click <span className="font-semibold">Download VSIX</span> to open the Marketplace page and download the latest VSIX file.</li>
                   <li>In {selectedEditor === 'vscode' ? 'VS Code' : selectedEditor === 'cursor' ? 'Cursor' : 'Windsurf'}, press <span className="font-semibold">Ctrl+Shift+P</span>.</li>
                   <li>Search for and choose <span className="font-semibold">Extensions: Install from VSIX…</span>.</li>
                   <li>Select the VSIX file you downloaded.</li>
