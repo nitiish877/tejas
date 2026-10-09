@@ -27,7 +27,7 @@ import {
   Laptop,
 } from 'lucide-react';
 import { getClientVersion } from '../version';
-import { isGuestUser } from '../utils/api';
+import { ConnectedEditor, fetchConnectedEditors, isGuestUser, revokeConnectedEditor } from '../utils/api';
 
 // VS Code Marketplace extension identifier.
 const TOSSIVE_MARKETPLACE_ITEM_ID = 'nitishVishwakarma.tossive';
@@ -49,6 +49,7 @@ interface SettingsModalProps {
   onOpenPaymentHistory?: () => void;
   onOpenSharedChats?: () => void;
   isDark: boolean;
+  getApiUrl: (path: string) => string;
   onCheckForUpdates?: () => void;
   isCheckingUpdates?: boolean;
 }
@@ -68,6 +69,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   onOpenPaymentHistory,
   onOpenSharedChats,
   isDark,
+  getApiUrl,
   onCheckForUpdates,
   isCheckingUpdates = false,
 }) => {
@@ -76,10 +78,43 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   const [showPcOnlyNotice, setShowPcOnlyNotice] = useState(false);
   const [showInstallChooser, setShowInstallChooser] = useState(false);
   const [selectedEditor, setSelectedEditor] = useState<string | null>(null);
+  const [connectedEditors, setConnectedEditors] = useState<ConnectedEditor[]>([]);
+  const [revokingEditorId, setRevokingEditorId] = useState<string | null>(null);
+  const [connectionsError, setConnectionsError] = useState('');
   const [isMobileDevice, setIsMobileDevice] = useState(() =>
     typeof window !== 'undefined' && window.matchMedia('(max-width: 767px), (pointer: coarse)').matches,
   );
   const isGuest = isGuestUser(currentUser);
+
+  useEffect(() => {
+    if (!isOpen || view !== 'editor' || isGuest) {
+      setConnectedEditors([]);
+      setConnectionsError('');
+      return;
+    }
+    let active = true;
+    const loadConnections = () => {
+      fetchConnectedEditors(getApiUrl)
+        .then(({ connections }) => { if (active) setConnectedEditors(connections); })
+        .catch((error: any) => { if (active) setConnectionsError(error?.message || 'Could not load editor connections.'); });
+    };
+    loadConnections();
+    const refreshId = window.setInterval(loadConnections, 10000);
+    return () => { active = false; window.clearInterval(refreshId); };
+  }, [isOpen, view, isGuest, getApiUrl]);
+
+  const handleRevokeEditor = async (installationId: string) => {
+    setRevokingEditorId(installationId);
+    setConnectionsError('');
+    try {
+      await revokeConnectedEditor(getApiUrl, installationId);
+      setConnectedEditors((current) => current.filter((editor) => editor.installationId !== installationId));
+    } catch (error: any) {
+      setConnectionsError(error?.message || 'Could not disconnect this editor.');
+    } finally {
+      setRevokingEditorId(null);
+    }
+  };
 
   useEffect(() => {
     const mediaQuery = window.matchMedia('(max-width: 767px), (pointer: coarse)');
@@ -393,6 +428,36 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
             >
               Install Tossive
             </button>
+
+            {connectedEditors.length > 0 && (
+              <div className={`rounded-xl border p-4 ${isDark ? 'border-zinc-800 bg-zinc-900/60' : 'border-zinc-200 bg-white'}`}>
+                <h3 className="text-sm font-semibold">Connections</h3>
+                <p className={`mt-1 text-xs ${isDark ? 'text-zinc-400' : 'text-zinc-600'}`}>
+                  Editors signed in to your Tejas account. Disconnecting revokes Tossive access in that editor.
+                </p>
+                <div className="mt-3 space-y-2">
+                  {connectedEditors.map((editor) => (
+                    <div key={editor.installationId} className={`flex items-center justify-between gap-3 rounded-lg border p-3 ${isDark ? 'border-zinc-800 bg-zinc-950/50' : 'border-zinc-200 bg-zinc-50'}`}>
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-medium">{editor.editorName}</p>
+                        <p className={`mt-0.5 text-xs ${isDark ? 'text-zinc-500' : 'text-zinc-500'}`}>
+                          {editor.extensionVersion ? `Tossive ${editor.extensionVersion} · ` : ''}Last used {new Date(editor.lastUsedAt).toLocaleString()}
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handleRevokeEditor(editor.installationId)}
+                        disabled={revokingEditorId === editor.installationId}
+                        className="shrink-0 rounded-lg border border-red-500/40 px-3 py-1.5 text-xs font-semibold text-red-500 transition-colors hover:bg-red-500/10 disabled:opacity-50"
+                      >
+                        {revokingEditorId === editor.installationId ? 'Disconnecting…' : 'Disconnect'}
+                      </button>
+                    </div>
+                  ))}
+                </div>
+                {connectionsError && <p className="mt-2 text-xs text-red-500">{connectionsError}</p>}
+              </div>
+            )}
 
             <div className={`rounded-xl border p-3.5 ${isDark ? 'border-amber-500/20 bg-amber-500/5' : 'border-amber-300 bg-amber-50'}`}>
               <div className="flex items-start gap-2.5">

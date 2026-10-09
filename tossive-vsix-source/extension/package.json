@@ -1,0 +1,55 @@
+{
+  "name": "tossive",
+  "displayName": "Tossive",
+  "description": "AI coding assistant that plans projects, creates workspace files, and reviews selected code changes in VS Code.",
+  "version": "0.2.4",
+  "publisher": "nitishVishwakarma",
+  "engines": {
+    "vscode": "^1.106.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "keywords": [
+    "tossive",
+    "ai",
+    "code-editing"
+  ],
+  "main": "./src/extension.js",
+  "activationEvents": [
+    "onView:tossive.assistant",
+    "onCommand:tossive.openAssistant"
+  ],
+  "contributes": {
+    "commands": [
+      {
+        "command": "tossive.openAssistant",
+        "title": "Tossive: Open Code Assistant"
+      }
+    ],
+    "viewsContainers": {
+      "secondarySidebar": [
+        {
+          "icon": "media/tossive.svg",
+          "id": "tossive",
+          "title": "Tossive"
+        }
+      ]
+    },
+    "views": {
+      "tossive": [
+        {
+          "id": "tossive.assistant",
+          "name": "Code Assistant",
+          "type": "webview"
+        }
+      ]
+    }
+  },
+  "scripts": {
+    "package": "vsce package"
+  },
+  "devDependencies": {
+    "@vscode/vsce": "^3.2.1"
+  }
+}

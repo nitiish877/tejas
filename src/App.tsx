@@ -19,6 +19,7 @@ import { playNotificationChime } from './utils/audio';
 import { AlertTriangle, Trash2 } from 'lucide-react';
 import {
   ApiError,
+  authorizeExtensionSignIn,
   chatMeta,
   messageFingerprint,
   type ChatSyncState,
@@ -26,6 +27,7 @@ import {
   createShareLink,
   deleteShareLink,
   deleteServerChat,
+  denyExtensionSignIn,
   fetchMe,
   fetchServerChatById,
   fetchServerChats,
@@ -174,6 +176,12 @@ export default function App() {
   const [userProfileOpen, setUserProfileOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [authModalOpen, setAuthModalOpen] = useState(false);
+  const [extensionAuthDeviceCode, setExtensionAuthDeviceCode] = useState(() =>
+    new URLSearchParams(window.location.search).get('extension_auth') || ''
+  );
+  const [extensionAuthOutcome, setExtensionAuthOutcome] = useState<'authorized' | 'cancelled' | null>(null);
+  const [extensionAuthBusy, setExtensionAuthBusy] = useState(false);
+  const [extensionAuthError, setExtensionAuthError] = useState('');
   const [tokenGuideOpen, setTokenGuideOpen] = useState(false);
   const [subscriptionModalOpen, setSubscriptionModalOpen] = useState(false);
   const [paymentModalOpen, setPaymentModalOpen] = useState(false);
@@ -978,6 +986,37 @@ export default function App() {
     }
   };
 
+  const clearExtensionAuthRequest = () => {
+    const url = new URL(window.location.href);
+    url.searchParams.delete('extension_auth');
+    window.history.replaceState({}, '', `${url.pathname}${url.search}${url.hash}`);
+    setExtensionAuthDeviceCode('');
+  };
+
+  const handleAuthorizeExtension = async () => {
+    if (!extensionAuthDeviceCode || isGuestUser(currentUser)) return;
+    setExtensionAuthBusy(true);
+    setExtensionAuthError('');
+    try {
+      await authorizeExtensionSignIn(getApiUrl, extensionAuthDeviceCode);
+      clearExtensionAuthRequest();
+      setExtensionAuthOutcome('authorized');
+    } catch (error: any) {
+      setExtensionAuthError(error?.message || 'Could not authorize Tossive. Start sign-in again from the editor.');
+    } finally {
+      setExtensionAuthBusy(false);
+    }
+  };
+
+  const handleCancelExtensionAuth = () => {
+    if (extensionAuthDeviceCode && !isGuestUser(currentUser)) {
+      denyExtensionSignIn(getApiUrl, extensionAuthDeviceCode).catch(() => {});
+    }
+    clearExtensionAuthRequest();
+    setExtensionAuthOutcome('cancelled');
+    setExtensionAuthError('');
+  };
+
   const handleShareChat = async () => {
     if (isTempChatActive || !activeChatId) return;
     if (isGuestUser(currentUser)) {
@@ -1698,6 +1737,7 @@ export default function App() {
         onOpenPaymentHistory={() => setPaymentHistoryOpen(true)}
         onOpenSharedChats={() => setSharedChatsOpen(true)}
         isDark={isDark}
+        getApiUrl={getApiUrl}
         onCheckForUpdates={() => checkForUpdates(true)}
         isCheckingUpdates={isCheckingUpdates}
       />
@@ -1732,6 +1772,66 @@ export default function App() {
         getApiUrl={getApiUrl}
         notice={authNotice}
       />
+
+      {(extensionAuthDeviceCode || extensionAuthOutcome) && (
+        <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
+          <section className={`w-full max-w-md rounded-2xl border p-6 shadow-2xl ${isDark ? 'border-zinc-700 bg-[#16191c] text-zinc-100' : 'border-zinc-200 bg-white text-zinc-900'}`}>
+            <h2 className="text-lg font-semibold">
+              {extensionAuthOutcome === 'authorized' ? 'Tossive connected' : extensionAuthOutcome === 'cancelled' ? 'Connection cancelled' : 'Connect Tossive extension'}
+            </h2>
+            {extensionAuthOutcome === 'authorized' ? (
+              <p className={`mt-2 text-sm ${isDark ? 'text-zinc-400' : 'text-zinc-600'}`}>You can return to your code editor and start using Tossive.</p>
+            ) : extensionAuthOutcome === 'cancelled' ? (
+              <p className={`mt-2 text-sm ${isDark ? 'text-zinc-400' : 'text-zinc-600'}`}>No access was granted. You can close this page and try again from the extension.</p>
+            ) : isGuestUser(currentUser) ? (
+              <>
+                <p className={`mt-2 text-sm ${isDark ? 'text-zinc-400' : 'text-zinc-600'}`}>Sign in or create a Tejas account, then allow the extension to connect. Tossive cannot be used in the editor until you sign in.</p>
+                <button
+                  type="button"
+                  onClick={() => { setAuthNotice('Sign in or create a Tejas account to connect the Tossive extension.'); setAuthModalOpen(true); }}
+                  className="mt-5 w-full rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-500"
+                >
+                  Sign in or sign up
+                </button>
+              </>
+            ) : (
+              <>
+                <p className={`mt-2 text-sm ${isDark ? 'text-zinc-400' : 'text-zinc-600'}`}>
+                  Allow Tossive extension to use your Tejas account <span className="font-medium">{currentUser.email}</span>?
+                </p>
+                {extensionAuthError && <p className="mt-3 text-sm text-red-500">{extensionAuthError}</p>}
+                <div className="mt-5 flex gap-2">
+                  <button
+                    type="button"
+                    onClick={handleCancelExtensionAuth}
+                    disabled={extensionAuthBusy}
+                    className={`flex-1 rounded-xl border px-4 py-2.5 text-sm font-medium ${isDark ? 'border-zinc-700 text-zinc-300 hover:bg-zinc-800' : 'border-zinc-300 text-zinc-700 hover:bg-zinc-100'}`}
+                  >
+                    Deny
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleAuthorizeExtension}
+                    disabled={extensionAuthBusy}
+                    className="flex-1 rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-500 disabled:opacity-50"
+                  >
+                    {extensionAuthBusy ? 'Connecting…' : 'Allow'}
+                  </button>
+                </div>
+              </>
+            )}
+            {extensionAuthOutcome && (
+              <button
+                type="button"
+                onClick={() => setExtensionAuthOutcome(null)}
+                className={`mt-4 w-full rounded-xl border px-4 py-2.5 text-sm font-medium ${isDark ? 'border-zinc-700 text-zinc-300 hover:bg-zinc-800' : 'border-zinc-300 text-zinc-700 hover:bg-zinc-100'}`}
+              >
+                Close
+              </button>
+            )}
+          </section>
+        </div>
+      )}
 
       <SubscriptionModal
         isOpen={subscriptionModalOpen}

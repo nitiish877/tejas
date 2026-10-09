@@ -105,6 +105,41 @@ export const loginAccount = (getUrl: UrlBuilder, body: { email: string; password
 export const loginWithFirebase = (getUrl: UrlBuilder, idToken: string) =>
   request<AuthResult>(getUrl, '/api/auth/firebase', { method: 'POST', body: JSON.stringify({ idToken }) });
 
+export const authorizeExtensionSignIn = (getUrl: UrlBuilder, deviceCode: string) =>
+  request<{ ok: boolean }>(
+    getUrl,
+    '/api/auth/extension/authorize',
+    { method: 'POST', body: JSON.stringify({ deviceCode }) },
+    true
+  );
+
+export const denyExtensionSignIn = (getUrl: UrlBuilder, deviceCode: string) =>
+  request<{ ok: boolean }>(
+    getUrl,
+    '/api/auth/extension/deny',
+    { method: 'POST', body: JSON.stringify({ deviceCode }) },
+    true
+  );
+
+export interface ConnectedEditor {
+  installationId: string;
+  editorName: string;
+  extensionVersion?: string;
+  firstUsedAt: string;
+  lastUsedAt: string;
+}
+
+export const fetchConnectedEditors = (getUrl: UrlBuilder) =>
+  request<{ connections: ConnectedEditor[] }>(getUrl, '/api/auth/extensions', {}, true);
+
+export const revokeConnectedEditor = (getUrl: UrlBuilder, installationId: string) =>
+  request<{ ok: boolean }>(
+    getUrl,
+    `/api/auth/extensions/${encodeURIComponent(installationId)}`,
+    { method: 'DELETE' },
+    true
+  );
+
 export const fetchAuthProviders = (getUrl: UrlBuilder) =>
   request<{ email: boolean; google: boolean; github: boolean; microsoft: boolean }>(
     getUrl,
