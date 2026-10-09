@@ -32,7 +32,9 @@ import { isGuestUser } from '../utils/api';
 // VS Code Marketplace extension identifier.
 const TOSSIVE_MARKETPLACE_ITEM_ID = 'nitishVishwakarma.tossive';
 const TOSSIVE_VSCODE_MARKETPLACE_URL = `https://marketplace.visualstudio.com/items?itemName=${TOSSIVE_MARKETPLACE_ITEM_ID}`;
-const TOSSIVE_OPEN_VSX_URL = 'https://open-vsx.org/extension/nitishVishwakarma/tossive';
+const TOSSIVE_VSCODE_URL = `vscode:extension/${TOSSIVE_MARKETPLACE_ITEM_ID}`;
+const TOSSIVE_CURSOR_URL = `cursor:extension/${TOSSIVE_MARKETPLACE_ITEM_ID}`;
+const TOSSIVE_WINDSURF_URL = `windsurf:extension/${TOSSIVE_MARKETPLACE_ITEM_ID}`;
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -721,10 +723,10 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 
             {selectedEditor && (
               <div className={`mt-3 rounded-lg border p-3 text-xs leading-relaxed ${isDark ? 'border-blue-500/20 bg-blue-500/5 text-blue-100/80' : 'border-blue-300 bg-blue-50 text-blue-900'}`}>
-                <p className="font-semibold">Install in {selectedEditor === 'vscode' ? 'VS Code' : selectedEditor === 'cursor' ? 'Cursor' : 'Windsurf'} from the marketplace:</p>
+                <p className="font-semibold">Open the Tossive extension page:</p>
                 <ol className="mt-1.5 list-inside list-decimal space-y-1">
-                  <li>Click <span className="font-semibold">Open Marketplace</span> below.</li>
-                  <li>On the extension page, click <span className="font-semibold">Install</span> and approve opening your editor if prompted.</li>
+                  <li>Choose the matching <span className="font-semibold">Open in…</span> button to open the extension page in your editor.</li>
+                  <li>Choose <span className="font-semibold">Marketplace / VSIX</span> to open the Visual Studio Marketplace page in your browser.</li>
                 </ol>
                 {selectedEditor !== 'windsurf' && (
                   <div className="mt-3 overflow-hidden rounded-lg border border-zinc-700/50 bg-black/20">
@@ -745,24 +747,46 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               </div>
             )}
 
-            <div className="mt-4 flex gap-2">
+            <div className="mt-4 space-y-2">
+              {selectedEditor && (
+                <>
+                  <div className="grid grid-cols-2 gap-2">
+                    <a
+                      href={TOSSIVE_VSCODE_URL}
+                      className="flex items-center justify-center rounded-xl bg-blue-600 px-3 py-2.5 text-center text-sm font-semibold text-white transition-colors hover:bg-blue-500"
+                    >
+                      Open in VS Code
+                    </a>
+                    <a
+                      href={TOSSIVE_CURSOR_URL}
+                      className={`flex items-center justify-center rounded-xl border px-3 py-2.5 text-center text-sm font-semibold transition-colors ${isDark ? 'border-zinc-700 text-zinc-200 hover:bg-zinc-800' : 'border-zinc-300 text-zinc-700 hover:bg-zinc-100'}`}
+                    >
+                      Open in Cursor
+                    </a>
+                    <a
+                      href={TOSSIVE_WINDSURF_URL}
+                      className={`col-span-2 flex items-center justify-center rounded-xl border px-3 py-2.5 text-center text-sm font-semibold transition-colors ${isDark ? 'border-zinc-700 text-zinc-200 hover:bg-zinc-800' : 'border-zinc-300 text-zinc-700 hover:bg-zinc-100'}`}
+                    >
+                      Open in Windsurf
+                    </a>
+                  </div>
+                  <a
+                    href={TOSSIVE_VSCODE_MARKETPLACE_URL}
+                    target="_blank"
+                    rel="noreferrer"
+                    className={`flex w-full items-center justify-center rounded-xl border px-4 py-2.5 text-sm font-semibold transition-colors ${isDark ? 'border-zinc-700 text-zinc-200 hover:bg-zinc-800' : 'border-zinc-300 text-zinc-700 hover:bg-zinc-100'}`}
+                  >
+                    Marketplace / VSIX
+                  </a>
+                </>
+              )}
               <button
                 type="button"
                 onClick={() => setShowInstallChooser(false)}
-                className={`flex-1 rounded-xl border px-4 py-2.5 text-sm font-medium transition-colors ${isDark ? 'border-zinc-700 text-zinc-300 hover:bg-zinc-800' : 'border-zinc-300 text-zinc-700 hover:bg-zinc-100'}`}
+                className={`w-full rounded-xl border px-4 py-2.5 text-sm font-medium transition-colors ${isDark ? 'border-zinc-700 text-zinc-300 hover:bg-zinc-800' : 'border-zinc-300 text-zinc-700 hover:bg-zinc-100'}`}
               >
                 Close
               </button>
-              {selectedEditor && (
-                <a
-                  href={selectedEditor === 'vscode' ? TOSSIVE_VSCODE_MARKETPLACE_URL : TOSSIVE_OPEN_VSX_URL}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="flex flex-1 items-center justify-center rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-blue-500"
-                >
-                  Open Marketplace
-                </a>
-              )}
             </div>
           </section>
         </div>
