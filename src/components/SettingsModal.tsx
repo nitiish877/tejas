@@ -723,10 +723,12 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 
             {selectedEditor && (
               <div className={`mt-3 rounded-lg border p-3 text-xs leading-relaxed ${isDark ? 'border-blue-500/20 bg-blue-500/5 text-blue-100/80' : 'border-blue-300 bg-blue-50 text-blue-900'}`}>
-                <p className="font-semibold">Open the Tossive extension page:</p>
+                <p className="font-semibold">Install Tossive in {selectedEditor === 'vscode' ? 'VS Code' : selectedEditor === 'cursor' ? 'Cursor' : 'Windsurf'}:</p>
                 <ol className="mt-1.5 list-inside list-decimal space-y-1">
-                  <li>Choose the matching <span className="font-semibold">Open in…</span> button to open the extension page in your editor.</li>
-                  <li>Choose <span className="font-semibold">Marketplace / VSIX</span> to open the Visual Studio Marketplace page in your browser.</li>
+                  <li>Click <span className="font-semibold">Download VSIX</span> below to open the Marketplace page, then download the latest VSIX file.</li>
+                  <li>In {selectedEditor === 'vscode' ? 'VS Code' : selectedEditor === 'cursor' ? 'Cursor' : 'Windsurf'}, press <span className="font-semibold">Ctrl+Shift+P</span>.</li>
+                  <li>Search for and choose <span className="font-semibold">Extensions: Install from VSIX…</span>.</li>
+                  <li>Select the VSIX file you downloaded.</li>
                 </ol>
                 {selectedEditor !== 'windsurf' && (
                   <div className="mt-3 overflow-hidden rounded-lg border border-zinc-700/50 bg-black/20">
@@ -748,45 +750,33 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
             )}
 
             <div className="mt-4 space-y-2">
-              {selectedEditor && (
-                <>
-                  <div className="grid grid-cols-2 gap-2">
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setShowInstallChooser(false)}
+                  className={`flex-1 rounded-xl border px-4 py-2.5 text-sm font-medium transition-colors ${isDark ? 'border-zinc-700 text-zinc-300 hover:bg-zinc-800' : 'border-zinc-300 text-zinc-700 hover:bg-zinc-100'}`}
+                >
+                  Close
+                </button>
+                {selectedEditor && (
+                  <>
                     <a
-                      href={TOSSIVE_VSCODE_URL}
-                      className="flex items-center justify-center rounded-xl bg-blue-600 px-3 py-2.5 text-center text-sm font-semibold text-white transition-colors hover:bg-blue-500"
+                      href={selectedEditor === 'vscode' ? TOSSIVE_VSCODE_URL : selectedEditor === 'cursor' ? TOSSIVE_CURSOR_URL : TOSSIVE_WINDSURF_URL}
+                      className="flex-1 rounded-xl bg-blue-600 px-3 py-2.5 text-center text-sm font-semibold text-white transition-colors hover:bg-blue-500"
                     >
-                      Open in VS Code
+                      Open in {selectedEditor === 'vscode' ? 'VS Code' : selectedEditor === 'cursor' ? 'Cursor' : 'Windsurf'}
                     </a>
                     <a
-                      href={TOSSIVE_CURSOR_URL}
-                      className={`flex items-center justify-center rounded-xl border px-3 py-2.5 text-center text-sm font-semibold transition-colors ${isDark ? 'border-zinc-700 text-zinc-200 hover:bg-zinc-800' : 'border-zinc-300 text-zinc-700 hover:bg-zinc-100'}`}
+                      href={TOSSIVE_VSCODE_MARKETPLACE_URL}
+                      target="_blank"
+                      rel="noreferrer"
+                      className={`flex-1 rounded-xl border px-3 py-2.5 text-center text-sm font-semibold transition-colors ${isDark ? 'border-zinc-700 text-zinc-200 hover:bg-zinc-800' : 'border-zinc-300 text-zinc-700 hover:bg-zinc-100'}`}
                     >
-                      Open in Cursor
+                      Download VSIX
                     </a>
-                    <a
-                      href={TOSSIVE_WINDSURF_URL}
-                      className={`col-span-2 flex items-center justify-center rounded-xl border px-3 py-2.5 text-center text-sm font-semibold transition-colors ${isDark ? 'border-zinc-700 text-zinc-200 hover:bg-zinc-800' : 'border-zinc-300 text-zinc-700 hover:bg-zinc-100'}`}
-                    >
-                      Open in Windsurf
-                    </a>
-                  </div>
-                  <a
-                    href={TOSSIVE_VSCODE_MARKETPLACE_URL}
-                    target="_blank"
-                    rel="noreferrer"
-                    className={`flex w-full items-center justify-center rounded-xl border px-4 py-2.5 text-sm font-semibold transition-colors ${isDark ? 'border-zinc-700 text-zinc-200 hover:bg-zinc-800' : 'border-zinc-300 text-zinc-700 hover:bg-zinc-100'}`}
-                  >
-                    Marketplace / VSIX
-                  </a>
-                </>
-              )}
-              <button
-                type="button"
-                onClick={() => setShowInstallChooser(false)}
-                className={`w-full rounded-xl border px-4 py-2.5 text-sm font-medium transition-colors ${isDark ? 'border-zinc-700 text-zinc-300 hover:bg-zinc-800' : 'border-zinc-300 text-zinc-700 hover:bg-zinc-100'}`}
-              >
-                Close
-              </button>
+                  </>
+                )}
+              </div>
             </div>
           </section>
         </div>
