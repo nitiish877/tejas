@@ -722,21 +722,15 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
             </div>
 
             {selectedEditor && (
-              <p className={`mt-3 rounded-lg border p-3 text-xs leading-relaxed ${isDark ? 'border-blue-500/20 bg-blue-500/5 text-blue-100/80' : 'border-blue-300 bg-blue-50 text-blue-900'}`}>
-                {selectedEditor === 'vscode'
-                  ? 'Open the extension page in VS Code, then select Install.'
-                  : selectedEditor === 'cursor'
-                  ? <>
-                      Open the extension page in Cursor, or{' '}
-                      <a href={TOSSIVE_VSIX_URL} download className="font-semibold underline underline-offset-2">download the VSIX</a>
-                      {' '}and install it from Cursor’s Extensions panel.
-                    </>
-                  : <>
-                      Open the extension page in Windsurf, or{' '}
-                      <a href={TOSSIVE_VSIX_URL} download className="font-semibold underline underline-offset-2">download the VSIX</a>
-                      {' '}and install it from Windsurf’s Extensions panel.
-                    </>}
-              </p>
+              <div className={`mt-3 rounded-lg border p-3 text-xs leading-relaxed ${isDark ? 'border-blue-500/20 bg-blue-500/5 text-blue-100/80' : 'border-blue-300 bg-blue-50 text-blue-900'}`}>
+                <p className="font-semibold">Install the VSIX in {selectedEditor === 'vscode' ? 'VS Code' : selectedEditor === 'cursor' ? 'Cursor' : 'Windsurf'}:</p>
+                <ol className="mt-1.5 list-inside list-decimal space-y-1">
+                  <li>Click <span className="font-semibold">Download VSIX</span> below.</li>
+                  <li>In your editor, press <span className="font-semibold">Ctrl+Shift+P</span>.</li>
+                  <li>Search for and choose <span className="font-semibold">Extensions: Install from VSIX…</span>.</li>
+                  <li>Select the downloaded <span className="font-semibold">tossive-0.2.3.vsix</span> file.</li>
+                </ol>
+              </div>
             )}
 
             <div className="mt-4 flex gap-2">
@@ -747,22 +741,31 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               >
                 Close
               </button>
-              {selectedEditor ? (
-                <a
-                  href={selectedEditor === 'vscode'
-                    ? TOSSIVE_VSCODE_URL
-                    : selectedEditor === 'cursor'
-                    ? TOSSIVE_CURSOR_URL
-                    : TOSSIVE_WINDSURF_URL}
-                  className="flex flex-1 items-center justify-center rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-blue-500"
-                >
-                  {selectedEditor === 'vscode'
-                    ? 'Open in VS Code'
-                    : selectedEditor === 'cursor'
-                    ? 'Open in Cursor'
-                    : 'Open in Windsurf'}
-                </a>
-              ) : null}
+              {selectedEditor && (
+                <>
+                  <a
+                    href={selectedEditor === 'vscode'
+                      ? TOSSIVE_VSCODE_URL
+                      : selectedEditor === 'cursor'
+                      ? TOSSIVE_CURSOR_URL
+                      : TOSSIVE_WINDSURF_URL}
+                    className="flex flex-1 items-center justify-center rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-blue-500"
+                  >
+                    {selectedEditor === 'vscode'
+                      ? 'Open in VS Code'
+                      : selectedEditor === 'cursor'
+                      ? 'Open in Cursor'
+                      : 'Open in Windsurf'}
+                  </a>
+                  <a
+                    href={TOSSIVE_VSIX_URL}
+                    download
+                    className={`flex flex-1 items-center justify-center rounded-xl border px-4 py-2.5 text-sm font-semibold transition-colors ${isDark ? 'border-zinc-700 text-zinc-200 hover:bg-zinc-800' : 'border-zinc-300 text-zinc-700 hover:bg-zinc-100'}`}
+                  >
+                    Download VSIX
+                  </a>
+                </>
+              )}
             </div>
           </section>
         </div>
