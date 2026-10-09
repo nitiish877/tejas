@@ -31,10 +31,8 @@ import { isGuestUser } from '../utils/api';
 
 // VS Code Marketplace extension identifier.
 const TOSSIVE_MARKETPLACE_ITEM_ID = 'nitishVishwakarma.tossive';
-const TOSSIVE_VSCODE_URL = `vscode:extension/${TOSSIVE_MARKETPLACE_ITEM_ID}`;
-const TOSSIVE_CURSOR_URL = `cursor:extension/${TOSSIVE_MARKETPLACE_ITEM_ID}`;
-const TOSSIVE_WINDSURF_URL = `windsurf:extension/${TOSSIVE_MARKETPLACE_ITEM_ID}`;
-const TOSSIVE_VSIX_URL = '/downloads/tossive-0.2.3.vsix';
+const TOSSIVE_VSCODE_MARKETPLACE_URL = `https://marketplace.visualstudio.com/items?itemName=${TOSSIVE_MARKETPLACE_ITEM_ID}`;
+const TOSSIVE_OPEN_VSX_URL = 'https://open-vsx.org/extension/nitishVishwakarma/tossive';
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -680,7 +678,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
             role="dialog"
             aria-modal="true"
             aria-labelledby="editor-installer-title"
-            className={`w-full max-w-md rounded-2xl border p-5 shadow-2xl ${isDark ? 'border-zinc-700 bg-[#16191c] text-zinc-100' : 'border-zinc-200 bg-white text-zinc-900'}`}
+            className={`max-h-[calc(100vh-2rem)] w-full max-w-md overflow-y-auto rounded-2xl border p-5 shadow-2xl ${isDark ? 'border-zinc-700 bg-[#16191c] text-zinc-100' : 'border-zinc-200 bg-white text-zinc-900'}`}
             onClick={(event) => event.stopPropagation()}
           >
             <h3 id="editor-installer-title" className="text-base font-semibold">Choose your code editor</h3>
@@ -723,13 +721,44 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 
             {selectedEditor && (
               <div className={`mt-3 rounded-lg border p-3 text-xs leading-relaxed ${isDark ? 'border-blue-500/20 bg-blue-500/5 text-blue-100/80' : 'border-blue-300 bg-blue-50 text-blue-900'}`}>
-                <p className="font-semibold">Install the VSIX in {selectedEditor === 'vscode' ? 'VS Code' : selectedEditor === 'cursor' ? 'Cursor' : 'Windsurf'}:</p>
+                <p className="font-semibold">Install in {selectedEditor === 'vscode' ? 'VS Code' : selectedEditor === 'cursor' ? 'Cursor' : 'Windsurf'} from the marketplace:</p>
                 <ol className="mt-1.5 list-inside list-decimal space-y-1">
-                  <li>Click <span className="font-semibold">Download VSIX</span> below.</li>
-                  <li>In your editor, press <span className="font-semibold">Ctrl+Shift+P</span>.</li>
-                  <li>Search for and choose <span className="font-semibold">Extensions: Install from VSIX…</span>.</li>
-                  <li>Select the downloaded <span className="font-semibold">tossive-0.2.3.vsix</span> file.</li>
+                  <li>Click <span className="font-semibold">Open Marketplace</span> below.</li>
+                  <li>On the extension page, click <span className="font-semibold">Install</span> and approve opening your editor if prompted.</li>
                 </ol>
+                {selectedEditor !== 'windsurf' && (
+                  <div className="mt-3 overflow-hidden rounded-lg border border-zinc-700/50 bg-black/20">
+                    <div className="relative">
+                      <img
+                        src={selectedEditor === 'vscode' ? '/tossive-vscode-guide.png' : '/tossive-cursor-guide.png'}
+                        alt={selectedEditor === 'vscode' ? 'VS Code showing the Tossive activity bar icon' : 'Cursor showing the sidebar button beside Settings'}
+                        className="block h-auto w-full"
+                      />
+                      <svg
+                        aria-hidden="true"
+                        className="pointer-events-none absolute inset-0 h-full w-full"
+                        viewBox="0 0 1365 736"
+                        preserveAspectRatio="none"
+                      >
+                        <defs>
+                          <marker id={`editor-guide-arrow-${selectedEditor}`} markerWidth="12" markerHeight="12" refX="9" refY="6" orient="auto">
+                            <path d="M1,1 L10,6 L1,11" fill="none" stroke="#ef4444" strokeWidth="2.5" />
+                          </marker>
+                        </defs>
+                        {selectedEditor === 'vscode' ? (
+                          <path d="M 190 330 Q 105 365 31 407" fill="none" stroke="#ef4444" strokeWidth="5" markerEnd={`url(#editor-guide-arrow-${selectedEditor})`} />
+                        ) : (
+                          <path d="M 1210 150 Q 1204 75 1184 18" fill="none" stroke="#ef4444" strokeWidth="5" markerEnd={`url(#editor-guide-arrow-${selectedEditor})`} />
+                        )}
+                      </svg>
+                    </div>
+                    <p className="px-3 py-2 text-[11px] text-zinc-200">
+                      {selectedEditor === 'vscode'
+                        ? 'Click the highlighted Tossive icon in the left activity bar, then choose Tossive.'
+                        : 'Click the highlighted sidebar icon beside Settings, then choose Tossive.'}
+                    </p>
+                  </div>
+                )}
               </div>
             )}
 
@@ -742,29 +771,14 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 Close
               </button>
               {selectedEditor && (
-                <>
-                  <a
-                    href={selectedEditor === 'vscode'
-                      ? TOSSIVE_VSCODE_URL
-                      : selectedEditor === 'cursor'
-                      ? TOSSIVE_CURSOR_URL
-                      : TOSSIVE_WINDSURF_URL}
-                    className="flex flex-1 items-center justify-center rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-blue-500"
-                  >
-                    {selectedEditor === 'vscode'
-                      ? 'Open in VS Code'
-                      : selectedEditor === 'cursor'
-                      ? 'Open in Cursor'
-                      : 'Open in Windsurf'}
-                  </a>
-                  <a
-                    href={TOSSIVE_VSIX_URL}
-                    download
-                    className={`flex flex-1 items-center justify-center rounded-xl border px-4 py-2.5 text-sm font-semibold transition-colors ${isDark ? 'border-zinc-700 text-zinc-200 hover:bg-zinc-800' : 'border-zinc-300 text-zinc-700 hover:bg-zinc-100'}`}
-                  >
-                    Download VSIX
-                  </a>
-                </>
+                <a
+                  href={selectedEditor === 'vscode' ? TOSSIVE_VSCODE_MARKETPLACE_URL : TOSSIVE_OPEN_VSX_URL}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="flex flex-1 items-center justify-center rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-blue-500"
+                >
+                  Open Marketplace
+                </a>
               )}
             </div>
           </section>
