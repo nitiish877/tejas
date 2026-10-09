@@ -731,31 +731,14 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                     <div className="relative">
                       <img
                         src={selectedEditor === 'vscode' ? '/tossive-vscode-guide.png' : '/tossive-cursor-guide.png'}
-                        alt={selectedEditor === 'vscode' ? 'VS Code showing the Tossive activity bar icon' : 'Cursor showing the sidebar button beside Settings'}
+                        alt={selectedEditor === 'vscode' ? 'VS Code screenshot with an arrow pointing to the top-right sidebar control' : 'Cursor screenshot with an arrow pointing to the sidebar control beside Settings'}
                         className="block h-auto w-full"
                       />
-                      <svg
-                        aria-hidden="true"
-                        className="pointer-events-none absolute inset-0 h-full w-full"
-                        viewBox="0 0 1365 736"
-                        preserveAspectRatio="none"
-                      >
-                        <defs>
-                          <marker id={`editor-guide-arrow-${selectedEditor}`} markerWidth="12" markerHeight="12" refX="9" refY="6" orient="auto">
-                            <path d="M1,1 L10,6 L1,11" fill="none" stroke="#ef4444" strokeWidth="2.5" />
-                          </marker>
-                        </defs>
-                        {selectedEditor === 'vscode' ? (
-                          <path d="M 190 330 Q 105 365 31 407" fill="none" stroke="#ef4444" strokeWidth="5" markerEnd={`url(#editor-guide-arrow-${selectedEditor})`} />
-                        ) : (
-                          <path d="M 1210 150 Q 1204 75 1184 18" fill="none" stroke="#ef4444" strokeWidth="5" markerEnd={`url(#editor-guide-arrow-${selectedEditor})`} />
-                        )}
-                      </svg>
                     </div>
                     <p className="px-3 py-2 text-[11px] text-zinc-200">
                       {selectedEditor === 'vscode'
-                        ? 'Click the highlighted Tossive icon in the left activity bar, then choose Tossive.'
-                        : 'Click the highlighted sidebar icon beside Settings, then choose Tossive.'}
+                        ? 'Click the highlighted sidebar icon at the top right to open the side panel, then choose Tossive.'
+                        : 'Click the highlighted icon beside Settings to open the side panel, then choose Tossive.'}
                     </p>
                   </div>
                 )}
