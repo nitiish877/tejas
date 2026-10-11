@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { ArrowUp, Square, Quote, X, ImagePlus, Plus, FileText, Loader2, Images, Paperclip } from 'lucide-react';
+import { ArrowUp, Square, Quote, X, ImagePlus, Plus, FileText, Loader2, Images, Paperclip, ChevronDown, Lock, Check } from 'lucide-react';
+import type { SubscriptionPlanType } from '../types';
 import { MAX_FILES_PER_UPLOAD, prepareAttachments, releaseAttachmentPreviews } from '../utils/attachments';
 import type { PreparedAttachment } from '../utils/attachments';
 
@@ -18,6 +19,10 @@ interface ChatInputProps {
   contextMessageId?: string;
   onClearContext?: () => void;
   onGenerateImage?: (prompt: string) => void;
+  selectedModel?: string;
+  ownedPlans?: SubscriptionPlanType[];
+  onSelectModel?: (modelId: string) => void;
+  onOpenSubscription?: (plan: SubscriptionPlanType) => void;
 }
 
 export const ChatInput: React.FC<ChatInputProps> = ({
@@ -32,6 +37,10 @@ export const ChatInput: React.FC<ChatInputProps> = ({
   contextMessageId,
   onClearContext,
   onGenerateImage,
+  selectedModel = 'Qwen/Qwen2.5-1.5B-Instruct',
+  ownedPlans = [],
+  onSelectModel,
+  onOpenSubscription,
 }) => {
   const [text, setText] = useState('');
   const [attachments, setAttachments] = useState<PreparedAttachment[]>([]);
@@ -39,10 +48,18 @@ export const ChatInput: React.FC<ChatInputProps> = ({
   const [attachmentError, setAttachmentError] = useState('');
   const [imageMode, setImageMode] = useState(false);
   const [attachMenuOpen, setAttachMenuOpen] = useState(false);
+  const [modelMenuOpen, setModelMenuOpen] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
   const documentInputRef = useRef<HTMLInputElement>(null);
+  const models: { id: string; name: string; plan: SubscriptionPlanType }[] = [
+    { id: 'Qwen/Qwen2.5-1.5B-Instruct', name: '1.5B', plan: 'free' },
+    { id: 'Qwen/Qwen2.5-3B-Instruct', name: 'Cat (3B)', plan: 'cat' },
+    { id: 'deepseek-ai/DeepSeek-R1-Distill-Llama-8B', name: 'Chetak (8B)', plan: 'chetak' },
+    { id: 'meta-llama/Llama-3.3-70B-Instruct', name: 'Arka (70B)', plan: 'arka' },
+  ];
+  const currentModel = models.find((model) => model.id === selectedModel) || models[0];
 
   // Auto-type: focus the chat box when the user types anywhere on the page.
   useEffect(() => {
@@ -349,6 +366,20 @@ export const ChatInput: React.FC<ChatInputProps> = ({
             }`}
           />
 
+          <div className="relative shrink-0">
+            <button type="button" onClick={() => setModelMenuOpen((open) => !open)} title="Choose model" className={`flex items-center gap-1 rounded-full border px-2 py-2 text-xs ${isDark ? 'border-zinc-700 text-zinc-300 hover:bg-zinc-700' : 'border-zinc-300 text-zinc-700 hover:bg-zinc-100'}`}>
+              <span className="max-w-20 truncate">{currentModel.name}</span><ChevronDown className="h-3.5 w-3.5" />
+            </button>
+            {modelMenuOpen && <div className={`absolute bottom-full right-0 z-40 mb-2 w-56 overflow-hidden rounded-xl border shadow-xl ${isDark ? 'border-zinc-700 bg-zinc-900 text-zinc-100' : 'border-zinc-200 bg-white text-zinc-900'}`}>
+              {models.map((model) => {
+                const locked = model.plan !== 'free' && !ownedPlans.includes(model.plan);
+                return <button key={model.id} type="button" onClick={() => { setModelMenuOpen(false); if (locked) onOpenSubscription?.(model.plan); else onSelectModel?.(model.id); }} className={`flex w-full items-center justify-between px-3 py-2.5 text-left text-xs hover:bg-zinc-700/20 ${selectedModel === model.id ? 'font-semibold' : ''}`}>
+                  <span>{model.name}</span>{locked ? <Lock className="h-3.5 w-3.5 opacity-70" /> : selectedModel === model.id ? <Check className="h-3.5 w-3.5 text-emerald-500" /> : null}
+                </button>;
+              })}
+            </div>}
+          </div>
+
           {isStreaming ? (
             <button
               id="stop-streaming-btn"
@@ -395,35 +426,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
 
       {/* Bottom row — Generate Image button + Disclaimer */}
       <div className="mt-2 px-2 flex flex-col sm:flex-row items-center justify-between gap-2">
-        {onGenerateImage ? (
-          <button
-            type="button"
-            onClick={toggleImageMode}
-            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-semibold border transition-all active:scale-95 ${
-              imageMode
-                ? isDark
-                  ? 'bg-zinc-700 border-zinc-600 text-zinc-100'
-                  : 'bg-zinc-200 border-zinc-400 text-zinc-900'
-                : isDark
-                ? 'bg-zinc-800/60 hover:bg-zinc-800 border-zinc-700/70 text-zinc-300 hover:text-zinc-100'
-                : 'bg-zinc-100 hover:bg-zinc-200 border-zinc-200 text-zinc-600 hover:text-zinc-900'
-            }`}
-          >
-            {imageMode ? (
-              <>
-                <X className="w-3 h-3" />
-                <span>Cancel Image Mode</span>
-              </>
-            ) : (
-              <>
-                <ImagePlus className="w-3 h-3" />
-                <span>Generate Image</span>
-              </>
-            )}
-          </button>
-        ) : (
-          <span />
-        )}
+        <span />
 
         <p className={`text-[11px] select-none ${isDark ? 'text-zinc-500' : 'text-zinc-400'}`}>
           tejas is ai can make mistakes please double chek response

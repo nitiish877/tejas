@@ -1,5 +1,5 @@
-import React, { useRef, useEffect, useState, useMemo } from 'react';
-import { Message, SubscriptionPlanType, UserProfile } from '../types';
+import React, { useRef, useEffect, useState } from 'react';
+import { Message, UserProfile } from '../types';
 import { AppVersionInfo, getClientVersion } from '../version';
 import { Logo } from './Logo';
 import { MarkdownMessage } from './MarkdownMessage';
@@ -36,12 +36,6 @@ interface ChatAreaProps {
   currentUser: UserProfile;
   onRegenerate: () => void;
   onSelectPromptSuggestion: (text: string) => void;
-  selectedModel?: string;
-  onSelectModel?: (modelId: string) => void;
-  subscriptionPlan?: SubscriptionPlanType;
-  ownedPlans?: SubscriptionPlanType[];
-  subscriptionExpiresAt?: number;
-  onOpenSubscription?: (plan?: SubscriptionPlanType) => void;
   onOpenSettings?: () => void;
   onOpenAuth?: () => void;
   isDark: boolean;
@@ -69,12 +63,6 @@ export const ChatArea: React.FC<ChatAreaProps> = ({
   currentUser,
   onRegenerate,
   onSelectPromptSuggestion,
-  selectedModel = 'Qwen/Qwen2.5-1.5B-Instruct',
-  onSelectModel,
-  subscriptionPlan = 'free',
-  ownedPlans = [],
-  subscriptionExpiresAt,
-  onOpenSubscription,
   onOpenSettings,
   onOpenAuth,
   isDark,
@@ -97,8 +85,6 @@ export const ChatArea: React.FC<ChatAreaProps> = ({
   const confirmExternalLinks = messages.some((message) => message.role === 'user' && !!message.attachments?.length);
   const stickToBottomRef = useRef(true);
   const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null);
-  const [modelDropdownOpen, setModelDropdownOpen] = useState(false);
-  const modelMenuRef = useRef<HTMLDivElement>(null);
 
   const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
   const [editingText, setEditingText] = useState('');
@@ -118,9 +104,6 @@ export const ChatArea: React.FC<ChatAreaProps> = ({
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
-      if (modelMenuRef.current && !modelMenuRef.current.contains(e.target as Node)) {
-        setModelDropdownOpen(false);
-      }
       const target = e.target as HTMLElement;
       if (!target.closest('[data-ask-about-btn]')) {
         setAskAboutButton(null);
@@ -137,91 +120,6 @@ export const ChatArea: React.FC<ChatAreaProps> = ({
       setRegenState(null);
     }
   }, [messages, regenState]);
-
-  const daysRemaining = subscriptionExpiresAt
-    ? Math.max(0, Math.ceil((subscriptionExpiresAt - Date.now()) / (1000 * 60 * 60 * 24)))
-    : null;
-
-  const getModelLabel = () => {
-    switch (selectedModel) {
-      case 'Qwen/Qwen2.5-3B-Instruct':
-        return {
-          name: 'Cat (3B)',
-          badge: daysRemaining !== null ? `${daysRemaining}d` : '₹1 Test',
-          isPro: true,
-          plan: 'cat' as SubscriptionPlanType,
-        };
-      case 'deepseek-ai/DeepSeek-R1-Distill-Llama-8B':
-        return {
-          name: 'Chetak (8B)',
-          badge: daysRemaining !== null ? `${daysRemaining}d` : '₹299/mo',
-          isPro: true,
-          plan: 'chetak' as SubscriptionPlanType,
-        };
-      case 'meta-llama/Llama-3.3-70B-Instruct':
-      case 'meta-llama/Llama-3-70B-Instruct':
-        return {
-          name: 'Arka (70B)',
-          badge: daysRemaining !== null ? `${daysRemaining}d` : '₹799/mo',
-          isPro: true,
-          plan: 'arka' as SubscriptionPlanType,
-        };
-      case 'Qwen/Qwen2.5-1.5B-Instruct':
-      default:
-        return {
-          name: '1.5B',
-          badge: 'Free',
-          isPro: false,
-          plan: 'free' as SubscriptionPlanType,
-        };
-    }
-  };
-
-  const modelInfo = getModelLabel();
-
-  const availableModels = useMemo(() => {
-    const list = [
-      {
-        id: 'Qwen/Qwen2.5-1.5B-Instruct',
-        name: '1.5B (Free)',
-        desc: 'Fast, lightweight & free for all',
-        badge: 'Free',
-        badgeClass: 'bg-zinc-700/50 text-zinc-300',
-        plan: 'free' as SubscriptionPlanType,
-      },
-    ];
-    if (ownedPlans.includes('cat')) {
-      list.push({
-        id: 'Qwen/Qwen2.5-3B-Instruct',
-        name: 'Cat (3B)',
-        desc: 'Balanced reasoning & speed',
-        badge: 'Active',
-        badgeClass: 'bg-purple-500/20 text-purple-300 border border-purple-500/30',
-        plan: 'cat' as SubscriptionPlanType,
-      });
-    }
-    if (ownedPlans.includes('chetak')) {
-      list.push({
-        id: 'deepseek-ai/DeepSeek-R1-Distill-Llama-8B',
-        name: 'Chetak (8B)',
-        desc: 'DeepSeek reasoning & coding',
-        badge: 'Active',
-        badgeClass: 'bg-blue-500/20 text-blue-300 border border-blue-500/30',
-        plan: 'chetak' as SubscriptionPlanType,
-      });
-    }
-    if (ownedPlans.includes('arka')) {
-      list.push({
-        id: 'meta-llama/Llama-3.3-70B-Instruct',
-        name: 'Arka (70B)',
-        desc: 'Flagship power & deep reasoning',
-        badge: 'Active',
-        badgeClass: 'bg-amber-500/20 text-amber-300 border border-amber-500/30',
-        plan: 'arka' as SubscriptionPlanType,
-      });
-    }
-    return list;
-  }, [ownedPlans]);
 
   const handleMessagesScroll = () => {
     const el = scrollContainerRef.current;
@@ -499,6 +397,11 @@ export const ChatArea: React.FC<ChatAreaProps> = ({
             : 'bg-[#f5f8fa] border-zinc-200 text-zinc-900'
         }`}
       >
+        {serverState === 'offline' && (
+          <div role="status" className="absolute left-1/2 top-14 z-20 -translate-x-1/2 rounded-b-lg border border-amber-500/30 bg-amber-950/95 px-4 py-2 text-xs text-amber-100 shadow-lg">
+            Internet connection nahi hai. Internet reconnect karke dobara try karein.
+          </div>
+        )}
         <div className="flex items-center gap-3">
           <button
             id="header-logo-btn"
@@ -531,66 +434,6 @@ export const ChatArea: React.FC<ChatAreaProps> = ({
         </div>
 
         <div className="flex items-center gap-2 relative">
-          <div ref={modelMenuRef} className="relative">
-            <button
-              id="header-model-pill-btn"
-              type="button"
-              onClick={() => setModelDropdownOpen((prev) => !prev)}
-              title="Click to switch active model"
-              className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-semibold border transition-all cursor-pointer ${
-                isDark
-                  ? 'bg-zinc-800/80 hover:bg-zinc-700 border-zinc-700/80 text-zinc-300'
-                  : 'bg-zinc-100 hover:bg-zinc-200 border-zinc-200 text-zinc-700'
-              }`}
-            >
-              <span>Tejas {modelInfo.name}</span>
-              <span className="text-[10px] opacity-75 font-mono">({modelInfo.badge})</span>
-              <ChevronDown className={`w-3.5 h-3.5 opacity-60 transition-transform ${modelDropdownOpen ? 'rotate-180' : ''}`} />
-            </button>
-
-            {modelDropdownOpen && (
-              <div
-                className={`absolute right-0 top-full mt-2 w-72 rounded-xl border shadow-xl py-1.5 z-50 ${
-                  isDark ? 'bg-zinc-900 border-zinc-800 text-zinc-200' : 'bg-white border-zinc-200 text-zinc-800'
-                }`}
-              >
-                <div className="px-3 py-1.5 border-b border-zinc-800/40 text-[11px] font-semibold opacity-60">
-                  Switch Active Model
-                </div>
-
-                {availableModels.map((item) => {
-                  const isSelected = selectedModel === item.id;
-                  return (
-                    <div
-                      key={item.id}
-                      className={`px-3 py-2 flex items-center justify-between hover:bg-zinc-800/40 cursor-pointer transition-colors ${
-                        isSelected ? (isDark ? 'bg-zinc-800/70' : 'bg-zinc-100') : ''
-                      }`}
-                      onClick={() => {
-                        onSelectModel?.(item.id);
-                        setModelDropdownOpen(false);
-                      }}
-                    >
-                      <div className="flex flex-col">
-                        <div className="flex items-center gap-1.5">
-                          <span className="text-xs font-semibold">{item.name}</span>
-                          {isSelected && <Check className="w-3.5 h-3.5 text-emerald-400" />}
-                        </div>
-                        <span className="text-[10px] opacity-70">{item.desc}</span>
-                      </div>
-
-                      <div className="flex items-center gap-1.5">
-                        <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${item.badgeClass}`}>
-                          {item.badge}
-                        </span>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-
           {onShareChat && canShare && (
             <button
               id="header-share-btn"
@@ -621,40 +464,7 @@ export const ChatArea: React.FC<ChatAreaProps> = ({
             </button>
           )}
 
-          {onOpenSubscription && (
-            <button
-              id="header-upgrade-btn"
-              type="button"
-              onClick={() => onOpenSubscription()}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all shadow-sm ${
-                subscriptionPlan === 'arka'
-                  ? 'bg-amber-500/15 text-amber-300 border border-amber-500/30 hover:bg-amber-500/25'
-                  : subscriptionPlan === 'chetak'
-                  ? 'bg-blue-500/15 text-blue-300 border border-blue-500/30 hover:bg-blue-500/25'
-                  : subscriptionPlan === 'cat'
-                  ? 'bg-purple-500/15 text-purple-300 border border-purple-500/30 hover:bg-purple-500/25'
-                  : 'bg-gradient-to-r from-cyan-700 to-blue-700 hover:from-cyan-600 hover:to-blue-600 text-white'
-              }`}
-            >
-              {subscriptionPlan === 'arka' ? (
-                <Crown className="w-3.5 h-3.5 text-amber-400" />
-              ) : subscriptionPlan === 'cat' ? (
-                <TestTube2 className="w-3.5 h-3.5 text-purple-300" />
-              ) : (
-                <Sparkles className="w-3.5 h-3.5 text-blue-300" />
-              )}
-              <span className="hidden sm:inline">
-                {subscriptionPlan === 'arka'
-                  ? 'Arka Pro'
-                  : subscriptionPlan === 'chetak'
-                  ? 'Chetak Active'
-                  : subscriptionPlan === 'cat'
-                  ? 'Cat Active'
-                  : 'Upgrade'}
-              </span>
-            </button>
-          )}
-        </div>
+</div>
       </header>
 
       {updateInfo && updateInfo.version && updateInfo.version !== getClientVersion() && (

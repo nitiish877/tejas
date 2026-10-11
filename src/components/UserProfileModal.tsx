@@ -127,7 +127,7 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
                 id="logout-btn"
                 type="button"
                 onClick={() => {
-                  if (onLogout) onLogout();
+                  onLogout?.();
                   onClose();
                 }}
                 className={`w-full py-2.5 px-4 rounded-xl border text-xs font-semibold flex items-center justify-center gap-2 transition-colors ${

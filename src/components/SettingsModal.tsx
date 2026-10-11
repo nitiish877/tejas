@@ -41,7 +41,7 @@ interface SettingsModalProps {
   settings: AppSettings;
   onUpdateSettings: (newSettings: Partial<AppSettings>) => void;
   currentUser: UserProfile;
-  onLogout: () => void;
+  onLogout?: () => void;
   onOpenAuth?: () => void;
   onOpenProfile?: () => void;
   onOpenSubscription: (plan?: SubscriptionPlanType) => void;
@@ -405,7 +405,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               </div>
             </div>
 
-            <button
+            {!isMobileDevice && <button
               type="button"
               onClick={() => {
                 setSelectedEditor(null);
@@ -414,7 +414,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               className="w-full rounded-xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2 focus:ring-offset-zinc-900"
             >
               Install Tossive
-            </button>
+            </button>}
 
             {connectedEditors.length > 0 && (
               <div className={`rounded-xl border p-4 ${isDark ? 'border-zinc-800 bg-zinc-900/60' : 'border-zinc-200 bg-white'}`}>
@@ -446,23 +446,23 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               </div>
             )}
 
-            <div className={`rounded-xl border p-3.5 ${isDark ? 'border-amber-500/20 bg-amber-500/5' : 'border-amber-300 bg-amber-50'}`}>
+            {!isMobileDevice && <div className={`rounded-xl border p-3.5 ${isDark ? 'border-amber-500/20 bg-amber-500/5' : 'border-amber-300 bg-amber-50'}`}>
               <div className="flex items-start gap-2.5">
                 <MonitorCheck className={`mt-0.5 h-4 w-4 shrink-0 ${isDark ? 'text-amber-300' : 'text-amber-700'}`} />
                 <p className={`text-xs leading-relaxed ${isDark ? 'text-amber-100/80' : 'text-amber-900'}`}>
                   Select your editor to open the Tossive extension listing or download its install package. Then open the Tossive panel from the editor's sidebar.
                 </p>
               </div>
-            </div>
+            </div>}
 
-            <div className={`rounded-xl border p-3.5 ${isDark ? 'border-zinc-800 bg-zinc-900/40' : 'border-zinc-200 bg-white'}`}>
+            {!isMobileDevice && <div className={`rounded-xl border p-3.5 ${isDark ? 'border-zinc-800 bg-zinc-900/40' : 'border-zinc-200 bg-white'}`}>
               <p className="text-xs font-semibold">Get started</p>
               <ol className={`mt-2 list-inside list-decimal space-y-1.5 text-xs ${isDark ? 'text-zinc-400' : 'text-zinc-600'}`}>
                 <li>Choose VS Code, Cursor, or Windsurf and install Tossive.</li>
                 <li>Open a workspace and select Tossive from the editor sidebar.</li>
                 <li>Review proposed changes before applying them to existing files.</li>
               </ol>
-            </div>
+            </div>}
           </div>
         )}
 
@@ -666,26 +666,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               </button>
             ) : (
               <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => {
-                    onLogout();
-                    setShowLogoutConfirm(false);
-                    handleClose();
-                  }}
-                  className="flex-1 py-2.5 rounded-xl text-xs font-semibold bg-rose-600 text-white hover:bg-rose-700 transition-colors"
-                >
-                  Confirm Logout
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setShowLogoutConfirm(false)}
-                  className={`flex-1 py-2.5 rounded-xl text-xs font-medium border transition-colors ${
-                    isDark ? 'text-zinc-300 border-zinc-700 hover:bg-zinc-800' : 'text-zinc-700 border-zinc-300 hover:bg-zinc-100'
-                  }`}
-                >
-                  Cancel
-                </button>
+                <button type="button" onClick={() => { onLogout?.(); setShowLogoutConfirm(false); handleClose(); }} className="flex-1 py-2.5 rounded-xl text-xs font-semibold bg-rose-600 text-white hover:bg-rose-700 transition-colors">Confirm Logout</button>
+                <button type="button" onClick={() => setShowLogoutConfirm(false)} className={`flex-1 py-2.5 rounded-xl text-xs font-medium border transition-colors ${isDark ? 'text-zinc-300 border-zinc-700 hover:bg-zinc-800' : 'text-zinc-700 border-zinc-300 hover:bg-zinc-100'}`}>Cancel</button>
               </div>
             )}
           </div>
@@ -723,7 +705,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
         </div>
       )}
 
-      {showInstallChooser && (
+      {showInstallChooser && !isMobileDevice && (
         <div
           className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm"
           onClick={() => setShowInstallChooser(false)}

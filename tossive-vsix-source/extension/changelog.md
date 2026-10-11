@@ -1,4 +1,7 @@
-# Changelog
+## 0.2.6
+
+- Limit guest use to three messages and open sign-in after the third message.
+- Remove sign-out from the extension panel; disconnect editors from Tejas settings.
 
 ## 0.2.5
 

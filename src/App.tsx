@@ -102,6 +102,14 @@ export default function App() {
     return DEFAULT_USER;
   });
 
+  useEffect(() => {
+    try {
+      localStorage.setItem(STORAGE_KEY_USER, JSON.stringify(currentUser));
+    } catch (e) {
+      console.error('Failed to persist user', e);
+    }
+  }, [currentUser]);
+
   const [settings, setSettings] = useState<AppSettings>(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEY_SETTINGS);
@@ -567,6 +575,10 @@ export default function App() {
     let retryTimer: any = null;
 
     const checkServerHealth = async () => {
+      if (!navigator.onLine) {
+        if (isMounted) setServerState('offline');
+        return;
+      }
       const hasCustomUrl = Boolean(
         (settings.customBackendUrl || '').trim()
       );
@@ -607,11 +619,18 @@ export default function App() {
       }
     };
 
+    const onOnline = () => { setServerState('checking'); checkServerHealth(); };
+    const onOffline = () => setServerState('offline');
+    window.addEventListener('online', onOnline);
+    window.addEventListener('offline', onOffline);
+    if (!navigator.onLine) setServerState('offline');
     checkServerHealth();
 
     return () => {
       isMounted = false;
       if (retryTimer) clearTimeout(retryTimer);
+      window.removeEventListener('online', onOnline);
+      window.removeEventListener('offline', onOffline);
     };
   }, [settings.customBackendUrl]);
 
@@ -911,7 +930,12 @@ export default function App() {
   // On app open (refresh / reopening), if a saved auth token exists, re-fetch the
   // user account + subscription + full chat list so returning users see their data.
   useEffect(() => {
-    if (!getAuthToken() || isGuestUser(currentUser)) {
+    if (isGuestUser(currentUser)) {
+      setChatsLoading(false);
+      return;
+    }
+    if (!getAuthToken()) {
+      resetToGuest();
       setChatsLoading(false);
       return;
     }
@@ -934,7 +958,10 @@ export default function App() {
         }));
         await loadServerChats();
       } catch (e) {
-        if (e instanceof ApiError && e.status === 401) resetToGuest();
+        if (e instanceof ApiError && (e.status === 401 || e.status === 403)) {
+          clearAuthToken();
+          resetToGuest();
+        }
         else console.error('Session restore failed', e);
         setChatsLoading(false);
       }
@@ -1509,6 +1536,8 @@ export default function App() {
         const friendly =
           streamErrorFriendly
             ? streamError
+            : !navigator.onLine
+            ? 'Internet connection nahi hai. Internet reconnect karke dobara try karein.'
             : err.message === 'Failed to fetch'
             ? 'Could not reach the backend. Check the backend URL configured for this app deployment and the server status.'
             : err.message || 'Failed to connect to the LLM endpoint';
@@ -1721,6 +1750,10 @@ export default function App() {
               contextMessageId={askAbout?.messageId}
               onClearContext={() => setAskAbout(null)}
               onGenerateImage={handleGenerateImage}
+              selectedModel={settings.selectedModel}
+              ownedPlans={settings.ownedPlans || []}
+              onSelectModel={(modelId) => setSettings((prev) => ({ ...prev, selectedModel: modelId, subscriptionPlan: MODEL_TO_PLAN[modelId] || 'free' }))}
+              onOpenSubscription={(plan) => handleOpenSubscription(plan)}
             />
           )}
         />
@@ -1741,6 +1774,10 @@ export default function App() {
             contextMessageId={askAbout?.messageId}
             onClearContext={() => setAskAbout(null)}
             onGenerateImage={handleGenerateImage}
+            selectedModel={settings.selectedModel}
+            ownedPlans={settings.ownedPlans || []}
+            onSelectModel={(modelId) => setSettings((prev) => ({ ...prev, selectedModel: modelId, subscriptionPlan: MODEL_TO_PLAN[modelId] || 'free' }))}
+            onOpenSubscription={(plan) => handleOpenSubscription(plan)}
           />
         )}
       </main>
