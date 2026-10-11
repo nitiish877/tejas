@@ -175,6 +175,7 @@ export default function App() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [userProfileOpen, setUserProfileOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [settingsEditorEntry, setSettingsEditorEntry] = useState(false);
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [extensionAuthDeviceCode, setExtensionAuthDeviceCode] = useState(() =>
     new URLSearchParams(window.location.search).get('extension_auth') || ''
@@ -374,6 +375,31 @@ export default function App() {
 
     return base ? `${base}${path}` : path;
   };
+
+  useEffect(() => {
+    if (!extensionAuthDeviceCode || extensionAuthOutcome) return;
+    if (!getAuthToken()) {
+      if (!isGuestUser(currentUser)) resetToGuest();
+      setAuthNotice('Sign in or create a Tejas account to connect the Tossive extension.');
+      setAuthModalOpen(true);
+      return;
+    }
+    if (!isGuestUser(currentUser)) return;
+    let cancelled = false;
+    fetchMe(getApiUrl).then(({ user }) => {
+      if (cancelled) return;
+      setCurrentUser(user);
+      try { localStorage.setItem(STORAGE_KEY_USER, JSON.stringify(user)); } catch {}
+    }).catch((error) => {
+      if (cancelled) return;
+      if (error instanceof ApiError && error.status === 401) resetToGuest();
+      setAuthNotice('Sign in or create a Tejas account to connect the Tossive extension.');
+      setAuthModalOpen(true);
+    });
+    return () => { cancelled = true; };
+    // Recheck after saved browser sessions are restored or expired.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [extensionAuthDeviceCode, extensionAuthOutcome, currentUser.provider, currentUser.email]);
 
   // Guest chats are session-scoped
   useEffect(() => {
@@ -1002,6 +1028,13 @@ export default function App() {
       clearExtensionAuthRequest();
       setExtensionAuthOutcome('authorized');
     } catch (error: any) {
+      if (error instanceof ApiError && error.status === 401) {
+        resetToGuest();
+        setAuthNotice('Your Tejas session expired. Sign in again to connect the Tossive extension.');
+        setAuthModalOpen(true);
+        setExtensionAuthError('');
+        return;
+      }
       setExtensionAuthError(error?.message || 'Could not authorize Tossive. Start sign-in again from the editor.');
     } finally {
       setExtensionAuthBusy(false);
@@ -1615,12 +1648,12 @@ export default function App() {
         onDeleteChat={handleDeleteChat}
         currentUser={currentUser}
         onOpenProfile={() => setUserProfileOpen(true)}
-        onOpenSettings={() => setSettingsOpen(true)}
+        onOpenSettings={() => { setSettingsEditorEntry(false); setSettingsOpen(true); }}
+        onOpenCodeEditor={() => { setSettingsEditorEntry(true); setSettingsOpen(true); }}
         onOpenAuth={() => setAuthModalOpen(true)}
         onOpenSubscription={() => handleOpenSubscription()}
         subscriptionPlan={settings.subscriptionPlan || 'free'}
         isDark={isDark}
-        appDownloadUrl="/Tejas.apk"
         trashChats={trashChats}
         trashLoading={trashLoading}
         chatsLoading={chatsLoading}
@@ -1724,7 +1757,7 @@ export default function App() {
 
       <SettingsModal
         isOpen={settingsOpen}
-        onClose={() => setSettingsOpen(false)}
+        onClose={() => { setSettingsOpen(false); setSettingsEditorEntry(false); }}
         settings={settings}
         onUpdateSettings={(newSettings) =>
           setSettings((prev) => ({ ...prev, ...newSettings }))
@@ -1738,6 +1771,7 @@ export default function App() {
         onOpenSharedChats={() => setSharedChatsOpen(true)}
         isDark={isDark}
         getApiUrl={getApiUrl}
+        openEditorOnOpen={settingsEditorEntry}
         onCheckForUpdates={() => checkForUpdates(true)}
         isCheckingUpdates={isCheckingUpdates}
       />

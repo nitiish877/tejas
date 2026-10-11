@@ -22,7 +22,6 @@ import {
   ChevronRight,
   ArrowLeft,
   Palette,
-  Code2,
   MonitorCheck,
   Laptop,
 } from 'lucide-react';
@@ -50,6 +49,7 @@ interface SettingsModalProps {
   onOpenSharedChats?: () => void;
   isDark: boolean;
   getApiUrl: (path: string) => string;
+  openEditorOnOpen?: boolean;
   onCheckForUpdates?: () => void;
   isCheckingUpdates?: boolean;
 }
@@ -70,6 +70,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   onOpenSharedChats,
   isDark,
   getApiUrl,
+  openEditorOnOpen = false,
   onCheckForUpdates,
   isCheckingUpdates = false,
 }) => {
@@ -85,6 +86,12 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     typeof window !== 'undefined' && window.matchMedia('(max-width: 767px), (pointer: coarse)').matches,
   );
   const isGuest = isGuestUser(currentUser);
+
+  useEffect(() => {
+    if (!isOpen || !openEditorOnOpen) return;
+    setView('editor');
+    if (isMobileDevice) setShowPcOnlyNotice(true);
+  }, [isOpen, openEditorOnOpen, isMobileDevice]);
 
   useEffect(() => {
     if (!isOpen || view !== 'editor' || isGuest) {
@@ -298,26 +305,6 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               title="Preferences"
               subtitle="Theme & sound notifications"
               onClick={() => setView('preferences')}
-            />
-
-            {/* Code editor connection */}
-            <RowButton
-              icon={<IconBox tone="emerald"><Code2 className="w-4 h-4" /></IconBox>}
-              title="Code Editor"
-              subtitle={isMobileDevice ? 'Connect a code editor • PC only' : 'Connect a code editor to edit local files'}
-              muted={isMobileDevice}
-              onClick={() => {
-                if (isMobileDevice) {
-                  setShowPcOnlyNotice(true);
-                  return;
-                }
-                setView('editor');
-              }}
-              rightHint={isMobileDevice ? (
-                <span className={`shrink-0 rounded-full border px-2 py-1 text-[10px] font-semibold ${isDark ? 'border-zinc-700 bg-zinc-800 text-zinc-300' : 'border-zinc-300 bg-zinc-100 text-zinc-600'}`}>
-                  PC only
-                </span>
-              ) : undefined}
             />
 
             {/* Subscriptions */}

@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.2.5
+
+- Render headings, bold text, lists and inline code in assistant replies.
+- Add whole-folder project context with environment-file warnings and secret-file exclusion.
+- Open sign-in directly when no Tejas browser session exists.
+- Run approved setup commands in the project terminal.
+
 ## 0.2.4
 
 - Allow four guest messages before requiring a Tejas sign-in for continued use.

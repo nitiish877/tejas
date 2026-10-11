@@ -14,7 +14,7 @@ import {
   Crown,
   TestTube2,
   LogIn,
-  Download,
+  Code2,
   MoreVertical,
   RotateCcw,
   AlertTriangle,
@@ -42,7 +42,7 @@ interface SidebarProps {
   onOpenSubscription?: (plan?: SubscriptionPlanType) => void;
   subscriptionPlan?: SubscriptionPlanType;
   isDark: boolean;
-  appDownloadUrl?: string;
+  onOpenCodeEditor: () => void;
   // ---- Trash support ----
   trashChats?: ChatSession[];
   trashLoading?: boolean;
@@ -50,43 +50,6 @@ interface SidebarProps {
   onLoadTrash?: () => void;
   onRestoreChat?: (id: string) => void;
   onPermanentlyDeleteChat?: (id: string, title: string) => void;
-}
-
-function isRunningAsInstalledApp(): boolean {
-  try {
-    if (typeof window !== 'undefined' && window.matchMedia) {
-      if (
-        window.matchMedia('(display-mode: standalone)').matches ||
-        window.matchMedia('(display-mode: fullscreen)').matches ||
-        window.matchMedia('(display-mode: minimal-ui)').matches
-      ) {
-        return true;
-      }
-    }
-    if ((window.navigator as any).standalone === true) return true;
-    if (typeof document !== 'undefined' && document.referrer?.startsWith('android-app://')) return true;
-    try {
-      const params = new URLSearchParams(window.location.search);
-      if (params.get('app') === '1') return true;
-    } catch {}
-    const ua = (navigator.userAgent || '').toLowerCase();
-    const uaOriginal = navigator.userAgent || '';
-    if (ua.includes('tejasapp')) return true;
-    if (ua.includes('; wv)')) return true;
-    if (ua.includes('webview')) return true;
-    if (ua.includes('wv)')) return true;
-    if (/version\/\d+\.\d+.*mobile safari/i.test(uaOriginal) && ua.includes('android')) return true;
-    if (ua.includes('android') && ua.includes('safari') && !ua.includes('chrome')) return true;
-    if (ua.includes('; wv;') || ua.includes(' wv ')) return true;
-    if (ua.includes('okhttp')) return true;
-    if (ua.includes('cfnetwork') && ua.includes('darwin') && !ua.includes('safari')) return true;
-    if ((window as any).Android || (window as any).TejasAndroid) return true;
-    if ((window as any).Capacitor || (window as any).cordova) return true;
-    if ((window as any).ReactNativeWebView) return true;
-    return false;
-  } catch {
-    return false;
-  }
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({
@@ -109,7 +72,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onOpenSubscription,
   subscriptionPlan = 'free',
   isDark,
-  appDownloadUrl,
+  onOpenCodeEditor,
   trashChats = [],
   trashLoading = false,
   chatsLoading = false,
@@ -122,7 +85,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
 
-  const [isInstalledApp] = useState<boolean>(() => isRunningAsInstalledApp());
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
@@ -151,26 +113,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const pinnedChats = filteredChats.filter((c) => c.isPinned);
   const recentChats = filteredChats.filter((c) => !c.isPinned);
 
-  const showDownloadButton = Boolean(appDownloadUrl) && !isInstalledApp;
   const isLoggedIn = !(currentUser.provider === 'guest' || !currentUser.email);
-
-  const handleDownloadApp = () => {
-    if (!appDownloadUrl) return;
-    try {
-      const a = document.createElement('a');
-      a.href = appDownloadUrl;
-      a.download = 'Tejas.apk';
-      a.rel = 'noopener';
-      a.style.display = 'none';
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-    } catch (err) {
-      try {
-        window.open(appDownloadUrl, '_blank', 'noopener,noreferrer');
-      } catch {}
-    }
-  };
 
   // ---- Chat row ----
   const ChatRow: React.FC<{ chat: ChatSession; isPinned?: boolean }> = ({ chat, isPinned }) => {
@@ -543,21 +486,21 @@ export const Sidebar: React.FC<SidebarProps> = ({
           )}
         </div>
 
-        {/* Download App Button */}
-        {view === 'chats' && showDownloadButton && (
+        {/* Code editor entry point */}
+        {view === 'chats' && (
           <div className="px-3 pb-2">
             <button
-              id="sidebar-download-app-btn"
+              id="sidebar-code-editor-btn"
               type="button"
-              onClick={handleDownloadApp}
+              onClick={onOpenCodeEditor}
               className={`w-full py-2 px-3 rounded-xl text-xs font-semibold flex items-center justify-center gap-2 border transition-all ${
                 isDark
                   ? 'bg-zinc-800/60 hover:bg-zinc-800 border-zinc-800 text-zinc-300'
                   : 'bg-white hover:bg-zinc-100 border-zinc-200 text-zinc-700'
               }`}
             >
-              <Download className="w-3.5 h-3.5" />
-              <span>Download App</span>
+              <Code2 className="w-3.5 h-3.5" />
+              <span>Code Editor</span>
             </button>
           </div>
         )}
