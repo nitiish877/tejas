@@ -8,7 +8,7 @@ interface ChatInputProps {
   onSendMessage: (
     content: string,
     options?: { contextText?: string; contextMessageId?: string; attachments?: PreparedAttachment[] }
-  ) => void;
+  ) => boolean | void;
   onBeforeSend?: () => void;
   isStreaming: boolean;
   onStopStreaming: () => void;
@@ -117,12 +117,9 @@ export const ChatInput: React.FC<ChatInputProps> = ({
     if ((!text.trim() && attachments.length === 0) || isStreaming || isPreparingFiles) return;
 
     const message = text.trim();
-    setText('');
-    if (textareaRef.current) {
-      textareaRef.current.style.height = 'auto';
-    }
-
     if (imageMode && onGenerateImage && attachments.length === 0) {
+      setText('');
+      if (textareaRef.current) textareaRef.current.style.height = 'auto';
       onBeforeSend?.();
       onGenerateImage(message);
       setImageMode(false);
@@ -131,10 +128,13 @@ export const ChatInput: React.FC<ChatInputProps> = ({
 
     onBeforeSend?.();
     setImageMode(false);
-    onSendMessage(message, {
+    const accepted = onSendMessage(message, {
       ...(contextText ? { contextText, contextMessageId } : {}),
       attachments: attachments.length ? attachments : undefined,
     });
+    if (accepted === false) return;
+    setText('');
+    if (textareaRef.current) textareaRef.current.style.height = 'auto';
     releaseAttachmentPreviews(attachments);
     setAttachments([]);
   };

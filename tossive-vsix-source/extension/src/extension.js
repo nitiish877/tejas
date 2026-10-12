@@ -11,22 +11,7 @@ const CHAT_STORAGE_KEY = 'tossive.chat.messages.v1';
 const CHAT_TRASH_KEY = 'tossive.chat.trash.v1';
 const CHAT_TTL_MS = 2 * 24 * 60 * 60 * 1000;
 const MAX_CONTEXT_BYTES = 512 * 1024;
-const MAX_CONTEXT_FILES = 500;
 const MAX_CONTEXT_FILE_BYTES = 200 * 1024;
-const IGNORED_FOLDER_NAMES = new Set(['.git', '.svn', '.hg', 'node_modules', 'vendor', 'dist', 'build', 'out', 'coverage', '.next', '.nuxt', '.turbo', '.vercel', '.firebase', '.angular', '.parcel-cache', '.cache', '.venv', 'venv', '__pycache__', 'target', 'bin', 'obj', '.idea', '.vscode', '.aws', '.ssh']);
-const TEXT_FILE_EXTENSIONS = new Set(['.js', '.jsx', '.mjs', '.cjs', '.ts', '.tsx', '.json', '.md', '.mdx', '.html', '.htm', '.css', '.scss', '.sass', '.less', '.py', '.pyi', '.go', '.rs', '.java', '.kt', '.kts', '.c', '.h', '.cc', '.cpp', '.hpp', '.cs', '.php', '.rb', '.swift', '.m', '.mm', '.sh', '.bash', '.zsh', '.ps1', '.bat', '.cmd', '.yml', '.yaml', '.toml', '.xml', '.sql', '.graphql', '.gql', '.vue', '.svelte', '.astro', '.txt', '.properties', '.gradle', '.dockerignore', '.gitignore', '.editorconfig']);
-
-function isEnvRelatedPath(value) {
-  const base = path.basename(String(value || '')).toLowerCase();
-  return /^\.env(?:$|[.-])/.test(base) || /(^|[._-])(?:env|dotenv)(?:[._-]|$)/.test(base);
-}
-
-function isTextProjectFile(value) {
-  const base = path.basename(String(value || '')).toLowerCase();
-  if (/^(?:package-lock\.json|npm-shrinkwrap\.json|yarn\.lock|pnpm-lock\.yaml|bun\.lockb?|composer\.lock|gemfile\.lock|cargo\.lock|poetry\.lock|pipfile\.lock)$/.test(base)) return false;
-  return TEXT_FILE_EXTENSIONS.has(path.extname(base)) || /^(?:\.gitignore|\.dockerignore|\.editorconfig|\.nvmrc|\.prettierrc|\.eslintignore|dockerfile|makefile|gemfile|rakefile|procfile|readme|license|cargo\.toml|go\.mod|go\.sum|requirements\.txt)$/.test(base);
-}
-
 function panelSafeReply(value) {
   const source = String(value || '').trim();
   if (!source) return 'I did not receive an explanation. Try again or select a file and describe the change you want.';
@@ -68,7 +53,6 @@ class TossiveViewProvider {
     this.context = context;
     this.view = undefined;
     this.selectedFiles = [];
-    this.selectedFolders = [];
     this.pendingBuilds = new Map();
     this.undoBuilds = new Map();
     this.chatMessages = [];
@@ -79,7 +63,7 @@ class TossiveViewProvider {
     this.authLoginInFlight = false;
     this.pendingVerificationUrl = '';
     this.guestMessagesUsed = Number(context.globalState.get('tossive.guestMessagesUsed', 0)) || 0;
-    this.editorListener = vscode.window.onDidChangeActiveTextEditor(() => { if (this.selectedFiles.length === 0 && this.selectedFolders.length === 0) this.addActiveFile(); });
+    this.editorListener = vscode.window.onDidChangeActiveTextEditor(() => { if (this.selectedFiles.length === 0) this.addActiveFile(); });
   }
 
   resolveWebviewView(view) {
@@ -88,12 +72,11 @@ class TossiveViewProvider {
     view.webview.html = this.getHtml(view.webview);
     view.webview.onDidReceiveMessage(async (message) => {
       if (message?.type === 'ready') { await this.loadChatHistory(message.messages); this.addActiveFile(); this.postFiles(); await this.refreshAuthState(); }
+      else if (message?.type === 'refreshAuth') await this.refreshAuthState();
       else if (message?.type === 'login') await this.startLogin();
       else if (message?.type === 'copyAuthLink') await this.copyAuthLink();
       else if (message?.type === 'addFiles') await this.pickWorkspaceFiles();
-      else if (message?.type === 'addFolder') await this.pickProjectFolder();
       else if (message?.type === 'removeFile') { this.selectedFiles = this.selectedFiles.filter((item) => item.uri.toString() !== message.uri); this.postFiles(); }
-      else if (message?.type === 'removeFolder') { this.selectedFolders = this.selectedFolders.filter((item) => item.uri.toString() !== message.uri); this.postFiles(); }
       else if (message?.type === 'clearHistory') await this.clearChatHistory();
       else if (message?.type === 'restoreHistory') await this.restoreChatHistory();
       else if (message?.type === 'send') await this.handleSend(message);
@@ -117,6 +100,7 @@ class TossiveViewProvider {
       this.postAuthState({ message: 'Sign in or create a Tejas account to use Tossive.' });
       return;
     }
+    this.postAuthState({ status: 'checking', message: 'Checking your Tejas connection…' });
     try {
       const response = await fetch(`${API_ROOT}/auth/extension/me`, {
         headers: { Authorization: `Bearer ${this.authToken}` },
@@ -129,12 +113,12 @@ class TossiveViewProvider {
           this.postAuthState({ message: 'Your editor connection was revoked. Sign in again to reconnect.' });
           return;
         }
-        this.postAuthState({ message: 'Could not check the Tejas connection. Trying again shortly.' });
+        this.postAuthState({ signedIn: true, status: 'checking', message: 'Could not check the Tejas connection. Trying again shortly.' });
         return;
       }
       this.postAuthState({ status: '', verificationUrl: '', user: data.user, message: '' });
     } catch (error) {
-      this.postAuthState({ message: 'Could not check the Tejas connection. Trying again shortly.' });
+      this.postAuthState({ signedIn: true, status: 'checking', message: 'Could not check the Tejas connection. Trying again shortly.' });
     }
   }
 
@@ -311,45 +295,14 @@ class TossiveViewProvider {
   }
 
   async pickWorkspaceFiles() {
-    const folders = vscode.workspace.workspaceFolders || [];
-    if (!folders.length) { vscode.window.showInformationMessage('Open a project folder in VS Code first.'); return; }
-    const root = folders.length === 1 ? folders[0] : await vscode.window.showWorkspaceFolderPick({ placeHolder: 'Choose the open workspace folder' });
-    if (!root) return;
-    const matches = await vscode.workspace.findFiles(new vscode.RelativePattern(root, '**/*'), '**/{node_modules,.git,.next,dist,build,out}/**', 500);
-    const items = matches.map((uri) => ({ label: vscode.workspace.asRelativePath(uri, false), description: path.extname(uri.fsPath).slice(1) || 'file', uri }));
-    const picked = await vscode.window.showQuickPick(items, { canPickMany: true, placeHolder: 'Select files from the currently open VS Code folder' });
-    for (const item of picked || []) this.addFile(item.uri);
-    this.postFiles();
-  }
-
-  async pickProjectFolder() {
-    const folders = await vscode.window.showOpenDialog({
-      canSelectFiles: false,
-      canSelectFolders: true,
+    const picked = await vscode.window.showOpenDialog({
+      canSelectFiles: true,
+      canSelectFolders: false,
       canSelectMany: true,
-      title: 'Choose project folders for Tossive to understand and debug',
-      openLabel: 'Add folder context',
+      title: 'Select one or more files for Tossive',
+      openLabel: 'Add files',
     });
-    if (!folders?.length) return;
-    for (const uri of folders) {
-      if (uri.scheme !== 'file') continue;
-      const workspaceFolder = vscode.workspace.getWorkspaceFolder(uri);
-      if (!workspaceFolder) {
-        vscode.window.showWarningMessage('Select a folder inside an open workspace so Tossive can map its files correctly.');
-        continue;
-      }
-      const pathPrefix = path.relative(workspaceFolder.uri.fsPath, uri.fsPath);
-      const covered = this.selectedFolders.some((item) => {
-        const relative = path.relative(item.uri.fsPath, uri.fsPath);
-        return relative === '' || (!relative.startsWith('..') && !path.isAbsolute(relative));
-      });
-      if (covered) continue;
-      this.selectedFolders = this.selectedFolders.filter((item) => {
-        const relative = path.relative(uri.fsPath, item.uri.fsPath);
-        return relative.startsWith('..') || path.isAbsolute(relative);
-      });
-      this.selectedFolders.push({ uri, label: path.basename(uri.fsPath) || uri.fsPath, pathPrefix });
-    }
+    for (const uri of picked || []) this.addFile(uri);
     this.postFiles();
   }
 
@@ -362,63 +315,9 @@ class TossiveViewProvider {
       totalBytes += stat.size;
       files.push({ ...file, size: stat.size, explicit: true });
     }
-    if (totalBytes > MAX_CONTEXT_BYTES) throw new Error('The selected files exceed the 512 KB context limit. Remove a few files or choose a smaller folder.');
+    if (totalBytes > MAX_CONTEXT_BYTES) throw new Error('The selected files exceed the 512 KB context limit. Remove a few files before sending.');
 
-    const folderCandidates = [];
-    const excludedEnvFiles = [];
-    const selectedUris = new Set(this.selectedFiles.map((file) => file.uri.toString()));
-    const seenFolderUris = new Set();
-    let skippedFiles = 0;
-    let discoveredFiles = 0;
-    const treePaths = new Set(files.map((file) => file.label));
-    for (const folder of this.selectedFolders) {
-      const rootLabel = folder.pathPrefix || '';
-      const stack = [{ uri: folder.uri, relative: '' }];
-      while (stack.length && discoveredFiles < 3000) {
-        const current = stack.pop();
-        let entries;
-        try { entries = await vscode.workspace.fs.readDirectory(current.uri); }
-        catch { skippedFiles += 1; continue; }
-        entries.sort(([a], [b]) => a.localeCompare(b));
-        for (const [name, type] of entries) {
-          if (name === '.' || name === '..' || (type & vscode.FileType.SymbolicLink)) continue;
-          const relative = current.relative ? path.join(current.relative, name) : name;
-          const label = rootLabel ? path.join(rootLabel, relative) : relative;
-          const uri = vscode.Uri.joinPath(current.uri, name);
-          if (type & vscode.FileType.Directory) {
-            if (!IGNORED_FOLDER_NAMES.has(name.toLowerCase())) stack.push({ uri, relative });
-            continue;
-          }
-          if (!(type & vscode.FileType.File)) continue;
-          discoveredFiles += 1;
-          if (selectedUris.has(uri.toString()) || seenFolderUris.has(uri.toString())) continue;
-          if (isEnvRelatedPath(label)) { excludedEnvFiles.push(label); continue; }
-          if (!isTextProjectFile(name)) { skippedFiles += 1; continue; }
-          let size;
-          try { size = (await vscode.workspace.fs.stat(uri)).size; }
-          catch { skippedFiles += 1; continue; }
-          if (size > MAX_CONTEXT_FILE_BYTES) { skippedFiles += 1; treePaths.add(`${label} (too large; omitted)`); continue; }
-          treePaths.add(label);
-          seenFolderUris.add(uri.toString());
-          folderCandidates.push({ uri, label, size, explicit: false });
-          if (discoveredFiles >= 3000) break;
-        }
-      }
-      if (stack.length || discoveredFiles >= 3000) skippedFiles += 1;
-    }
-    folderCandidates.sort((a, b) => a.label.localeCompare(b.label));
-    for (const file of folderCandidates) {
-      if (files.length >= MAX_CONTEXT_FILES || totalBytes + file.size > MAX_CONTEXT_BYTES) {
-        skippedFiles += 1;
-        treePaths.add(`${file.label} (not included in context limit)`);
-        continue;
-      }
-      files.push(file);
-      totalBytes += file.size;
-    }
-    const tree = [...treePaths].sort((a, b) => a.localeCompare(b)).slice(0, 1500);
-    if (treePaths.size > tree.length) tree.push(`… ${treePaths.size - tree.length} more paths omitted`);
-    return { files, tree, excludedEnvFiles, skippedFiles };
+    return { files, tree: files.map((file) => file.label), excludedEnvFiles: [], skippedFiles: 0 };
   }
 
   addFile(uri) {
@@ -434,7 +333,7 @@ class TossiveViewProvider {
     this.postFiles();
   }
 
-  postFiles() { this.view?.webview.postMessage({ type: 'files', files: [...this.selectedFiles.map(({ uri, label }) => ({ uri: uri.toString(), label, kind: 'file' })), ...this.selectedFolders.map(({ uri, label }) => ({ uri: uri.toString(), label, kind: 'folder' }))] }); }
+  postFiles() { this.view?.webview.postMessage({ type: 'files', files: this.selectedFiles.map(({ uri, label }) => ({ uri: uri.toString(), label })) }); }
   postBuild(requestId, payload) {
     const item = this.chatMessages.find((entry) => entry.requestId === String(requestId) && entry.role === 'assistant');
     if (item) {
@@ -464,7 +363,7 @@ class TossiveViewProvider {
     this.view?.webview.postMessage({ type: 'chatDone', requestId, text: safeText });
   }
 
-  isProjectRequest(text, hasContextFiles = this.selectedFiles.length > 0 || this.selectedFolders.length > 0) {
+  isProjectRequest(text, hasContextFiles = this.selectedFiles.length > 0) {
     const make = /\b(create|build|generate|scaffold|make)\b.{0,60}\b(app|project|website|site|webapp|tool|extension|api)\b/i.test(text) || /\b(app|project|website|site)\b.{0,50}\b(banao|bana do|banaao|create kar|taiyar kar)\b/i.test(text) || /(?:app|project|website|site).{0,45}(?:banao|bana do|taiyar kar)/i.test(text);
     const fileWork = hasContextFiles && /\b(change|modify|update|edit|fix|refactor|improve|review|audit|inspect|check|correct|repair|debug|find bugs?)\b|\b(code review|review code|review this file)\b|(?:sudhar|theek|sahi kar|badal|jaanch|review kar|check kar|bug dhund|bug find|error dhund)/i.test(text);
     return make || fileWork;
@@ -488,35 +387,6 @@ class TossiveViewProvider {
     catch (error) {
       this.setChatReply(message.requestId, error.message || 'Could not read the selected project context.');
       return;
-    }
-    const explicitEnvFiles = context.files.filter((file) => file.explicit && isEnvRelatedPath(file.label));
-    let securityChoice;
-    if (explicitEnvFiles.length) {
-      const names = explicitEnvFiles.slice(0, 8).map((file) => path.basename(file.label)).join(', ');
-      const more = explicitEnvFiles.length > 8 ? ` and ${explicitEnvFiles.length - 8} more` : '';
-      securityChoice = await vscode.window.showWarningMessage(
-        'Environment files can contain API keys and passwords. Tossive will send their contents to its AI service only if you approve.',
-        { modal: true, detail: `Selected: ${names}${more}.` },
-        'Send once', 'Cancel',
-      );
-      if (securityChoice !== 'Send once') {
-        this.setChatReply(message.requestId, 'Cancelled. The environment file contents were not sent. Remove the file from Selected files if you want to continue without it.');
-        return;
-      }
-    } else if (context.excludedEnvFiles.length) {
-      const names = context.excludedEnvFiles.slice(0, 6).map((file) => path.basename(file)).join(', ');
-      securityChoice = await vscode.window.showWarningMessage(
-        'The selected folder contains environment files that may hold secrets. Tossive will skip those files and send the rest of the eligible project context.',
-        { modal: true, detail: `Excluded: ${names}${context.excludedEnvFiles.length > 6 ? ` and ${context.excludedEnvFiles.length - 6} more` : ''}.` },
-        'Continue without them', 'Cancel',
-      );
-      if (securityChoice !== 'Continue without them') {
-        this.setChatReply(message.requestId, 'Cancelled. No project files were sent.');
-        return;
-      }
-    }
-    if (context.skippedFiles) {
-      vscode.window.showInformationMessage(`Tossive included ${context.files.length} text files and the project file tree. ${context.skippedFiles} oversized, unsupported, or excess files were skipped.`);
     }
     const isGuest = !this.authToken;
     if (isGuest) {
@@ -672,13 +542,12 @@ class TossiveViewProvider {
     if (!webview) return;
     const requestId = String(message.requestId || '');
     try {
-      const MAX_SOURCE_BYTES = MAX_CONTEXT_BYTES;
       let totalBytes = 0;
       const fileParts = [];
       for (const file of context.files) {
         const bytes = await vscode.workspace.fs.readFile(file.uri);
         totalBytes += bytes.byteLength;
-        if (totalBytes > MAX_SOURCE_BYTES) throw new Error('Selected files exceed the 512 KB combined limit. Remove some files or select a smaller folder before sending.');
+        if (totalBytes > MAX_CONTEXT_BYTES) throw new Error('Selected files exceed the 512 KB combined limit. Remove some files before sending.');
         fileParts.push(`\n\n--- Selected file: ${file.label} ---\n${new TextDecoder('utf-8', { fatal: false }).decode(bytes)}\n--- End file ---`);
       }
       const messages = (Array.isArray(message.messages) ? message.messages.slice(-12) : []).map((item) => ({ role: item.role === 'assistant' ? 'assistant' : 'user', content: String(item.text || '') }));
@@ -696,7 +565,7 @@ class TossiveViewProvider {
         const { done, value } = await reader.read();
         if (done) break;
         buffer += decoder.decode(value, { stream: true });
-        const events = buffer.split('\n\n');
+        const events = buffer.split(/\r?\n\r?\n/);
         buffer = events.pop() || '';
         for (const event of events) {
           const line = event.split('\n').find((entry) => entry.startsWith('data:'));
@@ -711,6 +580,18 @@ class TossiveViewProvider {
           } catch { /* Ignore malformed stream chunks. */ }
         }
       }
+      buffer += decoder.decode();
+      if (buffer.trim()) {
+        const line = buffer.split(/\r?\n/).find((entry) => entry.startsWith('data:'));
+        if (line) {
+          try {
+            const payload = JSON.parse(line.slice(5).trim());
+            if (payload.text) assistantText += payload.text;
+            if (payload.error) streamError = String(payload.error);
+          } catch { /* Ignore malformed final stream chunks. */ }
+        }
+      }
+      if (!assistantText.trim() && !streamError) throw new Error('The server ended the reply without sending text. Please try again.');
       if (streamError) throw new Error(streamError);
       this.setChatReply(requestId, assistantText);
     } catch (error) { this.setChatReply(requestId, error.message || 'Request failed.'); }
@@ -727,25 +608,27 @@ class TossiveViewProvider {
 .message h1,.message h2,.message h3,.message h4{margin:7px 0 4px;line-height:1.3}.message h1{font-size:1.25em}.message h2{font-size:1.15em}.message h3,.message h4{font-size:1.05em}.message p{margin:3px 0}.message ul,.message ol{margin:4px 0;padding-left:22px}.message code{font-family:var(--vscode-editor-font-family);background:var(--vscode-textCodeBlock-background);padding:1px 3px;border-radius:3px}.message strong{font-weight:700}
 </style></head><body>
 <header class="topbar"><div class="logo">T</div><div><div class="brand">Tossive</div><div class="sub">Build and update your project</div></div><div style="margin-left:auto;display:flex;gap:5px"><button id="auth-action" class="small-button">Sign in / Sign up</button><button id="restore-chat" class="small-button" title="Restore the most recently cleared chat" hidden>Restore chat</button><button id="clear-chat" class="small-button" title="Move this chat to local restore history" hidden>Clear chat</button></div></header><div class="storage-note">Stored on this computer · Auto-clear after 2 days · Restore available for 2 days</div><main id="history" class="history" aria-live="polite"></main>
-<section class="composer-wrap"><div class="context-head"><span>Selected files or folders</span><div><button id="add" class="add" title="Choose individual workspace files">＋ Add files</button><button id="add-folder" class="add" title="Include a whole project folder for debugging">＋ Add folder</button></div></div><div id="files" class="chips"></div><div class="inputbox"><textarea id="prompt" placeholder="Describe an app to build or a change to make…" aria-label="Message Tossive"></textarea><div class="send-row"><span class="hint">Enter to send · Shift+Enter for a new line</span><button id="send" class="send" title="Send message" aria-label="Send" disabled>↑</button></div></div></section>
+<section class="composer-wrap"><div class="context-head"><span>Selected files</span><button id="add" class="add" title="Choose one or more files from your computer">＋ Add files</button></div><div id="files" class="chips"></div><div class="inputbox"><textarea id="prompt" placeholder="Describe an app to build or a change to make…" aria-label="Message Tossive"></textarea><div class="send-row"><span class="hint">Enter to send · Shift+Enter for a new line</span><button id="send" class="send" title="Send message" aria-label="Send" disabled>↑</button></div></div></section>
 <script nonce="${nonce}">
-const api=acquireVsCodeApi(),files=document.getElementById('files'),history=document.getElementById('history'),promptBox=document.getElementById('prompt'),sendButton=document.getElementById('send'),clearChatButton=document.getElementById('clear-chat'),restoreChatButton=document.getElementById('restore-chat'),authAction=document.getElementById('auth-action'),addFilesButton=document.getElementById('add'),addFolderButton=document.getElementById('add-folder');let selectedFiles=[],canRestore=false,auth={signedIn:false,guestMessagesUsed:0,status:'',message:'',verificationUrl:''};const saved=api.getState()||{messages:[]};
+const api=acquireVsCodeApi(),files=document.getElementById('files'),history=document.getElementById('history'),promptBox=document.getElementById('prompt'),sendButton=document.getElementById('send'),clearChatButton=document.getElementById('clear-chat'),restoreChatButton=document.getElementById('restore-chat'),authAction=document.getElementById('auth-action'),addFilesButton=document.getElementById('add');let selectedFiles=[],canRestore=false,auth={signedIn:false,guestMessagesUsed:0,status:'checking',message:'Checking your Tejas connection…',verificationUrl:''};const saved=api.getState()||{messages:[]};
+document.addEventListener('visibilitychange',()=>{if(!document.hidden)api.postMessage({type:'refreshAuth'});});window.addEventListener('focus',()=>api.postMessage({type:'refreshAuth'}));
 function el(tag,cls,text){const n=document.createElement(tag);if(cls)n.className=cls;if(text!==undefined)n.textContent=String(text);return n;}
 function appendInline(parent,text){const pattern=/(\`[^\`]+\`|\*\*[^*]+\*\*|__[^_]+__|\*[^*\n]+\*|_[^_\n]+_)/g;let offset=0,match;while((match=pattern.exec(text))){if(match.index>offset)parent.append(document.createTextNode(text.slice(offset,match.index)));const token=match[0],code=token.startsWith('\`'),bold=token.startsWith('**')||token.startsWith('__'),tag=code?'code':bold?'strong':'em',node=document.createElement(tag);node.textContent=token.slice(code||bold?2:1,token.length-(code||bold?2:1));parent.append(node);offset=pattern.lastIndex;}if(offset<text.length)parent.append(document.createTextNode(text.slice(offset)));}
 function renderMarkdown(parent,text){let list=null,listType='';for(const line of String(text||'').split(/\r?\n/)){const trimmed=line.trim();if(!trimmed){list=null;listType='';continue;}const heading=/^(#{1,6})\s+(.+)$/.exec(trimmed);if(heading){list=null;const node=document.createElement('h'+Math.min(heading[1].length,4));appendInline(node,heading[2].replace(/\s+#+\s*$/,''));parent.append(node);continue;}const bullet=/^[-*+]\s+(.+)$/.exec(trimmed),numbered=/^\d+[.)]\s+(.+)$/.exec(trimmed),item=bullet||numbered,type=bullet?'ul':'ol';if(item){if(!list||listType!==type){list=document.createElement(type);listType=type;parent.append(list);}const li=document.createElement('li');appendInline(li,item[1]);list.append(li);continue;}list=null;listType='';const p=document.createElement('p');appendInline(p,trimmed);parent.append(p);}}
 function renderActivity(label){const row=el('div','activity'),dots=el('span','activity-dots');for(let i=0;i<3;i++)dots.append(document.createElement('i'));row.append(dots,el('span','',label||'Thinking…'));return row;}
 function updateHistoryControls(){clearChatButton.hidden=!saved.messages.length;restoreChatButton.hidden=!canRestore;}
-function renderFiles(){files.replaceChildren();for(const f of selectedFiles){const label=(f.kind==='folder'?'📁 ':'')+f.label,chip=el('div','chip'),name=el('span','chip-name',label),remove=el('button','','×');name.title=f.label;remove.title='Remove '+f.label;remove.onclick=()=>api.postMessage({type:f.kind==='folder'?'removeFolder':'removeFile',uri:f.uri});chip.append(name,remove);files.append(chip);}}
+function renderFiles(){files.replaceChildren();for(const f of selectedFiles){const chip=el('div','chip'),name=el('span','chip-name',f.label),remove=el('button','','×');name.title=f.label;remove.title='Remove '+f.label;remove.onclick=()=>api.postMessage({type:'removeFile',uri:f.uri});chip.append(name,remove);files.append(chip);}}
 function renderBuildCard(item,bubble){const card=el('div','build-card'),d=item.data||{};if(item.phase){card.append(renderActivity(item.phase));return card;}if(item.error){card.append(el('div','build-title','Could not finish project'),el('div','build-summary',item.error));return card;}if(item.cancelled){card.append(el('div','build-title','Changes cancelled'),el('div','build-summary',item.cancelled));}if(item.undoText)card.append(el('div','build-summary',item.undoText));if(item.approved){card.append(el('div','build-title','Changes applied'),el('div','build-summary','The selected workspace files were updated. Review the changed-file list or undo these changes.'));}else{card.append(el('div','build-title',d.title||'Project ready'),el('div','build-summary',d.summary||''));if(d.requirements?.length){card.append(el('div','section-label','Review findings'));const ul=el('ul','list');for(const x of d.requirements.slice(0,5))ul.append(el('li','',x));card.append(ul);}if(d.architecture?.length)card.append(el('div','section-label','Structure and design'),el('div','build-summary',d.architecture.slice(0,3).join(' · ')));if(d.codingStyle?.length)card.append(el('div','section-label','Implementation notes'),el('div','build-summary',d.codingStyle.slice(0,3).join(' · ')));}
 if(d.files?.length){card.append(el('div','section-label','Changed files · '+d.files.length));for(const f of d.files){const row=el('div','file-row'),path=el('span','file-path',f.path),action=el('span','muted',f.action==='created'?'New':'Updated'),count=el('span','plus','+'+f.added),minus=el('span','minus','-'+f.removed),view=el('button','small-button','Diff');view.title='Open the line-by-line diff in the editor';view.onclick=()=>api.postMessage({type:'viewDiff',requestId:item.requestId,path:f.path});row.append(path,action,count,minus,view);card.append(row);}}else if(d.reviewMode){card.append(el('div','muted','No selected files need changes.'));}
 if(d.commands?.length){card.append(el('div','section-label','Next steps'));for(let i=0;i<d.commands.length;i++){const c=d.commands[i],row=el('div','command-row'),step=el('span','command-info','Run '+c.label+' in the project terminal.'),prepare=el('button','small-button','Run');prepare.title='Review the command, confirm it, then run it in the workspace terminal';prepare.onclick=()=>api.postMessage({type:'prepareCommand',requestId:item.requestId,index:i});row.append(step,prepare);card.append(row);}}
 const actions=el('div','actions');if(item.awaitingApproval&&!item.approved){const accept=el('button','small-button primary','Accept changes'),cancel=el('button','small-button','Cancel');accept.onclick=()=>api.postMessage({type:'approveChanges',requestId:item.requestId});cancel.onclick=()=>api.postMessage({type:'cancelChanges',requestId:item.requestId});actions.append(accept,cancel);card.append(el('div','muted','Review the changed-file diffs above. Existing files are updated only after Accept.'));}if(d.files?.length&&(d.canUndo||item.approved)){const undo=el('button','small-button','Undo changes');undo.onclick=()=>api.postMessage({type:'undoBuild',requestId:item.requestId});actions.append(undo);}if(actions.childNodes.length)card.append(actions);return card;}
-function render(){updateHistoryControls();history.replaceChildren();const guestLocked=!auth.signedIn&&auth.guestMessagesUsed>=3;authAction.textContent='Sign in / Sign up';authAction.hidden=auth.signedIn;promptBox.disabled=guestLocked;sendButton.disabled=guestLocked||!promptBox.value.trim()||inFlight;addFilesButton.disabled=guestLocked;addFolderButton.disabled=guestLocked;for(const button of files.querySelectorAll('button'))button.disabled=guestLocked;if(!saved.messages.length){const w=el('div','welcome');w.append(el('strong','','Describe what to build'),el('span','','Tossive plans the requirements and file structure, creates new files, and asks before changing selected existing files.'));history.append(w);}else{for(const item of saved.messages){const bubble=el('div','message '+(item.role==='user'?'user':'assistant'));if(item.kind==='build')bubble.append(renderBuildCard(item,bubble));else if(item.kind==='status')bubble.append(renderActivity(item.phase));else if(item.role==='assistant')renderMarkdown(bubble,item.text||'');else bubble.textContent=item.text||'';history.append(bubble);}}if(guestLocked||auth.status==='waiting'||auth.status==='error'){const card=el('div','auth-card');card.append(el('strong','',guestLocked?'Continue with full Tossive access':'Connect your Tejas account'),el('div','',auth.message||(guestLocked?'Your 3 free messages are used. Sign in or sign up to continue.':'Sign in or create an account in your browser, then allow Tossive.')));const actions=el('div','actions'),signIn=el('button','small-button primary','Sign in / Sign up');signIn.onclick=()=>api.postMessage({type:'login'});actions.append(signIn);if(auth.verificationUrl){const copy=el('button','small-button','Copy sign-in link');copy.onclick=()=>api.postMessage({type:'copyAuthLink'});actions.append(copy);}card.append(actions);history.append(card);}history.scrollTop=history.scrollHeight;}
+function render(){updateHistoryControls();history.replaceChildren();const guestLocked=!auth.signedIn&&auth.guestMessagesUsed>=3,authChecking=auth.status==='checking';authAction.textContent=authChecking?'Checking…':'Sign in / Sign up';authAction.hidden=auth.signedIn||authChecking;promptBox.disabled=guestLocked;sendButton.disabled=guestLocked||!promptBox.value.trim()||inFlight;addFilesButton.disabled=guestLocked;for(const button of files.querySelectorAll('button'))button.disabled=guestLocked;if(!saved.messages.length){const w=el('div','welcome');w.append(el('strong','','Describe what to build'),el('span','','Tossive plans the requirements and file structure, creates new files, and asks before changing selected existing files.'));history.append(w);}else{for(const item of saved.messages){const bubble=el('div','message '+(item.role==='user'?'user':'assistant'));if(item.kind==='build')bubble.append(renderBuildCard(item,bubble));else if(item.kind==='status')bubble.append(renderActivity(item.phase));else if(item.role==='assistant')renderMarkdown(bubble,item.text||'');else bubble.textContent=item.text||'';history.append(bubble);}}if(guestLocked||auth.status==='waiting'||auth.status==='error'||(authChecking&&auth.message)){const card=el('div','auth-card');card.append(el('strong','',guestLocked?'Continue with full Tossive access':authChecking?'Checking Tejas connection':'Connect your Tejas account'),el('div','',auth.message||(guestLocked?'Your 3 free messages are used. Sign in or sign up to continue.':'Sign in or create an account in your browser, then allow Tossive.')));const actions=el('div','actions'),signIn=el('button','small-button primary','Sign in / Sign up');signIn.onclick=()=>api.postMessage({type:'login'});actions.append(signIn);if(auth.verificationUrl){const copy=el('button','small-button','Copy sign-in link');copy.onclick=()=>api.postMessage({type:'copyAuthLink'});actions.append(copy);}card.append(actions);history.append(card);}history.scrollTop=history.scrollHeight;}
 let requestNumber=0,activeIndex=-1,inFlight=false;
-function submit(){const text=promptBox.value.trim();if(!text||inFlight)return;inFlight=true;sendButton.disabled=true;const buildId=String(Date.now())+'-'+(++requestNumber),createdAt=Date.now();saved.messages.push({role:'user',text,requestId:buildId,createdAt},{role:'assistant',kind:'status',phase:'Thinking through your request…',requestId:buildId,createdAt});activeIndex=saved.messages.length-1;api.setState(saved);promptBox.value='';render();api.postMessage({type:'send',requestId:buildId,text,messages:saved.messages.filter((x)=>x.role==='user'||(x.role==='assistant'&&x.text)).slice(-12).map((x)=>({role:x.role,text:x.text})),history:saved.messages});}
-document.getElementById('add').onclick=()=>api.postMessage({type:'addFiles'});addFolderButton.onclick=()=>api.postMessage({type:'addFolder'});clearChatButton.onclick=()=>api.postMessage({type:'clearHistory'});restoreChatButton.onclick=()=>api.postMessage({type:'restoreHistory'});authAction.onclick=()=>{if(!auth.signedIn)api.postMessage({type:'login'});};sendButton.onclick=submit;promptBox.oninput=()=>{sendButton.disabled=(!auth.signedIn&&auth.guestMessagesUsed>=3)||!promptBox.value.trim()||inFlight;};promptBox.onkeydown=(e)=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();submit();}};
+function submit(){const text=promptBox.value.trim();if(!text||inFlight||(!auth.signedIn&&auth.guestMessagesUsed>=3))return;inFlight=true;sendButton.disabled=true;const buildId=String(Date.now())+'-'+(++requestNumber),createdAt=Date.now();saved.messages.push({role:'user',text,requestId:buildId,createdAt},{role:'assistant',kind:'status',phase:'Thinking through your request…',requestId:buildId,createdAt});activeIndex=saved.messages.length-1;api.setState(saved);promptBox.value='';render();api.postMessage({type:'send',requestId:buildId,text,messages:saved.messages.filter((x)=>x.role==='user'||(x.role==='assistant'&&x.text)).slice(-12).map((x)=>({role:x.role,text:x.text})),history:saved.messages});}
+document.getElementById('add').onclick=()=>api.postMessage({type:'addFiles'});clearChatButton.onclick=()=>api.postMessage({type:'clearHistory'});restoreChatButton.onclick=()=>api.postMessage({type:'restoreHistory'});authAction.onclick=()=>{if(!auth.signedIn)api.postMessage({type:'login'});};sendButton.onclick=submit;promptBox.oninput=()=>{sendButton.disabled=(!auth.signedIn&&auth.guestMessagesUsed>=3)||!promptBox.value.trim()||inFlight;};promptBox.onkeydown=(e)=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();submit();}};
 window.addEventListener('message',(event)=>{const d=event.data;if(d.type==='authState'){auth={...auth,...d};render();return;}if(d.type==='history'){saved.messages=Array.isArray(d.messages)?d.messages:[];canRestore=Boolean(d.canRestore);api.setState(saved);render();return;}if(d.type==='files'){selectedFiles=d.files||[];renderFiles();return;}if(d.type==='undoDone'){const undone=saved.messages.find((x)=>x.requestId===d.requestId);if(undone){undone.undoText=d.files.length?'Undone: '+d.files.join(', '):'No files were changed by Undo.';if(undone.data)undone.data.files=[];}api.setState(saved);render();return;}if(d.requestId){const item=saved.messages.find((x)=>x.requestId===d.requestId);if(!item)return;if(d.type==='chatStatus'){item.kind='status';item.phase=d.phase||'Thinking…';delete item.text;}else if(d.type==='chatDelta'){if(item.kind==='build')return;if(item.text==='…')item.text='';item.text+=d.text;}else if(d.type==='chatDone'){if(item.kind!=='build')item.text=d.text||'The model returned an empty response.';inFlight=false;activeIndex=-1;}else if(d.type==='chatError'){if(item.kind==='build')item.error=d.text;else item.text=item.text==='…'?d.text:item.text+'\\n\\n'+d.text;inFlight=false;activeIndex=-1;}else if(d.type==='buildUpdate'){if(d.kind==='progress'){item.kind='build';item.phase=d.text;}else if(d.kind==='review'){item.kind='build';item.phase='';item.data=d.result;item.awaitingApproval=d.awaitingApproval;item.approved=false;item.requestId=d.requestId;item.undoDone=false;inFlight=false;activeIndex=-1;}else if(d.kind==='approved'){item.approved=true;item.awaitingApproval=false;inFlight=false;activeIndex=-1;}else if(d.kind==='cancelled'){item.cancelled=d.text;item.awaitingApproval=false;inFlight=false;activeIndex=-1;}else if(d.kind==='error'){item.error=d.text;item.phase='';inFlight=false;activeIndex=-1;}}api.setState(saved);render();sendButton.disabled=(!auth.signedIn&&auth.guestMessagesUsed>=3)||!promptBox.value.trim()||inFlight;}});render();api.postMessage({type:'ready'});
 </script></body></html>`;
   }
 }
 module.exports = { activate, deactivate };
+    return { files, tree: files.map((file) => file.label), excludedEnvFiles: [], skippedFiles: 0 };

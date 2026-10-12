@@ -2,7 +2,11 @@
   "name": "tossive",
   "displayName": "Tossive",
   "description": "AI coding assistant that plans projects, creates workspace files, and reviews selected code changes in VS Code.",
-  "version": "0.2.6",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/nitishvishwakarma/tejas"
+  },
+  "version": "0.2.8",
   "publisher": "nitishVishwakarma",
   "engines": {
     "vscode": "^1.106.0"

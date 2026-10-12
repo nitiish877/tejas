@@ -1,3 +1,13 @@
+## 0.2.8
+
+- Recheck saved Tejas sign-in when the extension panel is reopened or refocused.
+- Keep the signed-in state during temporary connection checks; sign out only when the backend confirms revocation.
+
+## 0.2.7
+
+- Use a native multi-file picker and remove folder selection.
+- Preserve typed messages when a send is rejected; handle incomplete final stream events.
+
 ## 0.2.6
 
 - Limit guest use to three messages and open sign-in after the third message.

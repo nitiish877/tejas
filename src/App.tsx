@@ -49,6 +49,7 @@ import { syncChatsToServer } from './utils/chatSync';
 const STORAGE_KEY_CHATS = 'llama_chatbot_sessions_v1';
 const STORAGE_KEY_USER = 'llama_chatbot_user_v1';
 const STORAGE_KEY_SETTINGS = 'llama_chatbot_settings_v1';
+const EXTENSION_AUTH_PENDING_KEY = 'tejas_extension_auth_pending_v1';
 
 const DEFAULT_USER: UserProfile = {
   id: 'user_guest',
@@ -185,9 +186,14 @@ export default function App() {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [settingsEditorEntry, setSettingsEditorEntry] = useState(false);
   const [authModalOpen, setAuthModalOpen] = useState(false);
-  const [extensionAuthDeviceCode, setExtensionAuthDeviceCode] = useState(() =>
-    new URLSearchParams(window.location.search).get('extension_auth') || ''
-  );
+  const [extensionAuthDeviceCode, setExtensionAuthDeviceCode] = useState(() => {
+    const fromUrl = new URLSearchParams(window.location.search).get('extension_auth') || '';
+    if (fromUrl) {
+      try { sessionStorage.setItem(EXTENSION_AUTH_PENDING_KEY, fromUrl); } catch {}
+      return fromUrl;
+    }
+    try { return sessionStorage.getItem(EXTENSION_AUTH_PENDING_KEY) || ''; } catch { return ''; }
+  });
   const [extensionAuthOutcome, setExtensionAuthOutcome] = useState<'authorized' | 'cancelled' | null>(null);
   const [extensionAuthBusy, setExtensionAuthBusy] = useState(false);
   const [extensionAuthError, setExtensionAuthError] = useState('');
@@ -1043,6 +1049,7 @@ export default function App() {
     const url = new URL(window.location.href);
     url.searchParams.delete('extension_auth');
     window.history.replaceState({}, '', `${url.pathname}${url.search}${url.hash}`);
+    try { sessionStorage.removeItem(EXTENSION_AUTH_PENDING_KEY); } catch {}
     setExtensionAuthDeviceCode('');
   };
 
@@ -1215,20 +1222,20 @@ export default function App() {
   const handleSendMessage = async (
     text: string,
     options?: { editedMessageId?: string; contextText?: string; contextMessageId?: string; attachments?: PreparedAttachment[] }
-  ) => {
+  ): Promise<boolean> => {
     const editedMessageId = options?.editedMessageId;
     const contextText = options?.contextText;
     const contextMessageId = options?.contextMessageId;
     const attachments = options?.attachments || [];
     const messageText = text.trim() || (attachments.length ? 'Please analyze the attached file(s).' : '');
     if (contextText) setAskAbout(null);
-    if (!messageText || isStreaming || isImageGenerating) return;
+    if (!messageText || isStreaming || isImageGenerating) return false;
 
     // "/image <prompt>" short-circuits to image generation
     const imgMatch = text.trim().match(/^\/image\s+(.+)$/i);
     if (imgMatch && !editedMessageId && attachments.length === 0) {
       await handleGenerateImage(imgMatch[1].trim());
-      return;
+      return true;
     }
 
     // AUTO-DETECT: if the user's plain text is asking for an image, generate
@@ -1259,7 +1266,7 @@ export default function App() {
 
         if (prompt.length >= 2) {
           await handleGenerateImage(prompt);
-          return;
+          return true;
         }
       }
     }
@@ -1298,7 +1305,7 @@ export default function App() {
         ? tempChatMessages
         : chats.find((c) => c.id === targetChatId)?.messages || [];
       const idx = baseList.findIndex((m) => m.id === editedMessageId);
-      if (idx === -1) return;
+      if (idx === -1) return false;
       historyForModel = baseList
         .slice(0, idx + 1)
         .map((m) => (m.id === editedMessageId ? { ...m, content: text, timestamp: Date.now() } : m));
@@ -1573,6 +1580,7 @@ export default function App() {
       setIsStreaming(false);
       abortControllerRef.current = null;
     }
+    return true;
   };
 
   const handleJumpToSource = (messageId: string, selectedText: string) => {
