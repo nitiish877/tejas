@@ -1141,7 +1141,7 @@ export default function App() {
 
     let targetChatId = activeChatId;
     if (!isTempChatActive && (!targetChatId || !currentChat)) {
-      const title = `🎨 ${prompt.slice(0, 28)}`;
+      const title = `${prompt.slice(0, 28)}`;
       const newSession: ChatSession = {
         id: 'chat_' + Date.now(),
         title,
@@ -1157,7 +1157,7 @@ export default function App() {
     const userMsg: Message = {
       id: 'msg_user_' + Date.now(),
       role: 'user',
-      content: `🎨 Generate image: ${prompt}`,
+      content: `Generate image: ${prompt}`,
       timestamp: Date.now(),
     };
 
@@ -1201,7 +1201,7 @@ export default function App() {
     } catch (err: any) {
       console.error('Image generation failed:', err);
       const errorMsg =
-        err?.message || 'Image generate nahi ho payi. Thodi der baad try karo.';
+        err?.message || 'Image generation failed. Try again';
       const updateMsg = (m: Message) =>
         m.id === assistantId
           ? { ...m, content: `⚠️ ${errorMsg}`, status: 'error' as const }
@@ -1544,7 +1544,7 @@ export default function App() {
           streamErrorFriendly
             ? streamError
             : !navigator.onLine
-            ? 'Internet connection nahi hai. Internet reconnect karke dobara try karein.'
+            ? 'Connection lost. Please check your internet and try again.'
             : err.message === 'Failed to fetch'
             ? 'Could not reach the backend. Check the backend URL configured for this app deployment and the server status.'
             : err.message || 'Failed to connect to the LLM endpoint';
@@ -1973,7 +1973,7 @@ export default function App() {
                   onClick={handleStopSharing}
                   className="w-full py-1.5 rounded-xl text-xs font-medium text-rose-400 hover:bg-rose-500/10 border border-rose-500/30 transition-colors"
                 >
-                  🚫 Stop sharing (disable this link)
+                  🚫 Stop sharing
                 </button>
               </>
             )}
@@ -2108,7 +2108,7 @@ export default function App() {
                 onClick={executePermanentDelete}
                 className="flex-1 py-2.5 rounded-xl text-xs font-semibold bg-rose-600 hover:bg-rose-700 text-white transition-all shadow-sm"
               >
-                Delete Forever
+                Delete permanently
               </button>
             </div>
           </div>
