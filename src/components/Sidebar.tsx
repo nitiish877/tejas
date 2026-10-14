@@ -528,7 +528,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 ) : (
                   <Sparkles className="w-3.5 h-3.5" />
                 )}
-                <span>
+                {/* <span>
                   {subscriptionPlan === 'arka'
                     ? 'Tejas Arka (70B)'
                     : subscriptionPlan === 'chetak'
@@ -536,7 +536,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     : subscriptionPlan === 'cat'
                     ? 'Tejas Cat (3B)'
                     : 'Try 1 month for ₹1'}
-                </span>
+                </span> */}
               </div>
               <span className="text-[10px] uppercase font-bold tracking-wider opacity-80">
                 {subscriptionPlan === 'free' ? 'then ₹199' : 'Active'}
