@@ -10,9 +10,6 @@ import {
   Search,
   MessageSquare,
   Flame,
-  Sparkles,
-  Crown,
-  TestTube2,
   LogIn,
   Code2,
   MoreVertical,
@@ -84,7 +81,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const [view, setView] = useState<'chats' | 'trash'>('chats');
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
-
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
@@ -501,46 +497,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
             >
               <Code2 className="w-3.5 h-3.5" />
               <span>Code Editor</span>
-            </button>
-          </div>
-        )}
-
-        {/* Subscription */}
-        {view === 'chats' && onOpenSubscription && (
-          <div className="px-3 pb-2">
-            <button
-              id="sidebar-upgrade-plan-btn"
-              type="button"
-              onClick={() => onOpenSubscription()}
-              className={`w-full py-2 px-3 rounded-xl text-xs font-semibold flex items-center justify-between border transition-all ${
-                isDark
-                  ? 'bg-zinc-800/60 hover:bg-zinc-800 border-zinc-800 text-zinc-300'
-                  : 'bg-white hover:bg-zinc-100 border-zinc-200 text-zinc-700'
-              }`}
-            >
-              <div className="flex items-center gap-2">
-                {subscriptionPlan === 'arka' ? (
-                  <Crown className="w-3.5 h-3.5" />
-                ) : subscriptionPlan === 'chetak' ? (
-                  <Sparkles className="w-3.5 h-3.5" />
-                ) : subscriptionPlan === 'cat' ? (
-                  <TestTube2 className="w-3.5 h-3.5" />
-                ) : (
-                  <Sparkles className="w-3.5 h-3.5" />
-                )}
-                {/* <span>
-                  {subscriptionPlan === 'arka'
-                    ? 'Tejas Arka (70B)'
-                    : subscriptionPlan === 'chetak'
-                    ? 'Tejas Chetak (8B)'
-                    : subscriptionPlan === 'cat'
-                    ? 'Tejas Cat (3B)'
-                    : 'Try 1 month for ₹1'}
-                </span> */}
-              </div>
-              {/* <span className="text-[10px] uppercase font-bold tracking-wider opacity-80">
-                {subscriptionPlan === 'free' ? 'then ₹199' : 'Active'}
-              </span> */}
             </button>
           </div>
         )}
