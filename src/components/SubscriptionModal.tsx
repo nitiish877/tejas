@@ -138,9 +138,9 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({
                   </span>
                 )}
               </div>
-              <h3 className="text-lg font-bold">1B Free</h3>
+              <h3 className="text-lg font-bold">sieo</h3>
               <p className={`text-[11px] mt-1 min-h-[28px] ${isDark ? 'text-zinc-400' : 'text-zinc-500'}`}>
-                1B model for basic everyday requests & prompt testing.
+                sieo model for basic everyday requests & prompt testing.
               </p>
 
               {/* Price */}
@@ -159,7 +159,7 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({
                 <ul className="space-y-1.5 text-xs">
                   <li className="flex items-start gap-1.5">
                     <Check className="w-3.5 h-3.5 text-emerald-400 shrink-0 mt-0.5" />
-                    <span>Tejas 1B model access</span>
+                    <span>Tejas sieo model access</span>
                   </li>
                   <li className="flex items-start gap-1.5">
                     <Check className="w-3.5 h-3.5 text-emerald-400 shrink-0 mt-0.5" />
