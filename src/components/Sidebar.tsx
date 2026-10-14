@@ -538,9 +538,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     : 'Try 1 month for ₹1'}
                 </span> */}
               </div>
-              <span className="text-[10px] uppercase font-bold tracking-wider opacity-80">
+              {/* <span className="text-[10px] uppercase font-bold tracking-wider opacity-80">
                 {subscriptionPlan === 'free' ? 'then ₹199' : 'Active'}
-              </span>
+              </span> */}
             </button>
           </div>
         )}
