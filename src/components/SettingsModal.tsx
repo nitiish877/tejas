@@ -503,7 +503,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                       : 'bg-white border-zinc-300 text-zinc-800 focus:border-zinc-500'
                   }`}
                 >
-                  <option value="meta-llama/Llama-3.2-1B-Instruct">1B (Free Tier - Fast & Lightweight)</option>
+                  <option value="meta-llama/Llama-3.2-1B-Instruct">sieo (Free Tier - Fast & Lightweight)</option>
                   {(settings.ownedPlans || []).includes('cat') && (
                     <option value="meta-llama/Llama-3.2-3B-Instruct">Cat (3B - Active Subscription)</option>
                   )}
