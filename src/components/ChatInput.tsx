@@ -37,7 +37,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
   contextMessageId,
   onClearContext,
   onGenerateImage,
-  selectedModel = 'Qwen/Qwen2.5-1.5B-Instruct',
+  selectedModel = 'Qwen/Qwen2.5--Instruct',
   ownedPlans = [],
   onSelectModel,
   onOpenSubscription,
@@ -54,7 +54,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
   const imageInputRef = useRef<HTMLInputElement>(null);
   const documentInputRef = useRef<HTMLInputElement>(null);
   const models: { id: string; name: string; plan: SubscriptionPlanType }[] = [
-    { id: 'Qwen/Qwen2.5-1.5B-Instruct', name: '1.5B', plan: 'free' },
+    { id: 'Qwen/Qwen2.5-1.5B-Instruct', name: 'sieo', plan: 'free' },
     { id: 'Qwen/Qwen2.5-3B-Instruct', name: 'Cat (3B)', plan: 'cat' },
     { id: 'deepseek-ai/DeepSeek-R1-Distill-Llama-8B', name: 'Chetak (8B)', plan: 'chetak' },
     { id: 'meta-llama/Llama-3.3-70B-Instruct', name: 'Arka (70B)', plan: 'arka' },
