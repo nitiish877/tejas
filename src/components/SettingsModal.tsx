@@ -795,19 +795,19 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 </button>
                 {selectedEditor && (
                   <>
-                    <a
+                    {/* <a
                       href={selectedEditor === 'vscode' ? TOSSIVE_VSCODE_URL : selectedEditor === 'cursor' ? TOSSIVE_CURSOR_URL : TOSSIVE_WINDSURF_URL}
                       className="flex-1 rounded-xl bg-blue-600 px-3 py-2.5 text-center text-sm font-semibold text-white transition-colors hover:bg-blue-500"
                     >
                       Open in {selectedEditor === 'vscode' ? 'VS Code' : selectedEditor === 'cursor' ? 'Cursor' : 'Windsurf'}
-                    </a>
+                    </a> */}
                     <a
                       href={TOSSIVE_VSCODE_MARKETPLACE_URL}
                       target="_blank"
                       rel="noreferrer"
                       className={`flex-1 rounded-xl border px-3 py-2.5 text-center text-sm font-semibold transition-colors ${isDark ? 'border-zinc-700 text-zinc-200 hover:bg-zinc-800' : 'border-zinc-300 text-zinc-700 hover:bg-zinc-100'}`}
                     >
-                      Download VSIX
+                      Download in Editor
                     </a>
                   </>
                 )}

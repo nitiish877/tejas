@@ -399,7 +399,7 @@ export const ChatArea: React.FC<ChatAreaProps> = ({
       >
         {serverState === 'offline' && (
           <div role="status" className="absolute left-1/2 top-14 z-20 -translate-x-1/2 rounded-b-lg border border-amber-500/30 bg-amber-950/95 px-4 py-2 text-xs text-amber-100 shadow-lg">
-            Internet connection nahi hai. Internet reconnect karke dobara try karein.
+            “No internet connection. Please reconnect to the internet and try again.”.
           </div>
         )}
         <div className="flex items-center gap-3">

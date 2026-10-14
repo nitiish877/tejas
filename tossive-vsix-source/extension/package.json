@@ -4,9 +4,9 @@
   "description": "AI coding assistant that plans projects, creates workspace files, and reviews selected code changes in VS Code.",
   "repository": {
     "type": "git",
-    "url": "https://github.com/nitishvishwakarma/tejas"
+    "url": "https://github.com/nitish877/tejas-extension"
   },
-  "version": "0.2.8",
+  "version": "0.2.9",
   "publisher": "nitishVishwakarma",
   "engines": {
     "vscode": "^1.106.0"

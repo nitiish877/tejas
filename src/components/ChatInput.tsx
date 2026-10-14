@@ -425,13 +425,12 @@ export const ChatInput: React.FC<ChatInputProps> = ({
       )}
 
       {/* Bottom row — Generate Image button + Disclaimer */}
-      <div className="mt-2 px-2 flex flex-col sm:flex-row items-center justify-between gap-2">
-        <span />
-
-        <p className={`text-[11px] select-none ${isDark ? 'text-zinc-500' : 'text-zinc-400'}`}>
-          tejas is ai can make mistakes please double chek response
-        </p>
-      </div>
+      <div className="mt-2 px-2 flex flex-col items-center justify-end gap-2">
+  <span />
+  <p className={`text-[11px] select-none ${isDark ? 'text-zinc-500' : 'text-zinc-400'}`}>
+    tejas is ai can make mistakes please double check response
+  </p>
+</div>
     </div>
   );
 };
