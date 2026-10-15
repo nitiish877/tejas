@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { ArrowUp, Square, Quote, X, ImagePlus, Plus, FileText, Loader2, Images, Paperclip, ChevronDown, Lock, Check } from 'lucide-react';
+import { ArrowUp, Square, Quote, X, ImagePlus, Plus, FileText, Loader2, Images, Paperclip } from 'lucide-react';
 import type { SubscriptionPlanType } from '../types';
 import { MAX_FILES_PER_UPLOAD, prepareAttachments, releaseAttachmentPreviews } from '../utils/attachments';
 import type { PreparedAttachment } from '../utils/attachments';
@@ -48,7 +48,6 @@ export const ChatInput: React.FC<ChatInputProps> = ({
   const [attachmentError, setAttachmentError] = useState('');
   const [imageMode, setImageMode] = useState(false);
   const [attachMenuOpen, setAttachMenuOpen] = useState(false);
-  const [modelMenuOpen, setModelMenuOpen] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
@@ -234,7 +233,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
                 <img src={attachment.previewUrl} alt={attachment.name} className="h-8 w-8 rounded-md object-cover" />
               ) : <FileText className="h-4 w-4 shrink-0 text-cyan-500" />}
               <span className="max-w-48 truncate">{attachment.name}</span>
-              <button type="button" onClick={() => removeAttachment(attachment.id)} aria-label={`Remove ${attachment.name}`} className="rounded p-0.5 opacity-70 hover:opacity-100"><X className="h-3.5 w-3.5" /></button>
+              <button type="button" onClick={() => removeAttachment(attachment.id)} aria-label={`Remove ${attachment.name}`} className="rounded p-0.5 opacity-70 hover:opacity-100"><X className="w-3.5 h-3.5" /></button>
             </div>
           ))}
         </div>
@@ -305,9 +304,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
               }`}>
                 Image mode
               </span>
-              <span className={`text-[10px] truncate ${
-                isDark ? 'text-zinc-500' : 'text-zinc-500'
-              }`}>
+              <span className={`text-[10px] truncate ${isDark ? 'text-zinc-500' : 'text-zinc-500'}`}>
                 — describe your image, then press send
               </span>
             </div>
@@ -328,27 +325,27 @@ export const ChatInput: React.FC<ChatInputProps> = ({
         <div className="flex items-end gap-2">
           {/* Attach files */}
           <div className="relative shrink-0">
-          <button
-            id="attach-files-btn"
-            type="button"
-            disabled={isPreparingFiles}
-            onClick={() => setAttachMenuOpen((open) => !open)}
-            title="Attach images or files"
-            aria-label="Attach images or files"
-            className={`rounded-xl p-2 transition-colors ${isDark ? 'text-zinc-400 hover:bg-zinc-700/60 hover:text-zinc-200' : 'text-zinc-500 hover:bg-zinc-100 hover:text-zinc-800'}`}
-          >
-            <Plus className="h-5 w-5" />
-          </button>
-          {attachMenuOpen && (
-            <div className={`absolute bottom-12 left-0 z-30 w-44 overflow-hidden rounded-xl border p-1 shadow-xl ${isDark ? 'border-zinc-700 bg-zinc-900' : 'border-zinc-200 bg-white'}`}>
-              <button type="button" onClick={() => { setAttachMenuOpen(false); imageInputRef.current?.click(); }} className={`flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-sm ${isDark ? 'hover:bg-zinc-800' : 'hover:bg-zinc-100'}`}>
-                <Images className="h-4 w-4 text-cyan-500" /> Images
-              </button>
-              <button type="button" onClick={() => { setAttachMenuOpen(false); documentInputRef.current?.click(); }} className={`flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-sm ${isDark ? 'hover:bg-zinc-800' : 'hover:bg-zinc-100'}`}>
-                <Paperclip className="h-4 w-4 text-violet-500" /> Files
-              </button>
-            </div>
-          )}
+            <button
+              id="attach-files-btn"
+              type="button"
+              disabled={isPreparingFiles}
+              onClick={() => setAttachMenuOpen((open) => !open)}
+              title="Attach images or files"
+              aria-label="Attach images or files"
+              className={`rounded-xl p-2 transition-colors ${isDark ? 'text-zinc-400 hover:bg-zinc-700/60 hover:text-zinc-200' : 'text-zinc-500 hover:bg-zinc-100 hover:text-zinc-800'}`}
+            >
+              <Plus className="h-5 w-5" />
+            </button>
+            {attachMenuOpen && (
+              <div className={`absolute bottom-12 left-0 z-30 w-44 overflow-hidden rounded-xl border p-1 shadow-xl ${isDark ? 'border-zinc-700 bg-zinc-900' : 'border-zinc-200 bg-white'}`}>
+                <button type="button" onClick={() => { setAttachMenuOpen(false); imageInputRef.current?.click(); }} className={`flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-[13px] ${isDark ? 'text-zinc-100 hover:bg-zinc-800/40' : 'text-zinc-900 hover:bg-zinc-50'}`}>
+                  <Images className="h-4 w-4 text-cyan-500" /> Images
+                </button>
+                <button type="button" onClick={() => { setAttachMenuOpen(false); documentInputRef.current?.click(); }} className={`flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-[13px] ${isDark ? 'text-zinc-100 hover:bg-zinc-800/40' : 'text-zinc-900 hover:bg-zinc-50'}`}>
+                  <Paperclip className="h-4 w-4 text-violet-500" /> Files
+                </button>
+              </div>
+            )}
           </div>
 
           <textarea
@@ -366,18 +363,11 @@ export const ChatInput: React.FC<ChatInputProps> = ({
             }`}
           />
 
+          {/* Show only the current model name; hide model picker */}
           <div className="relative shrink-0">
-            <button type="button" onClick={() => setModelMenuOpen((open) => !open)} title="Choose model" className={`flex items-center gap-1 rounded-full border px-2 py-2 text-xs ${isDark ? 'border-zinc-700 text-zinc-300 hover:bg-zinc-700' : 'border-zinc-300 text-zinc-700 hover:bg-zinc-100'}`}>
-              <span className="max-w-20 truncate">{currentModel.name}</span><ChevronDown className="h-3.5 w-3.5" />
-            </button>
-            {modelMenuOpen && <div className={`absolute bottom-full right-0 z-40 mb-2 w-56 overflow-hidden rounded-xl border shadow-xl ${isDark ? 'border-zinc-700 bg-zinc-900 text-zinc-100' : 'border-zinc-200 bg-white text-zinc-900'}`}>
-              {models.map((model) => {
-                const locked = model.plan !== 'free' && !ownedPlans.includes(model.plan);
-                return <button key={model.id} type="button" onClick={() => { setModelMenuOpen(false); if (locked) onOpenSubscription?.(model.plan); else onSelectModel?.(model.id); }} className={`flex w-full items-center justify-between px-3 py-2.5 text-left text-xs hover:bg-zinc-700/20 ${selectedModel === model.id ? 'font-semibold' : ''}`}>
-                  <span>{model.name}</span>{locked ? <Lock className="h-3.5 w-3.5 opacity-70" /> : selectedModel === model.id ? <Check className="h-3.5 w-3.5 text-emerald-500" /> : null}
-                </button>;
-              })}
-            </div>}
+            <div title={currentModel.id} className={`flex items-center gap-1 rounded-full border px-2 py-2 text-xs ${isDark ? 'border-zinc-700 text-zinc-300' : 'border-zinc-200 text-zinc-700'}`}>
+              <span className="max-w-20 truncate">{currentModel.name}</span>
+            </div>
           </div>
 
           {isStreaming ? (
@@ -415,10 +405,10 @@ export const ChatInput: React.FC<ChatInputProps> = ({
 
       {attachmentError && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 p-4" role="presentation" onClick={() => setAttachmentError('')}>
-          <section role="alertdialog" aria-modal="true" aria-labelledby="attachment-limit-title" className={`w-full max-w-md rounded-2xl border p-5 shadow-2xl ${isDark ? 'border-zinc-700 bg-zinc-900 text-zinc-100' : 'border-zinc-200 bg-white text-zinc-900'}`} onClick={(event) => event.stopPropagation()}>
+          <section role="alertdialog" aria-modal="true" aria-labelledby="attachment-limit-title" className={`w-full max-w-md rounded-2xl border p-5 shadow-2xl ${isDark ? 'border-zinc-700 bg-zinc-900 text-zinc-100' : 'border-zinc-200 bg-white text-zinc-900'}`}>
             <h2 id="attachment-limit-title" className="text-base font-semibold">File upload limit</h2>
             <p className={`mt-2 text-sm ${isDark ? 'text-zinc-300' : 'text-zinc-600'}`}>{attachmentError}</p>
-            <p className={`mt-3 text-xs leading-relaxed ${isDark ? 'text-zinc-400' : 'text-zinc-500'}`}>Allowed size: images up to 10 MB each; PDF, Word, PowerPoint and Excel files up to 20 MB; text/code files up to 10 MB; ZIP files up to 20 MB (maximum 100 MB after extraction).</p>
+            <p className={`mt-3 text-xs leading-relaxed ${isDark ? 'text-zinc-400' : 'text-zinc-500'}`}>Allowed size: images up to 10 MB each; PDF, Word, PowerPoint and Excel files up to 20 MB; text files up to 2 MB.</p>
             <button type="button" autoFocus onClick={() => setAttachmentError('')} className="mt-4 w-full rounded-xl bg-cyan-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-cyan-500">Got it</button>
           </section>
         </div>
@@ -426,11 +416,11 @@ export const ChatInput: React.FC<ChatInputProps> = ({
 
       {/* Bottom row — Generate Image button + Disclaimer */}
       <div className="mt-2 px-2 flex flex-col items-center justify-end gap-2">
-  <span />
-  <p className={`text-[11px] select-none ${isDark ? 'text-zinc-500' : 'text-zinc-400'}`}>
-    tejas is ai can make mistakes please double check response
-  </p>
-</div>
+        <span />
+        <p className={`text-[11px] select-none ${isDark ? 'text-zinc-500' : 'text-zinc-400'}`}>
+          tejas is ai can make mistakes please double check response
+        </p>
+      </div>
     </div>
   );
 };
