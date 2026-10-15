@@ -28,14 +28,12 @@ import {
 import { getClientVersion } from '../version';
 import { ConnectedEditor, fetchConnectedEditors, isGuestUser, revokeConnectedEditor } from '../utils/api';
 
-// VS Code Marketplace extension identifier.
 const TOSSIVE_MARKETPLACE_ITEM_ID = 'nitishVishwakarma.tossive';
 const TOSSIVE_VSCODE_MARKETPLACE_URL = `https://marketplace.visualstudio.com/items?itemName=${TOSSIVE_MARKETPLACE_ITEM_ID}`;
 const TOSSIVE_VSCODE_URL = `vscode:extension/${TOSSIVE_MARKETPLACE_ITEM_ID}`;
 const TOSSIVE_CURSOR_URL = `cursor:extension/${TOSSIVE_MARKETPLACE_ITEM_ID}`;
 const TOSSIVE_WINDSURF_URL = `windsurf:extension/${TOSSIVE_MARKETPLACE_ITEM_ID}`;
 
-// FEATURE FLAG: Hide subscription-related UI from the frontend without removing code.
 const HIDE_SUBSCRIPTION_UI = true;
 
 interface SettingsModalProps {
@@ -102,15 +100,24 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
       setConnectionsError('');
       return;
     }
+
     let active = true;
     const loadConnections = () => {
       fetchConnectedEditors(getApiUrl)
-        .then(({ connections }) => { if (active) setConnectedEditors(connections); })
-        .catch((error: any) => { if (active) setConnectionsError(error?.message || 'Could not load editor connections.'); });
+        .then(({ connections }) => {
+          if (active) setConnectedEditors(connections);
+        })
+        .catch((error: any) => {
+          if (active) setConnectionsError(error?.message || 'Could not load editor connections.');
+        });
     };
+
     loadConnections();
     const refreshId = window.setInterval(loadConnections, 10000);
-    return () => { active = false; window.clearInterval(refreshId); };
+    return () => {
+      active = false;
+      window.clearInterval(refreshId);
+    };
   }, [isOpen, view, isGuest, getApiUrl]);
 
   const handleRevokeEditor = async (installationId: string) => {
@@ -183,7 +190,6 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     setShowInstallChooser(false);
   };
 
-  // ---------- Shared UI helpers ----------
   const RowButton: React.FC<{
     icon: React.ReactNode;
     title: string;
@@ -207,9 +213,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
         {icon}
         <div className="min-w-0">
           <p className="text-sm font-medium truncate">{title}</p>
-          {subtitle && (
-            <p className={`text-xs truncate ${isDark ? 'text-zinc-400' : 'text-zinc-500'}`}>{subtitle}</p>
-          )}
+          {subtitle && <p className={`text-xs truncate ${isDark ? 'text-zinc-400' : 'text-zinc-500'}`}>{subtitle}</p>}
         </div>
       </div>
       {rightHint ?? <ChevronRight className={`w-4 h-4 shrink-0 ${isDark ? 'text-zinc-500' : 'text-zinc-400'}`} />}
@@ -232,16 +236,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
         : tone === 'violet'
         ? 'bg-violet-500/15 text-violet-400 border border-violet-500/30'
         : 'bg-zinc-800 text-zinc-200';
+
     return <div className={`p-2 rounded-lg shrink-0 ${toneClass}`}>{children}</div>;
   };
-
-  // ---------- Sub-view headers ----------
-  const SectionTitle: React.FC<{ title: string; subtitle?: string }> = ({ title, subtitle }) => (
-    <div className="mb-4">
-      <h3 className="text-base font-bold tracking-tight">{title}</h3>
-      {subtitle && <p className={`text-xs mt-0.5 ${isDark ? 'text-zinc-400' : 'text-zinc-500'}`}>{subtitle}</p>}
-    </div>
-  );
 
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto p-3 sm:p-4 bg-black/60 backdrop-blur-sm flex justify-center items-start sm:items-center min-h-screen animate-in fade-in duration-200">
@@ -250,7 +247,6 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
           isDark ? 'bg-[#16191c] border-zinc-800 text-zinc-100' : 'bg-[#f5f8fa] border-zinc-200 text-zinc-900'
         }`}
       >
-        {/* Header */}
         <div className="flex items-center gap-3 mb-6">
           {view !== 'menu' ? (
             <button
@@ -266,6 +262,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               <Settings className="w-5 h-5" />
             </div>
           )}
+
           <div className="flex-1 min-w-0">
             <h2 className="text-lg sm:text-xl font-bold tracking-tight truncate">
               {view === 'menu'
@@ -290,6 +287,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 : 'Profile, shares & app info'}
             </p>
           </div>
+
           <button
             type="button"
             onClick={handleClose}
@@ -299,10 +297,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
           </button>
         </div>
 
-        {/* ==================== MAIN MENU ==================== */}
         {view === 'menu' && (
           <div className="space-y-3">
-            {/* Preferences */}
             <RowButton
               icon={<IconBox tone="blue"><Palette className="w-4 h-4" /></IconBox>}
               title="Preferences"
@@ -310,7 +306,6 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               onClick={() => setView('preferences')}
             />
 
-            {/* Subscriptions */}
             {!HIDE_SUBSCRIPTION_UI && (
               <RowButton
                 icon={<IconBox tone="amber"><Crown className="w-4 h-4" /></IconBox>}
@@ -320,7 +315,6 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               />
             )}
 
-            {/* Account */}
             <RowButton
               icon={<IconBox tone="violet"><UserIcon className="w-4 h-4" /></IconBox>}
               title="Account"
@@ -330,10 +324,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
           </div>
         )}
 
-        {/* ==================== PREFERENCES ==================== */}
         {view === 'preferences' && (
           <div className="space-y-4">
-            {/* Theme */}
             <div>
               <label className={`block text-xs font-semibold uppercase tracking-wider mb-2.5 ${isDark ? 'text-zinc-300' : 'text-zinc-700'}`}>
                 Theme
@@ -365,7 +357,6 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               </div>
             </div>
 
-            {/* Sound Notifications */}
             <div className={`p-3.5 rounded-xl border flex items-center justify-between ${isDark ? 'bg-zinc-900/60 border-zinc-800' : 'bg-zinc-50 border-zinc-200'}`}>
               <div className="flex items-center gap-3">
                 <div className={`p-2 rounded-lg ${settings.notificationsEnabled ? 'bg-zinc-800 text-zinc-200' : isDark ? 'bg-zinc-800 text-zinc-400' : 'bg-zinc-200 text-zinc-600'}`}>
@@ -376,6 +367,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                   <p className={`text-xs ${isDark ? 'text-zinc-400' : 'text-zinc-500'}`}>Chime when response finishes streaming</p>
                 </div>
               </div>
+
               <button
                 type="button"
                 role="switch"
@@ -395,7 +387,6 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
           </div>
         )}
 
-        {/* ==================== CODE EDITOR ==================== */}
         {view === 'editor' && (
           <div className="space-y-4">
             <div className={`rounded-xl border p-4 ${isDark ? 'border-zinc-800 bg-zinc-900/60' : 'border-zinc-200 bg-zinc-50'}`}>
@@ -410,16 +401,18 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               </div>
             </div>
 
-            {!isMobileDevice && <button
-              type="button"
-              onClick={() => {
-                setSelectedEditor(null);
-                setShowInstallChooser(true);
-              }}
-              className="w-full rounded-xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-400"
-            >
-              Install Tossive
-            </button>}
+            {!isMobileDevice && (
+              <button
+                type="button"
+                onClick={() => {
+                  setSelectedEditor(null);
+                  setShowInstallChooser(true);
+                }}
+                className="w-full rounded-xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-400"
+              >
+                Install Tossive
+              </button>
+            )}
 
             {connectedEditors.length > 0 && (
               <div className={`rounded-xl border p-4 ${isDark ? 'border-zinc-800 bg-zinc-900/60' : 'border-zinc-200 bg-white'}`}>
@@ -427,15 +420,17 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 <p className={`mt-1 text-xs ${isDark ? 'text-zinc-400' : 'text-zinc-600'}`}>
                   Editors signed in to your Tejas account. Disconnecting revokes Tossive access in that editor.
                 </p>
+
                 <div className="mt-3 space-y-2">
                   {connectedEditors.map((editor) => (
-                    <div key={editor.installationId} className={`flex items-center justify-between gap-3 rounded-lg border p-3 ${isDark ? 'border-zinc-800 bg-zinc-950/50' : 'border-zinc-200 bg-zi'}>}>
+                    <div key={editor.installationId} className={`flex items-center justify-between gap-3 rounded-lg border p-3 ${isDark ? 'border-zinc-800 bg-zinc-950/50' : 'border-zinc-200 bg-zinc-50'}`}>
                       <div className="min-w-0">
                         <p className="truncate text-sm font-medium">{editor.editorName}</p>
                         <p className={`mt-0.5 text-xs ${isDark ? 'text-zinc-500' : 'text-zinc-500'}`}>
                           {editor.extensionVersion ? `Tossive ${editor.extensionVersion} · ` : ''}Last used {new Date(editor.lastUsedAt).toLocaleString()}
                         </p>
                       </div>
+
                       <button
                         type="button"
                         onClick={() => handleRevokeEditor(editor.installationId)}
@@ -447,38 +442,42 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                     </div>
                   ))}
                 </div>
+
                 {connectionsError && <p className="mt-2 text-xs text-red-500">{connectionsError}</p>}
               </div>
             )}
 
-            {!isMobileDevice && <div className={`rounded-xl border p-3.5 ${isDark ? 'border-amber-500/20 bg-amber-500/5' : 'border-amber-300 bg-amber-50'}`}>
-              <div className="flex items-start gap-2.5">
-                <MonitorCheck className={`mt-0.5 h-4 w-4 shrink-0 ${isDark ? 'text-amber-300' : 'text-amber-700'}`} />
-                <p className={`text-xs leading-relaxed ${isDark ? 'text-amber-100/80' : 'text-amber-900'}`}>
-                  Select your editor to open the Tossive extension listing or download its install package. Then open the Tossive panel from the editor's sidebar.
-                </p>
+            {!isMobileDevice && (
+              <div className={`rounded-xl border p-3.5 ${isDark ? 'border-amber-500/20 bg-amber-500/5' : 'border-amber-300 bg-amber-50'}`}>
+                <div className="flex items-start gap-2.5">
+                  <MonitorCheck className={`mt-0.5 h-4 w-4 shrink-0 ${isDark ? 'text-amber-300' : 'text-amber-700'}`} />
+                  <p className={`text-xs leading-relaxed ${isDark ? 'text-amber-100/80' : 'text-amber-900'}`}>
+                    Select your editor to open the Tossive extension listing or download its install package. Then open the Tossive panel from the editor's sidebar.
+                  </p>
+                </div>
               </div>
-            </div>}
+            )}
 
-            {!isMobileDevice && <div className={`rounded-xl border p-3.5 ${isDark ? 'border-zinc-800 bg-zinc-900/40' : 'border-zinc-200 bg-white'}`}>
-              <p className="text-xs font-semibold">Get started</p>
-              <ol className={`mt-2 list-inside list-decimal space-y-1.5 text-xs ${isDark ? 'text-zinc-400' : 'text-zinc-600'}`}>
-                <li>Choose VS Code, Cursor, or Windsurf and install Tossive.</li>
-                <li>Open a workspace and select Tossive from the editor sidebar.</li>
-                <li>Review proposed changes before applying them to existing files.</li>
-              </ol>
-            </div>}
+            {!isMobileDevice && (
+              <div className={`rounded-xl border p-3.5 ${isDark ? 'border-zinc-800 bg-zinc-900/40' : 'border-zinc-200 bg-white'}`}>
+                <p className="text-xs font-semibold">Get started</p>
+                <ol className={`mt-2 list-inside list-decimal space-y-1.5 text-xs ${isDark ? 'text-zinc-400' : 'text-zinc-600'}`}>
+                  <li>Choose VS Code, Cursor, or Windsurf and install Tossive.</li>
+                  <li>Open a workspace and select Tossive from the editor sidebar.</li>
+                  <li>Review proposed changes before applying them to existing files.</li>
+                </ol>
+              </div>
+            )}
           </div>
         )}
 
-        {/* ==================== SUBSCRIPTIONS ==================== */}
         {view === 'subscriptions' && !HIDE_SUBSCRIPTION_UI && (
           <div className="space-y-4">
-            {/* Active AI Model */}
             <div>
               <label className={`block text-xs font-semibold uppercase tracking-wider mb-2.5 ${isDark ? 'text-zinc-300' : 'text-zinc-700'}`}>
                 Active AI Model
               </label>
+
               <div className={`p-3.5 rounded-xl border flex flex-col gap-2.5 ${isDark ? 'bg-zinc-900/60 border-zinc-800' : 'bg-zinc-50 border-zinc-200'}`}>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
@@ -488,12 +487,11 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                     <div>
                       <p className="text-sm font-medium">Selected Model</p>
                       <p className={`text-xs ${isDark ? 'text-zinc-400' : 'text-zinc-500'}`}>
-                        {settings.ownedPlans && settings.ownedPlans.length > 0
-                          ? 'Switch between your owned models'
-                          : 'Upgrade to unlock more models'}
+                        {settings.ownedPlans && settings.ownedPlans.length > 0 ? 'Switch between your owned models' : 'Upgrade to unlock more models'}
                       </p>
                     </div>
                   </div>
+
                   <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full border ${currentBadge.className}`}>
                     {currentBadge.name}
                   </span>
@@ -506,7 +504,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                     isDark
                       ? 'bg-zinc-800 border-zinc-700 text-zinc-200 focus:border-zinc-500'
                       : 'bg-white border-zinc-300 text-zinc-800 focus:border-zinc-500'
-                  }`}>
+                  }`}
+                >
                   <option value="meta-llama/Llama-3.2-1B-Instruct">sieo (Free Tier - Fast & Lightweight)</option>
                   {(settings.ownedPlans || []).includes('cat') && (
                     <option value="meta-llama/Llama-3.2-3B-Instruct">Cat (3B - Active Subscription)</option>
@@ -521,7 +520,6 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               </div>
             </div>
 
-            {/* Manage Subscription */}
             <button
               type="button"
               onClick={() => {
@@ -552,7 +550,6 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               <ChevronRight className={`w-4 h-4 shrink-0 ${isDark ? 'text-zinc-500' : 'text-zinc-400'}`} />
             </button>
 
-            {/* Payment History */}
             <RowButton
               icon={<IconBox tone="emerald"><Receipt className="w-4 h-4" /></IconBox>}
               title="Payment History"
@@ -566,10 +563,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
           </div>
         )}
 
-        {/* ==================== ACCOUNT ==================== */}
         {view === 'account' && (
           <div className="space-y-4">
-            {/* Profile card */}
             <div className={`p-3.5 rounded-xl border ${isDark ? 'bg-zinc-900/60 border-zinc-800' : 'bg-zinc-50 border-zinc-200'}`}>
               <div className="flex items-center justify-between">
                 <button
@@ -588,18 +583,19 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                   <div className="w-9 h-9 rounded-full bg-zinc-700 text-zinc-100 flex items-center justify-center font-bold text-sm shrink-0">
                     {currentUser.name ? currentUser.name[0].toUpperCase() : 'U'}
                   </div>
+
                   <div className="truncate">
                     <p className="text-sm font-medium truncate">{currentUser.name || 'Tejas User'}</p>
                     <p className={`text-[11px] truncate ${isDark ? 'text-zinc-400' : 'text-zinc-500'}`}>
                       {isGuest ? 'Guest • Tap to sign in' : currentUser.email}
                     </p>
                   </div>
+
                   <ChevronRight className={`w-4 h-4 ml-auto shrink-0 ${isDark ? 'text-zinc-500' : 'text-zinc-400'}`} />
                 </button>
               </div>
             </div>
 
-            {/* Shared Chats */}
             <RowButton
               icon={<IconBox tone="fuchsia"><Share2 className="w-4 h-4" /></IconBox>}
               title="My Shared Chats"
@@ -611,7 +607,6 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               disabled={isGuest}
             />
 
-            {/* App Version */}
             <div className={`p-3.5 rounded-xl border flex items-center justify-between gap-3 ${isDark ? 'bg-zinc-900/60 border-zinc-800' : 'bg-zinc-50 border-zinc-200'}`}>
               <div className="flex items-center gap-3 min-w-0">
                 <IconBox tone="emerald"><Smartphone className="w-4 h-4" /></IconBox>
@@ -625,6 +620,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                   <p className={`text-xs ${isDark ? 'text-zinc-400' : 'text-zinc-500'}`}>Over-the-air updates</p>
                 </div>
               </div>
+
               {onCheckForUpdates && (
                 <button
                   type="button"
@@ -642,7 +638,6 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               )}
             </div>
 
-            {/* Logout / Sign in */}
             {isGuest ? (
               <button
                 type="button"
@@ -670,8 +665,26 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               </button>
             ) : (
               <div className="flex items-center gap-2">
-                <button type="button" onClick={() => { onLogout?.(); setShowLogoutConfirm(false); handleClose(); }} className="flex-1 py-2.5 rounded-xl text-xs font-semibold bg-rose-600 text-white">Confirm</button>
-                <button type="button" onClick={() => setShowLogoutConfirm(false)} className={`flex-1 py-2.5 rounded-xl text-xs font-medium border transition-colors ${isDark ? 'text-zinc-300 border-zinc-700' : 'text-zinc-700 border-zinc-200'}`}>Cancel</button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    onLogout?.();
+                    setShowLogoutConfirm(false);
+                    handleClose();
+                  }}
+                  className="flex-1 py-2.5 rounded-xl text-xs font-semibold bg-rose-600 text-white"
+                >
+                  Confirm
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowLogoutConfirm(false)}
+                  className={`flex-1 py-2.5 rounded-xl text-xs font-medium border transition-colors ${
+                    isDark ? 'text-zinc-300 border-zinc-700' : 'text-zinc-700 border-zinc-200'
+                  }`}
+                >
+                  Cancel
+                </button>
               </div>
             )}
           </div>
@@ -769,6 +782,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                   <li>Search for and choose <span className="font-semibold">Extensions: Install from VSIX…</span>.</li>
                   <li>Select the VSIX file you downloaded.</li>
                 </ol>
+
                 {selectedEditor !== 'windsurf' && (
                   <div className="mt-3 overflow-hidden rounded-lg border border-zinc-700/50 bg-black/20">
                     <div className="relative">
@@ -797,17 +811,16 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 >
                   Close
                 </button>
+
                 {selectedEditor && (
-                  <>
-                    <a
-                      href={TOSSIVE_VSCODE_MARKETPLACE_URL}
-                      target="_blank"
-                      rel="noreferrer"
-                      className={`flex-1 rounded-xl border px-3 py-2.5 text-center text-sm font-semibold transition-colors ${isDark ? 'border-zinc-700 text-zinc-200 hover:bg-zinc-800' : 'border-zinc-300 text-zinc-700'}`}
-                    >
-                      Download in Editor
-                    </a>
-                  </>
+                  <a
+                    href={TOSSIVE_VSCODE_MARKETPLACE_URL}
+                    target="_blank"
+                    rel="noreferrer"
+                    className={`flex-1 rounded-xl border px-3 py-2.5 text-center text-sm font-semibold transition-colors ${isDark ? 'border-zinc-700 text-zinc-200 hover:bg-zinc-800' : 'border-zinc-300 text-zinc-700'}`}
+                  >
+                    Download in Editor
+                  </a>
                 )}
               </div>
             </div>
