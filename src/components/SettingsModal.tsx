@@ -35,6 +35,9 @@ const TOSSIVE_VSCODE_URL = `vscode:extension/${TOSSIVE_MARKETPLACE_ITEM_ID}`;
 const TOSSIVE_CURSOR_URL = `cursor:extension/${TOSSIVE_MARKETPLACE_ITEM_ID}`;
 const TOSSIVE_WINDSURF_URL = `windsurf:extension/${TOSSIVE_MARKETPLACE_ITEM_ID}`;
 
+// FEATURE FLAG: Hide subscription-related UI from the frontend without removing code.
+const HIDE_SUBSCRIPTION_UI = true;
+
 interface SettingsModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -308,12 +311,14 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
             />
 
             {/* Subscriptions */}
-            <RowButton
-              icon={<IconBox tone="amber"><Crown className="w-4 h-4" /></IconBox>}
-              title="Subscriptions"
-              subtitle={`Current: ${currentBadge.name}`}
-              onClick={() => setView('subscriptions')}
-            />
+            {!HIDE_SUBSCRIPTION_UI && (
+              <RowButton
+                icon={<IconBox tone="amber"><Crown className="w-4 h-4" /></IconBox>}
+                title="Subscriptions"
+                subtitle={`Current: ${currentBadge.name}`}
+                onClick={() => setView('subscriptions')}
+              />
+            )}
 
             {/* Account */}
             <RowButton
@@ -411,7 +416,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 setSelectedEditor(null);
                 setShowInstallChooser(true);
               }}
-              className="w-full rounded-xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2 focus:ring-offset-zinc-900"
+              className="w-full rounded-xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-400"
             >
               Install Tossive
             </button>}
@@ -424,7 +429,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 </p>
                 <div className="mt-3 space-y-2">
                   {connectedEditors.map((editor) => (
-                    <div key={editor.installationId} className={`flex items-center justify-between gap-3 rounded-lg border p-3 ${isDark ? 'border-zinc-800 bg-zinc-950/50' : 'border-zinc-200 bg-zinc-50'}`}>
+                    <div key={editor.installationId} className={`flex items-center justify-between gap-3 rounded-lg border p-3 ${isDark ? 'border-zinc-800 bg-zinc-950/50' : 'border-zinc-200 bg-zi'}>}>
                       <div className="min-w-0">
                         <p className="truncate text-sm font-medium">{editor.editorName}</p>
                         <p className={`mt-0.5 text-xs ${isDark ? 'text-zinc-500' : 'text-zinc-500'}`}>
@@ -467,7 +472,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
         )}
 
         {/* ==================== SUBSCRIPTIONS ==================== */}
-        {view === 'subscriptions' && (
+        {view === 'subscriptions' && !HIDE_SUBSCRIPTION_UI && (
           <div className="space-y-4">
             {/* Active AI Model */}
             <div>
@@ -501,8 +506,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                     isDark
                       ? 'bg-zinc-800 border-zinc-700 text-zinc-200 focus:border-zinc-500'
                       : 'bg-white border-zinc-300 text-zinc-800 focus:border-zinc-500'
-                  }`}
-                >
+                  }`}>
                   <option value="meta-llama/Llama-3.2-1B-Instruct">sieo (Free Tier - Fast & Lightweight)</option>
                   {(settings.ownedPlans || []).includes('cat') && (
                     <option value="meta-llama/Llama-3.2-3B-Instruct">Cat (3B - Active Subscription)</option>
@@ -659,15 +663,15 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               <button
                 type="button"
                 onClick={() => setShowLogoutConfirm(true)}
-                className="w-full py-2.5 rounded-xl text-xs font-semibold text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 border border-rose-500/20 flex items-center justify-center gap-2 transition-colors"
+                className="w-full py-2.5 rounded-xl text-xs font-semibold text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 border border-rose-500/20 flex items-center justify-center gap-2"
               >
                 <LogOut className="w-4 h-4" />
                 <span>Logout</span>
               </button>
             ) : (
               <div className="flex items-center gap-2">
-                <button type="button" onClick={() => { onLogout?.(); setShowLogoutConfirm(false); handleClose(); }} className="flex-1 py-2.5 rounded-xl text-xs font-semibold bg-rose-600 text-white hover:bg-rose-700 transition-colors">Confirm Logout</button>
-                <button type="button" onClick={() => setShowLogoutConfirm(false)} className={`flex-1 py-2.5 rounded-xl text-xs font-medium border transition-colors ${isDark ? 'text-zinc-300 border-zinc-700 hover:bg-zinc-800' : 'text-zinc-700 border-zinc-300 hover:bg-zinc-100'}`}>Cancel</button>
+                <button type="button" onClick={() => { onLogout?.(); setShowLogoutConfirm(false); handleClose(); }} className="flex-1 py-2.5 rounded-xl text-xs font-semibold bg-rose-600 text-white">Confirm</button>
+                <button type="button" onClick={() => setShowLogoutConfirm(false)} className={`flex-1 py-2.5 rounded-xl text-xs font-medium border transition-colors ${isDark ? 'text-zinc-300 border-zinc-700' : 'text-zinc-700 border-zinc-200'}`}>Cancel</button>
               </div>
             )}
           </div>
@@ -759,7 +763,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               <div className={`mt-3 rounded-lg border p-3 text-xs leading-relaxed ${isDark ? 'border-blue-500/20 bg-blue-500/5 text-blue-100/80' : 'border-blue-300 bg-blue-50 text-blue-900'}`}>
                 <p className="font-semibold">Install Tossive in {selectedEditor === 'vscode' ? 'VS Code' : selectedEditor === 'cursor' ? 'Cursor' : 'Windsurf'}:</p>
                 <ol className="mt-1.5 list-inside list-decimal space-y-1">
-                  <li>For direct install, click <span className="font-semibold">Open in {selectedEditor === 'vscode' ? 'VS Code' : selectedEditor === 'cursor' ? 'Cursor' : 'Windsurf'}</span> below, then click <span className="font-semibold">Install</span> on the extension page.</li>
+                  <li>For direct install, click <span className="font-semibold">Open in {selectedEditor === 'vscode' ? 'VS Code' : selectedEditor === 'cursor' ? 'Cursor' : 'Windsurf'}</span> below.</li>
                   <li>Or click <span className="font-semibold">Download VSIX</span> to open the Marketplace page and download the latest VSIX file.</li>
                   <li>In {selectedEditor === 'vscode' ? 'VS Code' : selectedEditor === 'cursor' ? 'Cursor' : 'Windsurf'}, press <span className="font-semibold">Ctrl+Shift+P</span>.</li>
                   <li>Search for and choose <span className="font-semibold">Extensions: Install from VSIX…</span>.</li>
@@ -770,7 +774,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                     <div className="relative">
                       <img
                         src={selectedEditor === 'vscode' ? '/tossive-vscode-guide.png' : '/tossive-cursor-guide.png'}
-                        alt={selectedEditor === 'vscode' ? 'VS Code screenshot with an arrow pointing to the top-right sidebar control' : 'Cursor screenshot with an arrow pointing to the sidebar control beside Settings'}
+                        alt={selectedEditor === 'vscode' ? 'VS Code screenshot with an arrow pointing to the top-right sidebar control' : 'Cursor screenshot with an arrow pointing to the sidebar icon'}
                         className="block h-auto w-full"
                       />
                     </div>
@@ -789,23 +793,17 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 <button
                   type="button"
                   onClick={() => setShowInstallChooser(false)}
-                  className={`flex-1 rounded-xl border px-4 py-2.5 text-sm font-medium transition-colors ${isDark ? 'border-zinc-700 text-zinc-300 hover:bg-zinc-800' : 'border-zinc-300 text-zinc-700 hover:bg-zinc-100'}`}
+                  className={`flex-1 rounded-xl border px-4 py-2.5 text-sm font-medium transition-colors ${isDark ? 'border-zinc-700 text-zinc-300 hover:bg-zinc-800' : 'border-zinc-300 text-zinc-700'}`}
                 >
                   Close
                 </button>
                 {selectedEditor && (
                   <>
-                    {/* <a
-                      href={selectedEditor === 'vscode' ? TOSSIVE_VSCODE_URL : selectedEditor === 'cursor' ? TOSSIVE_CURSOR_URL : TOSSIVE_WINDSURF_URL}
-                      className="flex-1 rounded-xl bg-blue-600 px-3 py-2.5 text-center text-sm font-semibold text-white transition-colors hover:bg-blue-500"
-                    >
-                      Open in {selectedEditor === 'vscode' ? 'VS Code' : selectedEditor === 'cursor' ? 'Cursor' : 'Windsurf'}
-                    </a> */}
                     <a
                       href={TOSSIVE_VSCODE_MARKETPLACE_URL}
                       target="_blank"
                       rel="noreferrer"
-                      className={`flex-1 rounded-xl border px-3 py-2.5 text-center text-sm font-semibold transition-colors ${isDark ? 'border-zinc-700 text-zinc-200 hover:bg-zinc-800' : 'border-zinc-300 text-zinc-700 hover:bg-zinc-100'}`}
+                      className={`flex-1 rounded-xl border px-3 py-2.5 text-center text-sm font-semibold transition-colors ${isDark ? 'border-zinc-700 text-zinc-200 hover:bg-zinc-800' : 'border-zinc-300 text-zinc-700'}`}
                     >
                       Download in Editor
                     </a>
