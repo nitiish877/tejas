@@ -25,8 +25,8 @@ import {
   type ChatSyncState,
   clearAuthToken,
   createShareLink,
-  deleteShareLink,
-  deleteServerChat,
+  deeShareLink,
+  deeServerChat,
   denyExtensionSignIn,
   fetchMe,
   fetchServerChatById,
@@ -35,7 +35,7 @@ import {
   generateImage,
   getAuthToken,
   isGuestUser,
-  permanentlyDeleteServerChat,
+  permanentlyDeeServerChat,
   purgeGuestEphemeralChats,
   restoreServerChat,
   saveEphemeralChat,
@@ -218,8 +218,8 @@ export default function App() {
   const [chatsLoading, setChatsLoading] = useState<boolean>(() => !!getAuthToken());
   const [loadingMessageIds, setLoadingMessageIds] = useState<Record<string, boolean>>({});
 
-  // Delete confirmation toast (bottom of screen)
-  const [deleteToast, setDeleteToast] = useState<{ title: string; daysLeft: number } | null>(null);
+  // Dee confirmation toast (bottom of screen)
+  const [deeToast, setDeleteToast] = useState<{ title: string; daysLeft: number } | null>(null);
 
   // --- Guest upgrade nudge (every 3rd message) ---
   const [upgradeNudge, setUpgradeNudge] = useState(false);
@@ -1389,7 +1389,8 @@ export default function App() {
     setIsStreaming(true);
     const controller = new AbortController();
     abortControllerRef.current = controller;
-
+    let streamError = '';
+    let streamErrorFriendly = false;
     try {
       const expandForModel = (m: Message): Message => {
         if (m.role === 'user' && m.contextText) {
@@ -1462,9 +1463,6 @@ export default function App() {
       const decoder = new TextDecoder('utf-8');
       let buffer = '';
       let accumulatedText = '';
-      let streamError = '';
-      let streamErrorFriendly = false;
-
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
