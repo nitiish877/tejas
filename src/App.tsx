@@ -25,8 +25,8 @@ import {
   type ChatSyncState,
   clearAuthToken,
   createShareLink,
-  deeShareLink,
-  deeServerChat,
+  deleteShareLink,
+  deleteServerChat,
   denyExtensionSignIn,
   fetchMe,
   fetchServerChatById,
@@ -35,7 +35,7 @@ import {
   generateImage,
   getAuthToken,
   isGuestUser,
-  permanentlyDeeServerChat,
+  permanentlyDeleteServerChat,
   purgeGuestEphemeralChats,
   restoreServerChat,
   saveEphemeralChat,
@@ -218,8 +218,8 @@ export default function App() {
   const [chatsLoading, setChatsLoading] = useState<boolean>(() => !!getAuthToken());
   const [loadingMessageIds, setLoadingMessageIds] = useState<Record<string, boolean>>({});
 
-  // Dee confirmation toast (bottom of screen)
-  const [deeToast, setDeleteToast] = useState<{ title: string; daysLeft: number } | null>(null);
+  // Delete confirmation toast (bottom of screen)
+  const [deleteToast, setDeleteToast] = useState<{ title: string; daysLeft: number } | null>(null);
 
   // --- Guest upgrade nudge (every 3rd message) ---
   const [upgradeNudge, setUpgradeNudge] = useState(false);
