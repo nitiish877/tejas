@@ -107,6 +107,37 @@
   box-shadow: 0 0 15px -3px rgba(6, 182, 212, 0.2);
 }
 
+.markdown-content .katex {
+  color: #a5edf0;
+  font-size: 1.04em;
+}
+
+.markdown-content.is-light .katex {
+  color: #176b73;
+}
+
+.markdown-content .katex-display {
+  max-width: 100%;
+  margin: 1.15rem 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  border: 1px solid rgba(83, 190, 199, 0.25);
+  border-radius: 0.85rem;
+  background: rgba(34, 115, 125, 0.12);
+  padding: 0.9rem 1rem;
+  scrollbar-width: thin;
+}
+
+.markdown-content.is-light .katex-display {
+  border-color: rgba(44, 115, 125, 0.2);
+  background: rgba(216, 241, 240, 0.58);
+}
+
+.markdown-content .katex-display > .katex {
+  min-width: max-content;
+  text-align: left;
+}
+
 /* ============================================================
    LOADING SPINNERS (5 variants — shown while the response is empty)
    ============================================================ */

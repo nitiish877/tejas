@@ -225,10 +225,45 @@ export const MarkdownMessage: React.FC<{ content: string; isDark: boolean; confi
 
   return <>
   <ReactMarkdown
+    className={`markdown-content ${isDark ? 'is-dark' : 'is-light'}`}
     remarkPlugins={[remarkGfm, remarkMath]}
     // A malformed/incomplete equation must not crash the whole assistant message.
     rehypePlugins={[[rehypeKatex, { throwOnError: false, strict: 'ignore' }]]}
     components={{
+      h1: ({ children }) => (
+        <h1 className={`mt-6 mb-4 rounded-xl border px-4 py-3 text-xl font-bold tracking-tight shadow-sm sm:text-2xl ${
+          isDark
+            ? 'border-cyan-400/25 bg-gradient-to-r from-cyan-500/15 to-blue-500/10 text-cyan-100'
+            : 'border-cyan-700/20 bg-gradient-to-r from-cyan-100 to-blue-50 text-cyan-950'
+        }`}>
+          {children}
+        </h1>
+      ),
+      h2: ({ children }) => (
+        <h2 className={`mt-6 mb-3 rounded-lg border-l-4 px-3 py-2 text-lg font-semibold ${
+          isDark
+            ? 'border-cyan-400 bg-cyan-400/10 text-cyan-200'
+            : 'border-cyan-700 bg-cyan-50 text-cyan-900'
+        }`}>
+          {children}
+        </h2>
+      ),
+      h3: ({ children }) => (
+        <h3 className={`mt-5 mb-2 rounded-md border-l-2 px-3 py-1.5 text-base font-semibold ${
+          isDark
+            ? 'border-violet-400 bg-violet-400/10 text-violet-200'
+            : 'border-violet-600 bg-violet-50 text-violet-900'
+        }`}>
+          {children}
+        </h3>
+      ),
+      h4: ({ children }) => (
+        <h4 className={`mt-4 mb-2 border-b pb-1 text-sm font-semibold ${
+          isDark ? 'border-zinc-700 text-zinc-200' : 'border-zinc-300 text-zinc-800'
+        }`}>
+          {children}
+        </h4>
+      ),
       // <pre> ko khali rakho, warna CodeBlock ke upar dusra box ban jata hai
       pre: ({ children }) => <>{children}</>,
       code({ className, children, ...props }) {
