@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import remarkMath from 'remark-math';
+import rehypeKatex from 'rehype-katex';
 import { PrismLight as SyntaxHighlighter } from 'react-syntax-highlighter';
 import oneDark from 'react-syntax-highlighter/dist/esm/styles/prism/one-dark';
 import javascript from 'react-syntax-highlighter/dist/esm/languages/prism/javascript';
@@ -23,6 +25,7 @@ import yaml from 'react-syntax-highlighter/dist/esm/languages/prism/yaml';
 import php from 'react-syntax-highlighter/dist/esm/languages/prism/php';
 import { Copy, Check, Download, ExternalLink } from 'lucide-react';
 import { copyText } from '../utils/clipboard';
+import { normalizeMath } from '../utils/mathNormalize';
 
 // Kuch bundlers default export ko { default: fn } bana dete hain, isliye dono case handle
 const unwrap = (m: any) => (m && m.default ? m.default : m);
@@ -204,6 +207,10 @@ export const MarkdownMessage: React.FC<{ content: string; isDark: boolean; confi
   const [pendingUrl, setPendingUrl] = useState<string | null>(null);
   const [copiedUrl, setCopiedUrl] = useState(false);
 
+  // Normalize `\(...\)` → `$...$`, `\[...\]` → `$$...$$` so KaTeX can render.
+  // Idempotent — safe even if caller (ChatArea) already normalized.
+  const normalizedContent = normalizeMath(content);
+
   const copyPendingUrl = async () => {
     if (!pendingUrl || !(await copyText(pendingUrl))) return;
     setCopiedUrl(true);
@@ -218,7 +225,8 @@ export const MarkdownMessage: React.FC<{ content: string; isDark: boolean; confi
 
   return <>
   <ReactMarkdown
-    remarkPlugins={[remarkGfm]}
+    remarkPlugins={[remarkGfm, remarkMath]}
+    rehypePlugins={[rehypeKatex]}
     components={{
       // <pre> ko khali rakho, warna CodeBlock ke upar dusra box ban jata hai
       pre: ({ children }) => <>{children}</>,
@@ -259,7 +267,7 @@ export const MarkdownMessage: React.FC<{ content: string; isDark: boolean; confi
       ),
     }}
   >
-    {content}
+    {normalizedContent}
   </ReactMarkdown>
   {pendingUrl && (
     <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/60 p-4" role="presentation" onClick={() => setPendingUrl(null)}>

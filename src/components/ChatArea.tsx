@@ -3,6 +3,7 @@ import { Message, UserProfile } from '../types';
 import { AppVersionInfo, getClientVersion } from '../version';
 import { Logo } from './Logo';
 import { MarkdownMessage } from './MarkdownMessage';
+import { normalizeMath } from '../utils/mathNormalize';  // 👈 NEW
 import {
   Copy,
   Check,
@@ -179,7 +180,6 @@ export const ChatArea: React.FC<ChatAreaProps> = ({
   };
 
   const handleShareImage = async (imageUrl: string, _prompt?: string) => {
-    // Fixed invite message — deliberately does NOT include the user's prompt.
     const SHARE_TEXT =
       '✨ Generated with Tejas AI\n\nChat and generate images for free:\nhttps://tejassai.vercel.app/';
 
@@ -191,7 +191,6 @@ export const ChatArea: React.FC<ChatAreaProps> = ({
         type: blob.type || 'image/jpeg',
       });
 
-      // Preferred: share the image file + the invite text
       if (navigator.canShare && navigator.canShare({ files: [file] })) {
         await navigator.share({
           files: [file],
@@ -201,7 +200,6 @@ export const ChatArea: React.FC<ChatAreaProps> = ({
         return;
       }
 
-      // Fallback: share just the text + link
       if (navigator.share) {
         await navigator.share({
           title: 'Tejas AI',
@@ -210,8 +208,6 @@ export const ChatArea: React.FC<ChatAreaProps> = ({
         return;
       }
 
-      // Last resort (desktop Chrome without Web Share): copy the invite text
-      // to the clipboard and download the image so the user can paste it manually.
       try {
         await navigator.clipboard.writeText(SHARE_TEXT);
       } catch {}
@@ -387,6 +383,15 @@ export const ChatArea: React.FC<ChatAreaProps> = ({
     }
   };
 
+  // 👇 NEW: normalize math before passing to MarkdownMessage
+  const renderMarkdown = (content: string) => (
+    <MarkdownMessage
+      content={normalizeMath(content)}
+      isDark={isDark}
+      confirmExternalLinks={confirmExternalLinks}
+    />
+  );
+
   return (
     <div className="flex-1 min-h-0 flex flex-col overflow-hidden relative">
       {/* Top Header Bar */}
@@ -399,7 +404,7 @@ export const ChatArea: React.FC<ChatAreaProps> = ({
       >
         {serverState === 'offline' && (
           <div role="status" className="absolute left-1/2 top-14 z-20 -translate-x-1/2 rounded-b-lg border border-amber-500/30 bg-amber-950/95 px-4 py-2 text-xs text-amber-100 shadow-lg">
-            “No internet connection. Please reconnect to the internet and try again.”.
+            "No internet connection. Please reconnect to the internet and try again.".
           </div>
         )}
         <div className="flex items-center gap-3">
@@ -463,8 +468,7 @@ export const ChatArea: React.FC<ChatAreaProps> = ({
               <span>Sign In</span>
             </button>
           )}
-
-</div>
+        </div>
       </header>
 
       {updateInfo && updateInfo.version && updateInfo.version !== getClientVersion() && (
@@ -559,8 +563,7 @@ export const ChatArea: React.FC<ChatAreaProps> = ({
                     isUser ? 'justify-end' : 'justify-start'
                   } items-start`}
                 >
-
-              <div className="relative flex-1 min-w-0 flex flex-col">
+                  <div className="relative flex-1 min-w-0 flex flex-col">
                     <div
                       className={`relative rounded-2xl px-4 py-2.5 text-sm sm:text-base leading-relaxed ${
                         isUser
@@ -718,7 +721,6 @@ export const ChatArea: React.FC<ChatAreaProps> = ({
                                     : 'bg-zinc-200 border-zinc-300'
                                 }`}
                               >
-                                {/* Small paint dots appearing on canvas */}
                                 <div className="absolute inset-0">
                                   {[
                                     { top: '18%', left: '22%', delay: 0 },
@@ -742,7 +744,6 @@ export const ChatArea: React.FC<ChatAreaProps> = ({
                                   ))}
                                 </div>
 
-                                {/* The white cat */}
                                 <div
                                   className="absolute"
                                   style={{
@@ -758,7 +759,6 @@ export const ChatArea: React.FC<ChatAreaProps> = ({
                                     fill="none"
                                     xmlns="http://www.w3.org/2000/svg"
                                   >
-                                    {/* Tail */}
                                     <g
                                       style={{
                                         transformOrigin: '20px 82px',
@@ -773,51 +773,31 @@ export const ChatArea: React.FC<ChatAreaProps> = ({
                                         fill="none"
                                       />
                                     </g>
-
-                                    {/* Body */}
                                     <ellipse cx="48" cy="76" rx="22" ry="16" fill="#f8fafc" />
-
-                                    {/* Colored patches */}
                                     <ellipse cx="58" cy="78" rx="9" ry="8" fill="#f59e0b" />
                                     <ellipse cx="38" cy="74" rx="6" ry="5" fill="#8b5cf6" />
                                     <ellipse cx="50" cy="86" rx="5" ry="4" fill="#ef4444" />
-
-                                    {/* Head */}
                                     <circle cx="66" cy="56" r="20" fill="#f8fafc" />
-
-                                    {/* Ears */}
                                     <polygon points="50,42 46,24 62,38" fill="#f8fafc" />
                                     <polygon points="80,42 84,24 70,38" fill="#f8fafc" />
                                     <polygon points="53,40 51,28 61,38" fill="#fbcfe8" />
                                     <polygon points="77,40 79,28 69,38" fill="#fbcfe8" />
-
-                                    {/* Head patch */}
                                     <ellipse cx="54" cy="50" rx="7" ry="5" fill="#8b5cf6" />
-
-                                    {/* Eyes */}
                                     <ellipse cx="61" cy="56" rx="2.6" ry="3.4" fill="#0f172a" />
                                     <ellipse cx="74" cy="56" rx="2.6" ry="3.4" fill="#0f172a" />
                                     <circle cx="61.8" cy="55" r="0.9" fill="#ffffff" />
                                     <circle cx="74.8" cy="55" r="0.9" fill="#ffffff" />
-
-                                    {/* Nose */}
                                     <polygon points="67,63 65,66 69,66" fill="#f472b6" />
-
-                                    {/* Mouth */}
                                     <path
                                       d="M 67 66 Q 64 69 62 67 M 67 66 Q 70 69 72 67"
                                       stroke="#94a3b8"
                                       strokeWidth="0.8"
                                       fill="none"
                                     />
-
-                                    {/* Whiskers */}
                                     <line x1="42" y1="62" x2="56" y2="63" stroke="#94a3b8" strokeWidth="0.7" />
                                     <line x1="42" y1="66" x2="56" y2="66" stroke="#94a3b8" strokeWidth="0.7" />
                                     <line x1="90" y1="62" x2="76" y2="63" stroke="#94a3b8" strokeWidth="0.7" />
                                     <line x1="90" y1="66" x2="76" y2="66" stroke="#94a3b8" strokeWidth="0.7" />
-
-                                    {/* Front arm extending left */}
                                     <path
                                       d="M 32 72 Q 22 62 18 58"
                                       stroke="#f8fafc"
@@ -825,8 +805,6 @@ export const ChatArea: React.FC<ChatAreaProps> = ({
                                       strokeLinecap="round"
                                       fill="none"
                                     />
-
-                                    {/* Paw */}
                                     <circle cx="18" cy="58" r="5" fill="#f8fafc" />
                                     <circle cx="16" cy="56" r="1.4" fill="#e2e8f0" />
                                     <circle cx="19" cy="55" r="1.4" fill="#e2e8f0" />
@@ -834,7 +812,6 @@ export const ChatArea: React.FC<ChatAreaProps> = ({
                                   </svg>
                                 </div>
 
-                                {/* Brush — sweeps across the canvas */}
                                 <div
                                   className="absolute"
                                   style={{
@@ -852,7 +829,6 @@ export const ChatArea: React.FC<ChatAreaProps> = ({
                                   </svg>
                                 </div>
 
-                                {/* Small "Painting..." label */}
                                 <div className="absolute top-3 left-0 right-0 text-center">
                                   <p
                                     className={`text-[10px] tracking-widest uppercase font-semibold ${
@@ -870,7 +846,7 @@ export const ChatArea: React.FC<ChatAreaProps> = ({
                               </div>
                             </div>
                           ) : (
-                            <MarkdownMessage content={msg.content} isDark={isDark} confirmExternalLinks={confirmExternalLinks} />
+                            renderMarkdown(msg.content)
                           )}
 
                           {isStreaming && isLastAssistant && msg.content.trim().length === 0 && !msg.imagePrompt && (
@@ -878,7 +854,7 @@ export const ChatArea: React.FC<ChatAreaProps> = ({
                               <>
                                 {regenState.variant === 'A' && (
                                   <div className="opacity-60">
-                                  <MarkdownMessage content={regenState.oldContent} isDark={isDark} confirmExternalLinks={confirmExternalLinks} />
+                                    {renderMarkdown(regenState.oldContent)}
                                   </div>
                                 )}
                                 {regenState.variant === 'B' && (
@@ -890,7 +866,7 @@ export const ChatArea: React.FC<ChatAreaProps> = ({
                                 {regenState.variant === 'C' && (
                                   <div>
                                     <div className="opacity-30">
-                                      <MarkdownMessage content={regenState.oldContent} isDark={isDark} confirmExternalLinks={confirmExternalLinks} />
+                                      {renderMarkdown(regenState.oldContent)}
                                     </div>
                                     <div className="flex items-center gap-2 text-zinc-400 mt-1">
                                       {renderTypingSpinner(getSpinnerVariant(msg.id))}
@@ -980,7 +956,6 @@ export const ChatArea: React.FC<ChatAreaProps> = ({
                       </div>
                     )}
                   </div>
-
                 </div>
               );
             })}

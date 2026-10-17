@@ -45,6 +45,7 @@ import {
 } from './utils/api';
 import { copyText } from './utils/clipboard';
 import { syncChatsToServer } from './utils/chatSync';
+import 'katex/dist/katex.min.css';
 
 const STORAGE_KEY_CHATS = 'llama_chatbot_sessions_v1';
 const STORAGE_KEY_USER = 'llama_chatbot_user_v1';
@@ -63,7 +64,15 @@ const DEFAULT_SETTINGS: AppSettings = {
   notificationsEnabled: true,
   customHfToken: '',
   customBackendUrl: '',
-  systemPrompt: 'You are Tejas, an intelligent, fast, and polite AI assistant. Always match the response length directly to the user\'s query: keep simple questions concise and direct (1-3 sentences), and provide structured explanations only for complex or coding queries.',
+  systemPrompt: `You are Tejas, an intelligent, fast, and polite AI assistant. Always match the response length directly to the user's query: keep simple questions concise and direct (1-3 sentences), and provide structured explanations only for complex or coding queries.
+
+MATH FORMATTING RULES:
+- Use $...$ for inline math (e.g. $E = mc^2$, $\\frac{a}{b}$, $x^2 + y^2 = r^2$).
+- Use $$...$$ on their own lines for block/display equations.
+- NEVER use \\(...\\) or \\[...\\] as math delimiters.
+- NEVER wrap math in bare parentheses like (f(x)=...). Always use $...$ instead.
+- Always wrap LaTeX commands (\\frac, \\sum, \\int, \\sqrt, \\alpha, \\beta, \\theta, \\cos, \\sin, \\log, etc.) inside $...$ or $$...$$ — never leave them bare.
+- Use \\begin{aligned} ... \\end{aligned} inside $$...$$ for multi-line derivations.`,
   selectedModel: 'Qwen/Qwen2.5-1.5B-Instruct',
   subscriptionPlan: 'free',
   ownedPlans: [],
@@ -111,7 +120,8 @@ export default function App() {
         const parsed = JSON.parse(saved);
         if (
           !parsed.systemPrompt ||
-          parsed.systemPrompt.includes('Provide clean, well-formatted answers with markdown, clear headings, and concise explanations.')
+          parsed.systemPrompt.includes('Provide clean, well-formatted answers with markdown, clear headings, and concise explanations.') ||
+          !parsed.systemPrompt.includes('MATH FORMATTING RULES')
         ) {
           parsed.systemPrompt = DEFAULT_SETTINGS.systemPrompt;
         }
@@ -147,7 +157,7 @@ export default function App() {
   const [tempChatMessages, setTempChatMessages] = useState<Message[]>([]);
   const [isStreaming, setIsStreaming] = useState(false);
   const abortControllerRef = useRef<AbortController | null>(null);
-    // True while an image is being generated — blocks text messages and vice versa.
+  // True while an image is being generated — blocks text messages and vice versa.
   const [isImageGenerating, setIsImageGenerating] = useState(false);
 
   // "/share/<id>" URL
@@ -211,7 +221,7 @@ export default function App() {
   // Delete confirmation toast (bottom of screen)
   const [deleteToast, setDeleteToast] = useState<{ title: string; daysLeft: number } | null>(null);
 
-  // --- Change A: upgrade nudge for guest users ---
+  // --- Guest upgrade nudge (every 3rd message) ---
   const [upgradeNudge, setUpgradeNudge] = useState(false);
   const guestMsgCountRef = useRef(0);
 
@@ -1180,11 +1190,11 @@ export default function App() {
     }
 
     try {
-           const res = await generateImage(getApiUrl, prompt, { width: 1024, height: 1024 });
+      const res = await generateImage(getApiUrl, prompt, { width: 1024, height: 1024 });
 
       const updateMsg = (m: Message) =>
         m.id === assistantId
-          ? { ...m,imageUrl: res.imageUrl, status: 'complete' as const }
+          ? { ...m, imageUrl: res.imageUrl, status: 'complete' as const }
           : m;
       if (isTempChatActive) {
         setTempChatMessages((prev) => prev.map(updateMsg));
@@ -1215,7 +1225,7 @@ export default function App() {
     }
   };
 
-  // Main streaming request to Pollinations.
+  // Main streaming request.
   const handleSendMessage = async (
     text: string,
     options?: { editedMessageId?: string; contextText?: string; contextMessageId?: string; attachments?: PreparedAttachment[] }
@@ -1228,7 +1238,7 @@ export default function App() {
     if (contextText) setAskAbout(null);
     if (!messageText || isStreaming || isImageGenerating) return false;
 
-    // --- Change B: guest upgrade nudge — every 3rd message ---
+    // --- Guest upgrade nudge — every 3rd message ---
     if (isGuestUser(currentUser)) {
       guestMsgCountRef.current += 1;
       if (guestMsgCountRef.current % 3 === 0) {
@@ -1250,20 +1260,17 @@ export default function App() {
       const trimmed = messageText;
       const lower = trimmed.toLowerCase();
 
-      // Triggers like "draw a cat", "generate image of...", "make a picture of..."
       const imageIntent =
         /^(?:please\s+)?(?:draw|paint|sketch|render|illustrate)\s+(.{2,})$/i.test(trimmed) ||
         /^(?:please\s+)?(?:generate|create|make|show)\s+(?:me\s+)?(?:an?\s+)?(?:image|picture|photo|illustration|artwork|drawing|sketch)\s+(?:of\s+)?(.{2,})$/i.test(trimmed) ||
         /^(?:image|picture|photo|illustration)\s+of\s+(.{2,})$/i.test(trimmed) ||
         /\b(?:generate|create|make|draw|paint|sketch)\s+(?:me\s+)?(?:an?\s+)?(?:image|picture|photo|illustration|artwork)\b/i.test(trimmed);
 
-      // Don't hijack messages that also look like questions or code requests
       const looksLikeQuestion =
         /\?$/.test(trimmed) ||
         /^(what|why|how|when|where|who|which|explain|describe|tell me|code|write|fix|debug)\b/i.test(lower);
 
       if (imageIntent && !looksLikeQuestion && trimmed.length <= 300) {
-        // Strip the leading trigger words to get a cleaner prompt for the model
         let prompt = trimmed
           .replace(/^(?:please\s+)?(?:draw|paint|sketch|render|illustrate)\s+/i, '')
           .replace(/^(?:please\s+)?(?:generate|create|make|show)\s+(?:me\s+)?(?:an?\s+)?(?:image|picture|photo|illustration|artwork|drawing|sketch)\s+(?:of\s+)?/i, '')
@@ -2149,7 +2156,7 @@ export default function App() {
         </div>
       )}
 
-      {/* --- Change C: guest upgrade nudge toast --- */}
+      {/* --- Guest upgrade nudge toast --- */}
       {upgradeNudge && isGuestUser(currentUser) && (
         <div className="fixed bottom-20 left-1/2 -translate-x-1/2 z-[90] animate-in fade-in slide-in-from-bottom-4 duration-200">
           <div
