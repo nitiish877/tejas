@@ -88,13 +88,6 @@ export default function App() {
       const saved = localStorage.getItem(STORAGE_KEY_USER);
       if (saved) {
         const parsed = JSON.parse(saved);
-        if (
-          parsed.name === 'Nitish Vishwakarma' ||
-          parsed.email === 'nitishvishwakarma1332@gmail.com' ||
-          parsed.id === 'user_default'
-        ) {
-          return DEFAULT_USER;
-        }
         return parsed;
       }
     } catch (e) {
