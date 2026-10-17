@@ -23,6 +23,9 @@ interface ChatInputProps {
   ownedPlans?: SubscriptionPlanType[];
   onSelectModel?: (modelId: string) => void;
   onOpenSubscription?: (plan: SubscriptionPlanType) => void;
+  // --- Change A: guest / login gating ---
+  isGuestUser?: boolean;
+  onRequireLogin?: () => void;
 }
 
 export const ChatInput: React.FC<ChatInputProps> = ({
@@ -41,6 +44,9 @@ export const ChatInput: React.FC<ChatInputProps> = ({
   ownedPlans = [],
   onSelectModel,
   onOpenSubscription,
+  // --- Change A: destructure ---
+  isGuestUser = false,
+  onRequireLogin,
 }) => {
   const [text, setText] = useState('');
   const [attachments, setAttachments] = useState<PreparedAttachment[]>([]);
@@ -329,7 +335,14 @@ export const ChatInput: React.FC<ChatInputProps> = ({
               id="attach-files-btn"
               type="button"
               disabled={isPreparingFiles}
-              onClick={() => setAttachMenuOpen((open) => !open)}
+              // --- Change B: guest users get redirected to login instead of opening the menu ---
+              onClick={() => {
+                if (isGuestUser) {
+                  onRequireLogin?.();
+                  return;
+                }
+                setAttachMenuOpen((open) => !open);
+              }}
               title="Attach images or files"
               aria-label="Attach images or files"
               className={`rounded-xl p-2 transition-colors ${isDark ? 'text-zinc-400 hover:bg-zinc-700/60 hover:text-zinc-200' : 'text-zinc-500 hover:bg-zinc-100 hover:text-zinc-800'}`}
@@ -385,7 +398,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
               id="send-message-btn"
               type="button"
               onClick={() => handleSubmit()}
-              disabled={!text.trim() && attachments.length === 0 || isPreparingFiles}
+              disabled={(!text.trim() && attachments.length === 0) || isPreparingFiles}
               title={imageMode ? 'Generate image' : 'Send message'}
               className={`p-2.5 rounded-full flex items-center justify-center shrink-0 transition-all ${
                 text.trim() || attachments.length > 0

@@ -16,7 +16,7 @@ import { PaymentHistoryModal } from './components/PaymentHistoryModal';
 import { SharedChatsModal } from './components/SharedChatsModal';
 import { getClientVersion, isVersionDismissed, AppVersionInfo } from './version';
 import { playNotificationChime } from './utils/audio';
-import { AlertTriangle, Trash2 } from 'lucide-react';
+import { AlertTriangle, Trash2, X } from 'lucide-react';
 import {
   ApiError,
   authorizeExtensionSignIn,
@@ -210,6 +210,10 @@ export default function App() {
 
   // Delete confirmation toast (bottom of screen)
   const [deleteToast, setDeleteToast] = useState<{ title: string; daysLeft: number } | null>(null);
+
+  // --- Change A: upgrade nudge for guest users ---
+  const [upgradeNudge, setUpgradeNudge] = useState(false);
+  const guestMsgCountRef = useRef(0);
 
   // Share warning modal
   const [shareWarningOpen, setShareWarningOpen] = useState(false);
@@ -1224,6 +1228,15 @@ export default function App() {
     if (contextText) setAskAbout(null);
     if (!messageText || isStreaming || isImageGenerating) return false;
 
+    // --- Change B: guest upgrade nudge — every 3rd message ---
+    if (isGuestUser(currentUser)) {
+      guestMsgCountRef.current += 1;
+      if (guestMsgCountRef.current % 3 === 0) {
+        setUpgradeNudge(true);
+        setTimeout(() => setUpgradeNudge(false), 7000);
+      }
+    }
+
     // "/image <prompt>" short-circuits to image generation
     const imgMatch = text.trim().match(/^\/image\s+(.+)$/i);
     if (imgMatch && !editedMessageId && attachments.length === 0) {
@@ -1755,6 +1768,11 @@ export default function App() {
               ownedPlans={settings.ownedPlans || []}
               onSelectModel={(modelId) => setSettings((prev) => ({ ...prev, selectedModel: modelId, subscriptionPlan: MODEL_TO_PLAN[modelId] || 'free' }))}
               onOpenSubscription={(plan) => handleOpenSubscription(plan)}
+              isGuestUser={isGuestUser(currentUser)}
+              onRequireLogin={() => {
+                setAuthNotice('sign in or register to upload files.');
+                setAuthModalOpen(true);
+              }}
             />
           )}
         />
@@ -1779,6 +1797,11 @@ export default function App() {
             ownedPlans={settings.ownedPlans || []}
             onSelectModel={(modelId) => setSettings((prev) => ({ ...prev, selectedModel: modelId, subscriptionPlan: MODEL_TO_PLAN[modelId] || 'free' }))}
             onOpenSubscription={(plan) => handleOpenSubscription(plan)}
+            isGuestUser={isGuestUser(currentUser)}
+            onRequireLogin={() => {
+              setAuthNotice('sign in or register to upload files.');
+              setAuthModalOpen(true);
+            }}
           />
         )}
       </main>
@@ -2122,6 +2145,41 @@ export default function App() {
                 Recover within {deleteToast.daysLeft} days
               </p>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* --- Change C: guest upgrade nudge toast --- */}
+      {upgradeNudge && isGuestUser(currentUser) && (
+        <div className="fixed bottom-20 left-1/2 -translate-x-1/2 z-[90] animate-in fade-in slide-in-from-bottom-4 duration-200">
+          <div
+            className={`flex items-center gap-3 rounded-xl border px-4 py-3 shadow-2xl ${
+              isDark ? 'bg-zinc-900 border-zinc-700 text-zinc-100' : 'bg-white border-zinc-300 text-zinc-900'
+            }`}
+          >
+            <div className="text-xs">
+              <p className="font-semibold">🔓 You're using the Base model</p>
+              <p className={`text-[11px] mt-0.5 ${isDark ? 'text-zinc-400' : 'text-zinc-500'}`}>
+                Sign in free to unlock Advanced models
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                setUpgradeNudge(false);
+                setAuthModalOpen(true);
+              }}
+              className="shrink-0 px-3 py-1.5 rounded-lg text-xs font-semibold bg-indigo-600 hover:bg-indigo-700 text-white transition-colors"
+            >
+              Sign In
+            </button>
+            <button
+              type="button"
+              onClick={() => setUpgradeNudge(false)}
+              className={`shrink-0 p-1 rounded-md ${isDark ? 'hover:bg-zinc-700 text-zinc-400' : 'hover:bg-zinc-200 text-zinc-500'}`}
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
           </div>
         </div>
       )}
