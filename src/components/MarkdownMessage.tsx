@@ -226,7 +226,8 @@ export const MarkdownMessage: React.FC<{ content: string; isDark: boolean; confi
   return <>
   <ReactMarkdown
     remarkPlugins={[remarkGfm, remarkMath]}
-    rehypePlugins={[rehypeKatex]}
+    // A malformed/incomplete equation must not crash the whole assistant message.
+    rehypePlugins={[[rehypeKatex, { throwOnError: false, strict: 'ignore' }]]}
     components={{
       // <pre> ko khali rakho, warna CodeBlock ke upar dusra box ban jata hai
       pre: ({ children }) => <>{children}</>,
