@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useState } from 'react';
+import React, { useRef, useEffect, useState, useMemo } from 'react';
 import { Message, UserProfile } from '../types';
 import { AppVersionInfo, getClientVersion } from '../version';
 import { Logo } from './Logo';
@@ -28,6 +28,193 @@ import {
   ImagePlus,
 } from 'lucide-react';
 
+// ------------------------------------------------------------
+// Question bank (used for daily random suggestions)
+// ------------------------------------------------------------
+const questionBank = [
+  // --- QUANTUM COMPUTING ---
+  "Explain quantum computing in simple terms",
+  "How do qubits differ from traditional bits?",
+  "What does superposition actually mean?",
+  "Will quantum computers break modern encryption?",
+
+  // --- JAVASCRIPT & WEB DEVELOPMENT ---
+  "Write a clean JavaScript debounce function",
+  "What is the difference between debouncing and throttling?",
+  "How does a JavaScript closure work?",
+  "Explain the event loop in Node.js",
+
+  // --- TRAVEL & LIFESTYLE ---
+  "Help me plan a 3-day travel itinerary",
+  "How do you plan a stress-free vacation?",
+  "What essentials go inside a travel day pack?",
+
+  // --- PROFESSIONAL COMMUNICATION ---
+  "Draft a polite email asking for project updates",
+  "How do you state your purpose in an email without being rude?",
+  "What is an appropriate professional email sign-off?",
+
+  // --- PYTHON & DATA SCIENCE ---
+  "What is the difference between a list and a tuple in Python?",
+  "How does list comprehension work in Python?",
+  "Explain the difference between deep copy and shallow copy in Python?",
+  "Write a Python script to read a JSON file safely",
+
+  // --- MACHINE LEARNING (ML) ---
+  "Explain Machine Learning in simple terms to a beginner",
+  "What is the difference between supervised and unsupervised learning?",
+  "What is overfitting in Machine Learning and how do you fix it?",
+  "How does a neural network learn from data?",
+
+  // --- WEB APP DEVELOPMENT ---
+  "What are the core differences between SQL and NoSQL databases?",
+  "Explain how REST APIs work using a simple analogy",
+  "What is State Management in frontend frameworks like React?",
+  "How do you optimize a web app's initial loading time?",
+
+  // --- CYBER SECURITY ---
+  "What is a Man-in-the-Middle (MitM) attack and how do you prevent it?",
+  "Explain how two-factor authentication (2FA) keeps accounts safe",
+  "What is SQL Injection and how can developers block it?",
+  "What is the difference between symmetric and asymmetric encryption?"
+];
+
+// ------------------------------------------------------------
+// Helper: local date key (YYYY-MM-DD in user's local timezone)
+// ------------------------------------------------------------
+const getLocalDateKey = (): string => {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+};
+
+// ------------------------------------------------------------
+// Daily random question picker (3 per day, cached for the day)
+// ------------------------------------------------------------
+const pickRandomDailyQuestions = (count: number = 3): string[] => {
+  try {
+    const todayKey = getLocalDateKey();
+    const storageKey = `tejas_daily_questions_${todayKey}`;
+
+    const cached = localStorage.getItem(storageKey);
+    if (cached) {
+      const parsed = JSON.parse(cached);
+      if (Array.isArray(parsed) && parsed.length === count) return parsed;
+    }
+
+    // Fisher-Yates shuffle for fairness
+    const shuffled = [...questionBank];
+    for (let i = shuffled.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+    const picked = shuffled.slice(0, count);
+
+    localStorage.setItem(storageKey, JSON.stringify(picked));
+
+    // Cleanup old daily keys
+    for (let i = localStorage.length - 1; i >= 0; i--) {
+      const key = localStorage.key(i);
+      if (key && key.startsWith('tejas_daily_questions_') && key !== storageKey) {
+        localStorage.removeItem(key);
+      }
+    }
+
+    return picked;
+  } catch {
+    const shuffled = [...questionBank];
+    for (let i = shuffled.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+    return shuffled.slice(0, count);
+  }
+};
+
+// ------------------------------------------------------------
+// Time-based greeting (no repeats for 3 days per slot)
+// ------------------------------------------------------------
+const getTimeSlot = (hour: number): 'morning' | 'afternoon' | 'evening' | 'night' => {
+  if (hour >= 6 && hour < 12) return 'morning';
+  if (hour >= 12 && hour < 17) return 'afternoon';
+  if (hour >= 17 && hour < 21) return 'evening';
+  return 'night';
+};
+
+const GREETING_POOLS: Record<'morning' | 'afternoon' | 'evening' | 'night', string[]> = {
+  morning: [
+    "Morning! Let's start fresh. ☕",
+    "Morning! What are we learning today? 🧠",
+    "Rise and shine, let's build! 🚀",
+    "Good morning, glad you're here. ✨",
+  ],
+  afternoon: [
+    "Afternoon! Let's boost that energy. ⚡",
+    "Quick break! What are we exploring? 🔍",
+    "Happy afternoon, take a quick stretch! 🍃",
+  ],
+  evening: [
+    "Good evening, missed you today! ❤️",
+    "Day done! Let's build something fun. 🎉",
+    "Evening! Time to relax your mind. 🍵",
+    "Sun's down, what are we solving? 🌌",
+  ],
+  night: [
+    "Late night? I'm right here. 🌙",
+    "Night! Time for quiet thoughts. 🕯️",
+    "Midnight curiosity? Let's dive deep. 🧪",
+    "Night owl mode activated! 🦉",
+    "Up late? Let's clear your mind. 🌌",
+    "Can't sleep? Let's discover something. 🧐",
+    "Still awake? Happy you're here. 💖",
+    "Midnight coding? Let's crush it. 💻",
+    "Rest low, dream big tonight. 💤",
+  ],
+};
+
+const getGreeting = (): string => {
+  try {
+    const now = new Date();
+    const slot = getTimeSlot(now.getHours());
+    const pool = GREETING_POOLS[slot];
+    const todayKey = getLocalDateKey();
+    const slotTodayKey = `tejas_greet_${slot}_${todayKey}`;
+    const historyKey = 'tejas_greet_history';
+
+    // Already picked for this slot today? Return the same one.
+    const existing = localStorage.getItem(slotTodayKey);
+    if (existing) return existing;
+
+    // Load last 3 days of history
+    let history: { date: string; text: string }[] = [];
+    const raw = localStorage.getItem(historyKey);
+    if (raw) history = JSON.parse(raw);
+
+    const cutoff = new Date();
+    cutoff.setDate(cutoff.getDate() - 3);
+    history = history.filter((h) => new Date(h.date) > cutoff);
+
+    const recent = new Set(history.map((h) => h.text));
+    let available = pool.filter((g) => !recent.has(g));
+    if (available.length === 0) available = pool; // fallback if all used
+
+    const chosen = available[Math.floor(Math.random() * available.length)];
+
+    // Save
+    history.push({ date: todayKey, text: chosen });
+    localStorage.setItem(historyKey, JSON.stringify(history));
+    localStorage.setItem(slotTodayKey, chosen);
+
+    return chosen;
+  } catch {
+    const slot = getTimeSlot(new Date().getHours());
+    const pool = GREETING_POOLS[slot];
+    return pool[Math.floor(Math.random() * pool.length)];
+  }
+};
+
+// ------------------------------------------------------------
+// Types & Component
+// ------------------------------------------------------------
 interface ChatAreaProps {
   messages: Message[];
   isLoadingMessages?: boolean;
@@ -90,6 +277,10 @@ export const ChatArea: React.FC<ChatAreaProps> = ({
   const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
   const [editingText, setEditingText] = useState('');
   const [showScrollToBottom, setShowScrollToBottom] = useState(false);
+
+  // 👇 NEW: Daily random 3 questions (cached per day) + time-based greeting
+  const starterSuggestions = useMemo(() => pickRandomDailyQuestions(3), []);
+  const greeting = useMemo(() => getGreeting(), []);
 
   const [regenState, setRegenState] = useState<{
     oldContent: string;
@@ -306,13 +497,6 @@ export const ChatArea: React.FC<ChatAreaProps> = ({
     onRegenerate();
   };
 
-  const starterSuggestions = [
-    'Explain quantum computing in simple terms',
-    'Write a clean JavaScript debounce function',
-    'Help me plan a 3-day travel itinerary',
-    'Draft a polite email asking for project updates',
-  ];
-
   const formatShortTime = (timestamp: number) => {
     return new Date(timestamp).toLocaleTimeString([], {
       hour: '2-digit',
@@ -508,8 +692,9 @@ export const ChatArea: React.FC<ChatAreaProps> = ({
               <Logo size="lg" glowing={false} />
             </div>
 
+            {/* 👇 CHANGED: time-based greeting instead of fixed "What can I help with?" */}
             <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight text-inherit">
-              What can I help with?
+              {greeting}
             </h1>
 
             {renderCenteredInput && (

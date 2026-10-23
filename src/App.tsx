@@ -1744,8 +1744,8 @@ export default function App() {
   if (policyPage) {
     const isTermsPage = policyPage === 'terms';
     return (
-      <div className={`min-h-[100dvh] overflow-y-auto px-4 py-8 sm:px-8 ${isDark ? 'bg-[#16191c] text-zinc-100' : 'bg-[#f5f8fa] text-zinc-900'}`}>
-        <article className={`mx-auto max-w-3xl rounded-2xl border p-5 sm:p-8 ${isDark ? 'border-zinc-800 bg-zinc-900/60' : 'border-zinc-200 bg-white'}`}>
+      <div className={`h-[100dvh] w-full overflow-y-auto overscroll-contain px-4 py-8 sm:px-8 ${isDark ? 'bg-[#16191c] text-zinc-100' : 'bg-[#f5f8fa] text-zinc-900'}`}>
+        <article className={`mx-auto mb-8 max-w-3xl rounded-2xl border p-5 sm:p-8 ${isDark ? 'border-zinc-800 bg-zinc-900/60' : 'border-zinc-200 bg-white'}`}>
           <button type="button" onClick={() => { window.history.pushState({}, '', '/'); setPolicyPage(null); }} className="mb-5 text-sm text-cyan-500 hover:underline">← Back to Tejas</button>
           <MarkdownMessage content={isTermsPage ? TERMS_TEXT : PRIVACY_TEXT} isDark={isDark} />
           <div className="mt-8 border-t border-zinc-700/40 pt-4 text-sm">
