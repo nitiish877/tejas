@@ -502,8 +502,8 @@ export const ChatArea: React.FC<ChatAreaProps> = ({
           </div>
         </div>
       ) : messages.length === 0 ? (
-        <div className="flex-1 min-h-0 flex flex-col items-center justify-center px-4 overflow-y-auto">
-          <div className="max-w-2xl w-full text-center space-y-6 animate-in fade-in duration-200 py-6">
+        <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-4">
+          <div className="mx-auto flex min-h-full max-w-2xl flex-col items-center justify-center text-center space-y-6 animate-in fade-in duration-200 py-6">
             <div className="flex justify-center mb-2">
               <Logo size="lg" glowing={false} />
             </div>

@@ -430,22 +430,13 @@ export const ChatInput: React.FC<ChatInputProps> = ({
       {/* Bottom row — Generate Image button + Disclaimer */}
       <div className="mt-2 px-2 flex flex-col items-center justify-end gap-2">
         <span />
-        <p className={`text-[11px] select-none ${isDark ? 'text-zinc-500' : 'text-zinc-400'}`}>
-          tejas is ai can make mistakes please double check response
+        <p className={`flex flex-wrap items-center justify-center gap-x-1 text-[11px] select-none ${isDark ? 'text-zinc-500' : 'text-zinc-400'}`}>
+          <span>Tejas is AI can make mistakes.</span>
+          <a href="/terms" className="text-cyan-500 hover:underline">Terms &amp; Conditions</a>
+          <span>and</span>
+          <a href="/privacy" className="text-cyan-500 hover:underline">Privacy Policy</a>
         </p>
-        <div className="flex items-center gap-3 text-[11px]">
-          <a href="/terms" className="text-cyan-500 hover:underline">Terms &amp; Conditions</a>
-          <span className={isDark ? 'text-zinc-700' : 'text-zinc-300'}>•</span>
-          <a href="/privacy" className="text-cyan-500 hover:underline">Privacy Policy</a>
-        </div>
       </div>
-      {!isCentered && (
-        <div className="mt-1 flex items-center justify-center gap-3 text-[11px]">
-          <a href="/terms" className="text-cyan-500 hover:underline">Terms &amp; Conditions</a>
-          <span className={isDark ? 'text-zinc-700' : 'text-zinc-300'}>•</span>
-          <a href="/privacy" className="text-cyan-500 hover:underline">Privacy Policy</a>
-        </div>
-      )}
     </div>
   );
 };
