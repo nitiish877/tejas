@@ -146,7 +146,24 @@ export const fetchAuthProviders = (getUrl: UrlBuilder) =>
     '/api/auth/providers'
   );
 
-export const fetchMe = (getUrl: UrlBuilder) => request<{ user: UserProfile }>(getUrl, '/api/auth/me', {}, true);
+export const fetchMe = (getUrl: UrlBuilder) => request<{
+  user: UserProfile;
+  legalAcceptance?: LegalAcceptance | null;
+}>(getUrl, '/api/auth/me', {}, true);
+
+export interface LegalAcceptance {
+  termsVersion: string;
+  privacyVersion: string;
+  acceptedAt: string;
+}
+
+export const fetchLegalAcceptance = (getUrl: UrlBuilder) =>
+  request<{ acceptance: LegalAcceptance | null }>(getUrl, '/api/auth/me/legal-acceptance', {}, true);
+
+export const saveLegalAcceptance = (getUrl: UrlBuilder, body: { termsVersion: string; privacyVersion: string }) =>
+  request<{ acceptance: LegalAcceptance }>(getUrl, '/api/auth/legal-acceptance', {
+    method: 'POST', body: JSON.stringify(body),
+  }, true);
 
 export const updateMyName = (getUrl: UrlBuilder, name: string) =>
   request<{ user: UserProfile }>(getUrl, '/api/auth/me', { method: 'PUT', body: JSON.stringify({ name }) }, true);

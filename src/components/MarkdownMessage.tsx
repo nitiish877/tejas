@@ -188,12 +188,12 @@ const CodeBlock: React.FC<{ code: string; language: string }> = ({ code, languag
         </div>
       </div>
 
-      <div className="overflow-x-auto bg-[#1b2024]">
+      <div className="max-w-full overflow-auto overscroll-contain bg-[#1b2024]">
         <SyntaxHighlighter
           language={lang}
           style={codeTheme}
           PreTag="div"
-          customStyle={{ margin: 0, padding: '1rem', background: 'transparent', fontSize: '0.85rem', lineHeight: '1.6', minWidth: '100%' }}
+          customStyle={{ margin: 0, padding: '1rem', background: 'transparent', fontSize: '0.85rem', lineHeight: '1.6', minWidth: '100%', maxHeight: 'min(60vh, 32rem)', overflow: 'auto' }}
           codeTagProps={{ style: { fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Consolas, monospace' } }}
         >
           {code}

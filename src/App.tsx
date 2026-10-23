@@ -45,6 +45,9 @@ import {
 } from './utils/api';
 import { copyText } from './utils/clipboard';
 import { syncChatsToServer } from './utils/chatSync';
+import { saveLegalAcceptance } from './utils/api';
+import { TERMS_VERSION, PRIVACY_VERSION, TERMS_TEXT, PRIVACY_TEXT } from './legalPolicies';
+import { MarkdownMessage } from './components/MarkdownMessage';
 import 'katex/dist/katex.min.css';
 
 const STORAGE_KEY_CHATS = 'llama_chatbot_sessions_v1';
@@ -189,6 +192,14 @@ export default function App() {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [settingsEditorEntry, setSettingsEditorEntry] = useState(false);
   const [authModalOpen, setAuthModalOpen] = useState(false);
+  const [legalAcceptanceRequired, setLegalAcceptanceRequired] = useState(false);
+  const [legalAcceptanceChecked, setLegalAcceptanceChecked] = useState(false);
+  const [legalAcceptanceBusy, setLegalAcceptanceBusy] = useState(false);
+  const [legalAcceptanceError, setLegalAcceptanceError] = useState('');
+  const [policyPage, setPolicyPage] = useState<'terms' | 'privacy' | null>(() => {
+    const path = window.location.pathname.replace(/\/$/, '');
+    return path === '/terms' ? 'terms' : path === '/privacy' ? 'privacy' : null;
+  });
   const [extensionAuthDeviceCode, setExtensionAuthDeviceCode] = useState(() => {
     const fromUrl = new URLSearchParams(window.location.search).get('extension_auth') || '';
     if (fromUrl) {
@@ -208,6 +219,29 @@ export default function App() {
 
   const [paymentHistoryOpen, setPaymentHistoryOpen] = useState(false);
   const [sharedChatsOpen, setSharedChatsOpen] = useState(false);
+
+  useEffect(() => {
+    const onPopState = () => {
+      const path = window.location.pathname.replace(/\/$/, '');
+      setPolicyPage(path === '/terms' ? 'terms' : path === '/privacy' ? 'privacy' : null);
+    };
+    window.addEventListener('popstate', onPopState);
+    return () => window.removeEventListener('popstate', onPopState);
+  }, []);
+
+  const navigatePolicy = (page: 'terms' | 'privacy') => {
+    window.history.pushState({}, '', page === 'terms' ? '/terms' : '/privacy');
+    setPolicyPage(page);
+    window.scrollTo(0, 0);
+  };
+
+  useEffect(() => {
+    if (!isGuestUser(currentUser) && !legalAcceptanceRequired && window.location.pathname === '/terms') {
+      setPolicyPage('terms');
+    } else if (!isGuestUser(currentUser) && !legalAcceptanceRequired && window.location.pathname === '/privacy') {
+      setPolicyPage('privacy');
+    }
+  }, [currentUser, legalAcceptanceRequired]);
 
   // "Ask about this" — selected text from an earlier assistant message
   const [askAbout, setAskAbout] = useState<{ text: string; messageId: string } | null>(null);
@@ -955,10 +989,14 @@ export default function App() {
     let cancelled = false;
     (async () => {
       try {
-        const { user: fresh } = await fetchMe(getApiUrl);
+        const { user: fresh, legalAcceptance } = await fetchMe(getApiUrl);
         if (cancelled) return;
         const serverUser: any = fresh;
         setCurrentUser(fresh);
+        if (legalAcceptance?.termsVersion !== TERMS_VERSION || legalAcceptance?.privacyVersion !== PRIVACY_VERSION) {
+          setLegalAcceptanceChecked(false);
+          setLegalAcceptanceRequired(true);
+        }
         setSettings((prev) => ({
           ...prev,
           subscriptionPlan: serverUser.subscriptionPlan || 'free',
@@ -1028,6 +1066,18 @@ export default function App() {
     } catch (e) {}
     if (!isGuestUser(user)) {
       try {
+        const { legalAcceptance: acceptance } = await fetchMe(getApiUrl);
+        if (acceptance?.termsVersion !== TERMS_VERSION || acceptance?.privacyVersion !== PRIVACY_VERSION) {
+          setLegalAcceptanceChecked(false);
+          setLegalAcceptanceRequired(true);
+        }
+      } catch (error) {
+        console.error('Could not verify policy acceptance', error);
+        setLegalAcceptanceError('Could not verify your policy status. Check your connection and retry.');
+        setLegalAcceptanceRequired(true);
+        return;
+      }
+      try {
         const { user: fresh } = await fetchMe(getApiUrl);
         const serverUser: any = fresh;
         setSettings((prev) => ({
@@ -1049,6 +1099,21 @@ export default function App() {
       await loadServerChats();
       purgeGuestEphemeralChats(getApiUrl);
       if (pendingShareChatId) await createShareFor(pendingShareChatId);
+    }
+  };
+
+  const handleAcceptPolicies = async () => {
+    if (!legalAcceptanceChecked || legalAcceptanceBusy) return;
+    setLegalAcceptanceBusy(true);
+    setLegalAcceptanceError('');
+    try {
+      await saveLegalAcceptance(getApiUrl, { termsVersion: TERMS_VERSION, privacyVersion: PRIVACY_VERSION });
+      setLegalAcceptanceRequired(false);
+      if (window.location.pathname === '/terms' || window.location.pathname === '/privacy') setPolicyPage(null);
+    } catch (error: any) {
+      setLegalAcceptanceError(error?.message || 'Could not save your acceptance. Please try again.');
+    } finally {
+      setLegalAcceptanceBusy(false);
     }
   };
 
@@ -1236,7 +1301,7 @@ export default function App() {
     const attachments = options?.attachments || [];
     const messageText = text.trim() || (attachments.length ? 'Please analyze the attached file(s).' : '');
     if (contextText) setAskAbout(null);
-    if (!messageText || isStreaming || isImageGenerating) return false;
+    if (!messageText || isStreaming || isImageGenerating || legalAcceptanceRequired) return false;
 
     // --- Guest upgrade nudge — every 3rd message ---
     if (isGuestUser(currentUser)) {
@@ -1628,6 +1693,7 @@ export default function App() {
   };
 
   const handleRegenerate = () => {
+    if (legalAcceptanceRequired) return;
     if (activeMessages.length === 0 || isStreaming) return;
     const lastUserMsg = [...activeMessages].reverse().find((m) => m.role === 'user');
     if (!lastUserMsg) return;
@@ -1673,6 +1739,21 @@ export default function App() {
 
   if (sharedChatId) {
     return <SharedChatView shareId={sharedChatId} getApiUrl={getApiUrl} isDark={isDark} />;
+  }
+
+  if (policyPage) {
+    const isTermsPage = policyPage === 'terms';
+    return (
+      <div className={`min-h-[100dvh] overflow-y-auto px-4 py-8 sm:px-8 ${isDark ? 'bg-[#16191c] text-zinc-100' : 'bg-[#f5f8fa] text-zinc-900'}`}>
+        <article className={`mx-auto max-w-3xl rounded-2xl border p-5 sm:p-8 ${isDark ? 'border-zinc-800 bg-zinc-900/60' : 'border-zinc-200 bg-white'}`}>
+          <button type="button" onClick={() => { window.history.pushState({}, '', '/'); setPolicyPage(null); }} className="mb-5 text-sm text-cyan-500 hover:underline">← Back to Tejas</button>
+          <MarkdownMessage content={isTermsPage ? TERMS_TEXT : PRIVACY_TEXT} isDark={isDark} />
+          <div className="mt-8 border-t border-zinc-700/40 pt-4 text-sm">
+            {isTermsPage ? <>Also read our <button type="button" onClick={() => navigatePolicy('privacy')} className="text-cyan-500 underline">Privacy Policy</button>.</> : <>Also read our <button type="button" onClick={() => navigatePolicy('terms')} className="text-cyan-500 underline">Terms &amp; Conditions</button>.</>}
+          </div>
+        </article>
+      </div>
+    );
   }
 
   return (
@@ -1872,6 +1953,33 @@ export default function App() {
         getApiUrl={getApiUrl}
         notice={authNotice}
       />
+
+      {legalAcceptanceRequired && !isGuestUser(currentUser) && (
+        <div className="fixed inset-0 z-[120] flex items-center justify-center bg-black/75 p-3 backdrop-blur-sm" role="presentation">
+          <section role="alertdialog" aria-modal="true" aria-labelledby="legal-acceptance-title" className={`flex max-h-[92dvh] w-full max-w-lg flex-col overflow-hidden rounded-2xl border shadow-2xl ${isDark ? 'border-zinc-700 bg-[#16191c] text-zinc-100' : 'border-zinc-200 bg-white text-zinc-900'}`}>
+            <div className="border-b border-zinc-700/40 px-5 py-4">
+              <h2 id="legal-acceptance-title" className="text-lg font-semibold">Terms &amp; Conditions apply</h2>
+              <p className={`mt-1 text-sm ${isDark ? 'text-zinc-400' : 'text-zinc-600'}`}>Please read before using Tejas.</p>
+            </div>
+            <div className="overflow-y-auto px-5 py-4 text-sm leading-relaxed">
+              <p>By continuing, you agree to the <button type="button" onClick={() => navigatePolicy('terms')} className="text-cyan-500 underline">Terms &amp; Conditions</button> and acknowledge the <button type="button" onClick={() => navigatePolicy('privacy')} className="text-cyan-500 underline">Privacy Policy</button>.</p>
+              <ul className="mt-3 list-disc space-y-1 pl-5">
+                <li>AI responses can be incorrect; verify important information.</li>
+                <li>Your prompts and conversation context may be processed by AI providers.</li>
+                <li>Review the complete policies for retention, sharing, and your rights.</li>
+              </ul>
+              <label className="mt-5 flex cursor-pointer items-start gap-3 rounded-xl border border-zinc-700/50 p-3">
+                <input type="checkbox" checked={legalAcceptanceChecked} onChange={(event) => setLegalAcceptanceChecked(event.target.checked)} className="mt-1 h-4 w-4 accent-cyan-600" />
+                <span>I have read and agree to the Terms &amp; Conditions and acknowledge the Privacy Policy.</span>
+              </label>
+              {legalAcceptanceError && <p role="alert" className="mt-3 text-sm text-red-400">{legalAcceptanceError}</p>}
+            </div>
+            <div className="border-t border-zinc-700/40 p-4">
+              <button type="button" onClick={handleAcceptPolicies} disabled={!legalAcceptanceChecked || legalAcceptanceBusy} className="w-full rounded-xl bg-cyan-700 px-4 py-2.5 text-sm font-semibold text-white hover:bg-cyan-600 disabled:cursor-not-allowed disabled:opacity-50">{legalAcceptanceBusy ? 'Saving…' : 'Confirm and continue'}</button>
+            </div>
+          </section>
+        </div>
+      )}
 
       {(extensionAuthDeviceCode || extensionAuthOutcome) && (
         <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
