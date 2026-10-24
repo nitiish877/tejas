@@ -39,6 +39,7 @@ import {
   purgeGuestEphemeralChats,
   restoreServerChat,
   saveEphemeralChat,
+  saveServerChat,
   savePaymentRecord,
   saveSubscriptionToServer,
   updateMyName,
@@ -251,6 +252,7 @@ export default function App() {
   const [trashLoading, setTrashLoading] = useState(false);
   const [chatsLoading, setChatsLoading] = useState<boolean>(() => !!getAuthToken());
   const [loadingMessageIds, setLoadingMessageIds] = useState<Record<string, boolean>>({});
+  const loadingChatsRef = useRef<Set<string>>(new Set());
 
   // Delete confirmation toast (bottom of screen)
   const [deleteToast, setDeleteToast] = useState<{ title: string; daysLeft: number } | null>(null);
@@ -753,7 +755,6 @@ export default function App() {
   const handleSelectChat = (id: string) => {
     setIsTempChatActive(false);
     setActiveChatId(id);
-    loadChatMessages(id);
   };
 
   const handleTogglePinChat = (id: string, e: React.MouseEvent) => {
@@ -883,16 +884,32 @@ export default function App() {
   // Load full messages for a single chat (called when the user opens it).
   const loadChatMessages = async (chatId: string) => {
     if (!getAuthToken() || isGuestUser(currentUser)) return;
+    if (loadingChatsRef.current.has(chatId)) return;
     const existing = chatsRef.current.find((c) => c.id === chatId);
     if (!existing) return;
     if (existing.messages.length > 0) return;
+    loadingChatsRef.current.add(chatId);
     setLoadingMessageIds((prev) => ({ ...prev, [chatId]: true }));
     try {
       const { chat: fullChat } = await fetchServerChatById(getApiUrl, chatId);
       // Ensure messages from server are in timestamp order.
       const sortedServerMsgs = [...fullChat.messages].sort((a, b) => a.timestamp - b.timestamp);
+      const uniqueServerMsgs = Array.from(
+        new Map(sortedServerMsgs.map((message) => [message.id, message])).values()
+      );
+      let syncedMessages = uniqueServerMsgs;
+      if (uniqueServerMsgs.length !== sortedServerMsgs.length) {
+        try {
+          await saveServerChat(getApiUrl, { ...fullChat, messages: uniqueServerMsgs });
+        } catch (error) {
+          // Still show a clean history if repair cannot be saved now. Keep the old
+          // fingerprint so the normal sync path retries the full replacement.
+          console.error('Could not repair duplicate chat history on server', error);
+          syncedMessages = sortedServerMsgs;
+        }
+      }
       syncedRef.current.set(chatId, {
-        fp: sortedServerMsgs.map(messageFingerprint),
+        fp: syncedMessages.map(messageFingerprint),
         meta: chatMeta(fullChat),
       });
       unloadedRef.current.delete(chatId);
@@ -901,9 +918,11 @@ export default function App() {
           c.id === chatId
             ? {
                 ...c,
-                messages: [...sortedServerMsgs, ...c.messages].sort(
-                  (a, b) => a.timestamp - b.timestamp
-                ),
+                // A chat can be selected while its request is already in flight.
+                // Merge by message ID so repeat responses never duplicate history.
+                messages: Array.from(
+                  new Map([...uniqueServerMsgs, ...c.messages].map((message) => [message.id, message])).values()
+                ).sort((a, b) => a.timestamp - b.timestamp),
               }
             : c
         )
@@ -911,6 +930,7 @@ export default function App() {
     } catch (e) {
       console.error('Failed to load chat messages', e);
     } finally {
+      loadingChatsRef.current.delete(chatId);
       setLoadingMessageIds((prev) => {
         const copy = { ...prev };
         delete copy[chatId];
