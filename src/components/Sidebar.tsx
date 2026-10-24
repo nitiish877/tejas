@@ -82,15 +82,59 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
 
+  // ---- Long-press state ----
+  const longPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const longPressTriggeredRef = useRef(false);
+  const longPressStartPosRef = useRef({ x: 0, y: 0 });
+  const lastOpenedAtRef = useRef(0);
+
+  // ---- Unified open helper: records timestamp so we can ignore the "click that follows a long-press" ----
+  const openMenu = (chatId: string) => {
+    lastOpenedAtRef.current = Date.now();
+    setOpenMenuId(chatId);
+  };
+
   useEffect(() => {
     const handler = (e: MouseEvent) => {
       if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        // Ignore brief synthetic clicks right after opening (touch long-press → mouse event)
+        if (Date.now() - lastOpenedAtRef.current < 300) return;
         setOpenMenuId(null);
       }
     };
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
   }, []);
+
+  const startLongPress = (chatId: string, e: React.PointerEvent) => {
+    longPressTriggeredRef.current = false;
+    longPressStartPosRef.current = { x: e.clientX, y: e.clientY };
+    if (longPressTimerRef.current) clearTimeout(longPressTimerRef.current);
+    longPressTimerRef.current = setTimeout(() => {
+      longPressTriggeredRef.current = true;
+      openMenu(chatId);
+      try {
+        (navigator as any).vibrate?.(30);
+      } catch {}
+    }, 500);
+  };
+
+  const cancelLongPress = () => {
+    if (longPressTimerRef.current) {
+      clearTimeout(longPressTimerRef.current);
+      longPressTimerRef.current = null;
+    }
+  };
+
+  const handlePointerMove = (e: React.PointerEvent) => {
+    if (!longPressTimerRef.current) return;
+    const dx = e.clientX - longPressStartPosRef.current.x;
+    const dy = e.clientY - longPressStartPosRef.current.y;
+    if (dx * dx + dy * dy > 100) {
+      // moved more than ~10px → treat as a scroll / drag, not a long-press
+      cancelLongPress();
+    }
+  };
 
   const switchToTrash = () => {
     setView('trash');
@@ -117,10 +161,24 @@ export const Sidebar: React.FC<SidebarProps> = ({
     return (
       <div
         onClick={() => {
+          // If this click was the release of a long-press, swallow it
+          if (longPressTriggeredRef.current) {
+            longPressTriggeredRef.current = false;
+            return;
+          }
           onSelectChat(chat.id);
           if (window.innerWidth < 768) onClose();
         }}
-        className={`group relative flex items-center justify-between px-2.5 py-2 rounded-lg text-xs font-medium cursor-pointer transition-colors ${
+        onPointerDown={(e) => {
+          if ((e.target as HTMLElement).closest('button')) return;
+          startLongPress(chat.id, e);
+        }}
+        onPointerUp={cancelLongPress}
+        onPointerLeave={cancelLongPress}
+        onPointerCancel={cancelLongPress}
+        onPointerMove={handlePointerMove}
+        onContextMenu={(e) => e.preventDefault()}
+        className={`group relative flex items-center justify-between px-2.5 py-2 rounded-lg text-xs font-medium cursor-pointer transition-colors select-none touch-pan-y ${
           isActive
             ? isDark
               ? 'bg-zinc-800 text-white'
@@ -139,21 +197,28 @@ export const Sidebar: React.FC<SidebarProps> = ({
           <span className="truncate">{chat.title}</span>
         </div>
 
-        {/* 3-dot menu */}
+        {/* 3-dot menu — ALWAYS VISIBLE now */}
         <div
-          className={`relative shrink-0 ${openMenuId === chat.id ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'} transition-opacity`}
+          className="relative shrink-0"
           ref={openMenuId === chat.id ? menuRef : null}
         >
           <button
             type="button"
             onClick={(e) => {
               e.stopPropagation();
-              setOpenMenuId((cur) => (cur === chat.id ? null : chat.id));
+              if (openMenuId === chat.id) {
+                setOpenMenuId(null);
+              } else {
+                openMenu(chat.id);
+              }
             }}
             className={`p-1 rounded-md transition-colors ${
-              isDark ? 'hover:bg-zinc-700 text-zinc-400' : 'hover:bg-zinc-200 text-zinc-500'
+              isDark
+                ? 'hover:bg-zinc-700 text-zinc-400 hover:text-zinc-200'
+                : 'hover:bg-zinc-200 text-zinc-500 hover:text-zinc-700'
             }`}
             title="More options"
+            aria-label="Chat options"
           >
             <MoreVertical className="w-3.5 h-3.5" />
           </button>
@@ -206,7 +271,16 @@ export const Sidebar: React.FC<SidebarProps> = ({
     const daysLeft = chat.daysLeft ?? 0;
     return (
       <div
-        className={`group relative flex items-center justify-between px-2.5 py-2 rounded-lg text-xs font-medium transition-colors ${
+        onPointerDown={(e) => {
+          if ((e.target as HTMLElement).closest('button')) return;
+          startLongPress(chat.id, e);
+        }}
+        onPointerUp={cancelLongPress}
+        onPointerLeave={cancelLongPress}
+        onPointerCancel={cancelLongPress}
+        onPointerMove={handlePointerMove}
+        onContextMenu={(e) => e.preventDefault()}
+        className={`group relative flex items-center justify-between px-2.5 py-2 rounded-lg text-xs font-medium transition-colors select-none touch-pan-y ${
           isDark ? 'hover:bg-zinc-800/60 text-zinc-300' : 'hover:bg-zinc-100 text-zinc-700'
         }`}
       >
@@ -224,17 +298,25 @@ export const Sidebar: React.FC<SidebarProps> = ({
           </div>
         </div>
 
+        {/* 3-dot menu — ALWAYS VISIBLE */}
         <div className="relative shrink-0" ref={openMenuId === chat.id ? menuRef : null}>
           <button
             type="button"
             onClick={(e) => {
               e.stopPropagation();
-              setOpenMenuId((cur) => (cur === chat.id ? null : chat.id));
+              if (openMenuId === chat.id) {
+                setOpenMenuId(null);
+              } else {
+                openMenu(chat.id);
+              }
             }}
             className={`p-1 rounded-md transition-colors ${
-              isDark ? 'hover:bg-zinc-700 text-zinc-400' : 'hover:bg-zinc-200 text-zinc-500'
+              isDark
+                ? 'hover:bg-zinc-700 text-zinc-400 hover:text-zinc-200'
+                : 'hover:bg-zinc-200 text-zinc-500 hover:text-zinc-700'
             }`}
             title="More options"
+            aria-label="Trash options"
           >
             <MoreVertical className="w-3.5 h-3.5" />
           </button>
