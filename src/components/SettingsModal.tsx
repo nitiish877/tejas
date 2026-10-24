@@ -94,8 +94,6 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   const [feedbackTitle, setFeedbackTitle] = useState('');
   const [feedbackDetails, setFeedbackDetails] = useState('');
   const [feedbackRating, setFeedbackRating] = useState(0);
-  const [desiredPrice, setDesiredPrice] = useState('');
-  const [offeredPrice, setOfferedPrice] = useState('');
   const [feedbackBusy, setFeedbackBusy] = useState(false);
   const [feedbackResult, setFeedbackResult] = useState('');
   const [feedbackError, setFeedbackError] = useState('');
@@ -202,6 +200,10 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   const handleBack = () => {
     if (view === 'feedback' && feedbackKind) {
       setFeedbackKind(null);
+      setFeedbackCategory('');
+      setFeedbackTitle('');
+      setFeedbackDetails('');
+      setFeedbackRating(0);
       setFeedbackResult('');
       setFeedbackError('');
       return;
@@ -210,6 +212,16 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     setShowLogoutConfirm(false);
     setShowPcOnlyNotice(false);
     setShowInstallChooser(false);
+  };
+
+  const startFeedbackForm = (kind: FeedbackKind) => {
+    setFeedbackKind(kind);
+    setFeedbackCategory(kind === 'problem' ? 'chat' : kind === 'feedback' ? 'general' : 'feature');
+    setFeedbackTitle('');
+    setFeedbackDetails('');
+    setFeedbackRating(0);
+    setFeedbackResult('');
+    setFeedbackError('');
   };
 
   const handleSubmitFeedback = async (event: React.FormEvent) => {
@@ -222,11 +234,13 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
       const result = await submitFeedback(getApiUrl, {
         kind: feedbackKind,
         category: feedbackCategory || (feedbackKind === 'feedback' ? 'general' : ''),
-        title: feedbackKind === 'feedback' ? `Rating ${feedbackRating}/5` : feedbackTitle,
+        title: feedbackKind === 'feedback'
+          ? `Rating ${feedbackRating}/5`
+          : feedbackKind === 'feature'
+          ? feedbackDetails.slice(0, 160)
+          : feedbackTitle,
         details: feedbackDetails,
         rating: feedbackKind === 'feedback' ? feedbackRating : undefined,
-        desiredPrice: feedbackKind === 'feedback' && desiredPrice ? Number(desiredPrice) : undefined,
-        offeredPrice: feedbackKind === 'feedback' && offeredPrice ? Number(offeredPrice) : undefined,
       });
       setFeedbackResult(
         feedbackKind === 'problem' && result.groupedCount > 1
@@ -236,8 +250,6 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
       setFeedbackTitle('');
       setFeedbackDetails('');
       setFeedbackRating(0);
-      setDesiredPrice('');
-      setOfferedPrice('');
     } catch (error: any) {
       setFeedbackError(error?.message || 'Could not save your submission. Please try again.');
     } finally {
@@ -385,7 +397,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               icon={<IconBox tone="fuchsia"><MessageSquareText className="w-4 h-4" /></IconBox>}
               title="Report & Feedback"
               subtitle="Problems, feedback, and feature ideas"
-              onClick={() => { setFeedbackKind(null); setFeedbackResult(''); setView('feedback'); }}
+              onClick={() => { setFeedbackKind(null); setFeedbackTitle(''); setFeedbackDetails(''); setFeedbackRating(0); setFeedbackResult(''); setFeedbackError(''); setView('feedback'); }}
             />
           </div>
         )}
@@ -398,19 +410,19 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                   icon={<IconBox tone="amber"><Bug className="w-4 h-4" /></IconBox>}
                   title="Report a problem"
                   subtitle="Tell us what went wrong"
-                  onClick={() => { setFeedbackKind('problem'); setFeedbackCategory('chat'); }}
+                  onClick={() => startFeedbackForm('problem')}
                 />
                 <RowButton
                   icon={<IconBox tone="blue"><Star className="w-4 h-4" /></IconBox>}
                   title="Give your feedback"
                   subtitle="Rate Tejas and share your thoughts"
-                  onClick={() => { setFeedbackKind('feedback'); setFeedbackCategory('general'); }}
+                  onClick={() => startFeedbackForm('feedback')}
                 />
                 <RowButton
                   icon={<IconBox tone="emerald"><Lightbulb className="w-4 h-4" /></IconBox>}
                   title="Feature request"
                   subtitle="Suggest a feature to add"
-                  onClick={() => { setFeedbackKind('feature'); setFeedbackCategory('feature'); }}
+                  onClick={() => startFeedbackForm('feature')}
                 />
               </>
             ) : feedbackResult ? (
@@ -445,24 +457,11 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                   </div>
                 )}
 
-                {feedbackKind !== 'feedback' && (
+                {feedbackKind === 'problem' && (
                   <label className="block space-y-1">
-                    <span className="text-xs font-medium">{feedbackKind === 'problem' ? 'Short title' : 'Feature name'}</span>
-                    <input required maxLength={160} value={feedbackTitle} onChange={(event) => setFeedbackTitle(event.target.value)} placeholder={feedbackKind === 'problem' ? 'What happened?' : 'What should we add?'} className={`w-full rounded-xl border px-3 py-2.5 text-sm ${isDark ? 'border-zinc-700 bg-zinc-900 text-zinc-100 placeholder:text-zinc-500' : 'border-zinc-300 bg-white text-zinc-900 placeholder:text-zinc-400'}`} />
+                    <span className="text-xs font-medium">Short title</span>
+                    <input required maxLength={160} value={feedbackTitle} onChange={(event) => setFeedbackTitle(event.target.value)} placeholder="What happened?" className={`w-full rounded-xl border px-3 py-2.5 text-sm ${isDark ? 'border-zinc-700 bg-zinc-900 text-zinc-100 placeholder:text-zinc-500' : 'border-zinc-300 bg-white text-zinc-900 placeholder:text-zinc-400'}`} />
                   </label>
-                )}
-
-                {feedbackKind === 'feedback' && (
-                  <div className="grid grid-cols-2 gap-2">
-                    <label className="block space-y-1">
-                      <span className="text-xs font-medium">Tejas monthly price (₹)</span>
-                      <input type="number" min="0" max="1000000" step="1" value={desiredPrice} onChange={(event) => setDesiredPrice(event.target.value)} placeholder="What should it cost?" className={`w-full min-w-0 rounded-xl border px-3 py-2.5 text-sm ${isDark ? 'border-zinc-700 bg-zinc-900 text-zinc-100 placeholder:text-zinc-500' : 'border-zinc-300 bg-white text-zinc-900 placeholder:text-zinc-400'}`} />
-                    </label>
-                    <label className="block space-y-1">
-                      <span className="text-xs font-medium">You’d pay monthly (₹)</span>
-                      <input type="number" min="0" max="1000000" step="1" value={offeredPrice} onChange={(event) => setOfferedPrice(event.target.value)} placeholder="Your budget" className={`w-full min-w-0 rounded-xl border px-3 py-2.5 text-sm ${isDark ? 'border-zinc-700 bg-zinc-900 text-zinc-100 placeholder:text-zinc-500' : 'border-zinc-300 bg-white text-zinc-900 placeholder:text-zinc-400'}`} />
-                    </label>
-                  </div>
                 )}
 
                 <label className="block space-y-1">

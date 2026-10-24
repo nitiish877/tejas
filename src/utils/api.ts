@@ -171,8 +171,6 @@ export interface FeedbackSubmission {
   title: string;
   details: string;
   rating?: number;
-  desiredPrice?: number | null;
-  offeredPrice?: number | null;
 }
 
 export const submitFeedback = (getUrl: UrlBuilder, body: FeedbackSubmission) =>
