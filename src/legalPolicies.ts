@@ -135,7 +135,7 @@ These Terms are governed by the laws of India, subject to consumer protections a
 
 For questions, support requests, or complaints, contact:
 
-- **Tejas Support:** [Insert Support Email]
+- **Tejas Support:** [support team]
 - **Grievance Contact:** [Insert name or designated contact, if applicable]
 
 Tejas will handle complaints and grievances under applicable laws and the Privacy Policy. If law requires a designated Grievance Officer, their details and responsibilities will be published here and in the Privacy Policy.

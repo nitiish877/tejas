@@ -421,7 +421,7 @@ export default function App() {
   const getApiUrl = (path: string): string => {
     let base = (
       settings.customBackendUrl ||
-      'https://tejas-backed.vercel.app'
+      process.env.VITE_BACKEND_URL
     ).trim().replace(/\/$/, '');
 
     if (base && !base.startsWith('http://') && !base.startsWith('https://')) {
