@@ -24,9 +24,14 @@ import {
   Palette,
   MonitorCheck,
   Laptop,
+  Bug,
+  MessageSquareText,
+  Lightbulb,
+  Star,
+  Send,
 } from 'lucide-react';
 import { getClientVersion } from '../version';
-import { ConnectedEditor, fetchConnectedEditors, isGuestUser, revokeConnectedEditor } from '../utils/api';
+import { ConnectedEditor, fetchConnectedEditors, isGuestUser, revokeConnectedEditor, submitFeedback } from '../utils/api';
 
 const TOSSIVE_MARKETPLACE_ITEM_ID = 'nitishVishwakarma.tossive';
 const TOSSIVE_VSCODE_MARKETPLACE_URL = `https://marketplace.visualstudio.com/items?itemName=${TOSSIVE_MARKETPLACE_ITEM_ID}`;
@@ -55,7 +60,8 @@ interface SettingsModalProps {
   isCheckingUpdates?: boolean;
 }
 
-type SettingsView = 'menu' | 'preferences' | 'subscriptions' | 'account' | 'editor';
+type SettingsView = 'menu' | 'preferences' | 'subscriptions' | 'account' | 'editor' | 'feedback';
+type FeedbackKind = 'problem' | 'feedback' | 'feature';
 
 export const SettingsModal: React.FC<SettingsModalProps> = ({
   isOpen,
@@ -83,6 +89,16 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   const [connectedEditors, setConnectedEditors] = useState<ConnectedEditor[]>([]);
   const [revokingEditorId, setRevokingEditorId] = useState<string | null>(null);
   const [connectionsError, setConnectionsError] = useState('');
+  const [feedbackKind, setFeedbackKind] = useState<FeedbackKind | null>(null);
+  const [feedbackCategory, setFeedbackCategory] = useState('');
+  const [feedbackTitle, setFeedbackTitle] = useState('');
+  const [feedbackDetails, setFeedbackDetails] = useState('');
+  const [feedbackRating, setFeedbackRating] = useState(0);
+  const [desiredPrice, setDesiredPrice] = useState('');
+  const [offeredPrice, setOfferedPrice] = useState('');
+  const [feedbackBusy, setFeedbackBusy] = useState(false);
+  const [feedbackResult, setFeedbackResult] = useState('');
+  const [feedbackError, setFeedbackError] = useState('');
   const [isMobileDevice, setIsMobileDevice] = useState(() =>
     typeof window !== 'undefined' && window.matchMedia('(max-width: 767px), (pointer: coarse)').matches,
   );
@@ -184,10 +200,49 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   };
 
   const handleBack = () => {
+    if (view === 'feedback' && feedbackKind) {
+      setFeedbackKind(null);
+      setFeedbackResult('');
+      setFeedbackError('');
+      return;
+    }
     setView('menu');
     setShowLogoutConfirm(false);
     setShowPcOnlyNotice(false);
     setShowInstallChooser(false);
+  };
+
+  const handleSubmitFeedback = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!feedbackKind || feedbackBusy) return;
+    setFeedbackBusy(true);
+    setFeedbackError('');
+    setFeedbackResult('');
+    try {
+      const result = await submitFeedback(getApiUrl, {
+        kind: feedbackKind,
+        category: feedbackCategory || (feedbackKind === 'feedback' ? 'general' : ''),
+        title: feedbackKind === 'feedback' ? `Rating ${feedbackRating}/5` : feedbackTitle,
+        details: feedbackDetails,
+        rating: feedbackKind === 'feedback' ? feedbackRating : undefined,
+        desiredPrice: feedbackKind === 'feedback' && desiredPrice ? Number(desiredPrice) : undefined,
+        offeredPrice: feedbackKind === 'feedback' && offeredPrice ? Number(offeredPrice) : undefined,
+      });
+      setFeedbackResult(
+        feedbackKind === 'problem' && result.groupedCount > 1
+          ? `Thanks. This report is grouped with ${result.groupedCount} similar reports.`
+          : 'Thanks, your submission has been saved.'
+      );
+      setFeedbackTitle('');
+      setFeedbackDetails('');
+      setFeedbackRating(0);
+      setDesiredPrice('');
+      setOfferedPrice('');
+    } catch (error: any) {
+      setFeedbackError(error?.message || 'Could not save your submission. Please try again.');
+    } finally {
+      setFeedbackBusy(false);
+    }
   };
 
   const RowButton: React.FC<{
@@ -273,6 +328,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 ? 'Subscriptions'
                 : view === 'editor'
                 ? 'Code Editor'
+                : view === 'feedback'
+                ? 'Report & Feedback'
                 : 'Account'}
             </h2>
             <p className={`text-xs truncate ${isDark ? 'text-zinc-400' : 'text-zinc-500'}`}>
@@ -284,6 +341,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 ? 'Models, plans & payments'
                 : view === 'editor'
                 ? 'Connect your desktop editor'
+                : view === 'feedback'
+                ? 'Report a problem or share an idea'
                 : 'Profile, shares & app info'}
             </p>
           </div>
@@ -321,6 +380,102 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               subtitle={isGuest ? 'Guest session' : currentUser.email || 'Signed in'}
               onClick={() => setView('account')}
             />
+
+            <RowButton
+              icon={<IconBox tone="fuchsia"><MessageSquareText className="w-4 h-4" /></IconBox>}
+              title="Report & Feedback"
+              subtitle="Problems, feedback, and feature ideas"
+              onClick={() => { setFeedbackKind(null); setFeedbackResult(''); setView('feedback'); }}
+            />
+          </div>
+        )}
+
+        {view === 'feedback' && (
+          <div className="space-y-3">
+            {!feedbackKind ? (
+              <>
+                <RowButton
+                  icon={<IconBox tone="amber"><Bug className="w-4 h-4" /></IconBox>}
+                  title="Report a problem"
+                  subtitle="Tell us what went wrong"
+                  onClick={() => { setFeedbackKind('problem'); setFeedbackCategory('chat'); }}
+                />
+                <RowButton
+                  icon={<IconBox tone="blue"><Star className="w-4 h-4" /></IconBox>}
+                  title="Give your feedback"
+                  subtitle="Rate Tejas and share your thoughts"
+                  onClick={() => { setFeedbackKind('feedback'); setFeedbackCategory('general'); }}
+                />
+                <RowButton
+                  icon={<IconBox tone="emerald"><Lightbulb className="w-4 h-4" /></IconBox>}
+                  title="Feature request"
+                  subtitle="Suggest a feature to add"
+                  onClick={() => { setFeedbackKind('feature'); setFeedbackCategory('feature'); }}
+                />
+              </>
+            ) : feedbackResult ? (
+              <div className={`rounded-xl border p-4 text-sm ${isDark ? 'border-emerald-800 bg-emerald-950/30 text-emerald-200' : 'border-emerald-200 bg-emerald-50 text-emerald-800'}`} role="status">
+                {feedbackResult}
+              </div>
+            ) : (
+              <form onSubmit={handleSubmitFeedback} className="space-y-3">
+                {feedbackKind !== 'feedback' && (
+                  <label className="block space-y-1">
+                    <span className="text-xs font-medium">{feedbackKind === 'problem' ? 'Problem category' : 'Feature category'}</span>
+                    <select required value={feedbackCategory} onChange={(event) => setFeedbackCategory(event.target.value)} className={`w-full rounded-xl border px-3 py-2.5 text-sm ${isDark ? 'border-zinc-700 bg-zinc-900 text-zinc-100' : 'border-zinc-300 bg-white text-zinc-900'}`}>
+                      {feedbackKind === 'problem' ? <>
+                        <option value="chat">Chat / AI response</option><option value="account">Login / account</option><option value="files">Files / uploads</option><option value="performance">Speed / availability</option><option value="billing">Subscription / payments</option><option value="other">Other</option>
+                      </> : <>
+                        <option value="feature">General feature idea</option><option value="chat">Chat</option><option value="account">Account</option><option value="files">Files / uploads</option><option value="mobile">Mobile experience</option><option value="other">Other</option>
+                      </>}
+                    </select>
+                  </label>
+                )}
+
+                {feedbackKind === 'feedback' && (
+                  <div>
+                    <p className="mb-2 text-xs font-medium">How would you rate Tejas?</p>
+                    <div className="flex gap-1" role="radiogroup" aria-label="Rate Tejas from one to five stars">
+                      {[1, 2, 3, 4, 5].map((star) => (
+                        <button key={star} type="button" role="radio" aria-checked={feedbackRating === star} aria-label={`${star} star${star === 1 ? '' : 's'}`} onClick={() => setFeedbackRating(star)} className="rounded-md p-1 focus:outline-none focus:ring-2 focus:ring-amber-400">
+                          <Star className={`h-7 w-7 ${star <= feedbackRating ? 'fill-amber-400 text-amber-400' : isDark ? 'text-zinc-600' : 'text-zinc-300'}`} />
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {feedbackKind !== 'feedback' && (
+                  <label className="block space-y-1">
+                    <span className="text-xs font-medium">{feedbackKind === 'problem' ? 'Short title' : 'Feature name'}</span>
+                    <input required maxLength={160} value={feedbackTitle} onChange={(event) => setFeedbackTitle(event.target.value)} placeholder={feedbackKind === 'problem' ? 'What happened?' : 'What should we add?'} className={`w-full rounded-xl border px-3 py-2.5 text-sm ${isDark ? 'border-zinc-700 bg-zinc-900 text-zinc-100 placeholder:text-zinc-500' : 'border-zinc-300 bg-white text-zinc-900 placeholder:text-zinc-400'}`} />
+                  </label>
+                )}
+
+                {feedbackKind === 'feedback' && (
+                  <div className="grid grid-cols-2 gap-2">
+                    <label className="block space-y-1">
+                      <span className="text-xs font-medium">Tejas monthly price (₹)</span>
+                      <input type="number" min="0" max="1000000" step="1" value={desiredPrice} onChange={(event) => setDesiredPrice(event.target.value)} placeholder="What should it cost?" className={`w-full min-w-0 rounded-xl border px-3 py-2.5 text-sm ${isDark ? 'border-zinc-700 bg-zinc-900 text-zinc-100 placeholder:text-zinc-500' : 'border-zinc-300 bg-white text-zinc-900 placeholder:text-zinc-400'}`} />
+                    </label>
+                    <label className="block space-y-1">
+                      <span className="text-xs font-medium">You’d pay monthly (₹)</span>
+                      <input type="number" min="0" max="1000000" step="1" value={offeredPrice} onChange={(event) => setOfferedPrice(event.target.value)} placeholder="Your budget" className={`w-full min-w-0 rounded-xl border px-3 py-2.5 text-sm ${isDark ? 'border-zinc-700 bg-zinc-900 text-zinc-100 placeholder:text-zinc-500' : 'border-zinc-300 bg-white text-zinc-900 placeholder:text-zinc-400'}`} />
+                    </label>
+                  </div>
+                )}
+
+                <label className="block space-y-1">
+                  <span className="text-xs font-medium">{feedbackKind === 'problem' ? 'Describe the problem' : feedbackKind === 'feature' ? 'Describe the feature you want' : 'Tell us what you think'}</span>
+                  <textarea required maxLength={3000} rows={4} value={feedbackDetails} onChange={(event) => setFeedbackDetails(event.target.value)} placeholder="Type your message here…" className={`w-full resize-y rounded-xl border px-3 py-2.5 text-sm ${isDark ? 'border-zinc-700 bg-zinc-900 text-zinc-100 placeholder:text-zinc-500' : 'border-zinc-300 bg-white text-zinc-900 placeholder:text-zinc-400'}`} />
+                </label>
+
+                {feedbackError && <p role="alert" className="text-xs text-red-400">{feedbackError}</p>}
+                <button type="submit" disabled={feedbackBusy || (feedbackKind === 'feedback' && !feedbackRating)} className="flex w-full items-center justify-center gap-2 rounded-xl bg-cyan-700 px-4 py-2.5 text-sm font-semibold text-white hover:bg-cyan-600 disabled:cursor-not-allowed disabled:opacity-50">
+                  <Send className="h-4 w-4" />{feedbackBusy ? 'Sending…' : 'Submit'}
+                </button>
+              </form>
+            )}
           </div>
         )}
 

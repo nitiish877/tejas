@@ -165,6 +165,21 @@ export const saveLegalAcceptance = (getUrl: UrlBuilder, body: { termsVersion: st
     method: 'POST', body: JSON.stringify(body),
   }, true);
 
+export interface FeedbackSubmission {
+  kind: 'problem' | 'feedback' | 'feature';
+  category: string;
+  title: string;
+  details: string;
+  rating?: number;
+  desiredPrice?: number | null;
+  offeredPrice?: number | null;
+}
+
+export const submitFeedback = (getUrl: UrlBuilder, body: FeedbackSubmission) =>
+  request<{ ok: boolean; groupedCount: number }>(getUrl, '/api/feedback', {
+    method: 'POST', body: JSON.stringify(body),
+  });
+
 export const updateMyName = (getUrl: UrlBuilder, name: string) =>
   request<{ user: UserProfile }>(getUrl, '/api/auth/me', { method: 'PUT', body: JSON.stringify({ name }) }, true);
 
