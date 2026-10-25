@@ -3,7 +3,14 @@
 export function normalizeMath(input: string): string {
   if (!input) return input;
 
-  let out = input;
+  // Leave fenced and inline code untouched: a code sample may intentionally show
+  // dollar signs or LaTeX commands as literal text.
+  const codeBlocks: string[] = [];
+  let out = input.replace(/```[\s\S]*?```|`[^`\n]*`/g, (code) => {
+    const token = `TEJAS_MATH_CODE_${codeBlocks.length}_TOKEN`;
+    codeBlocks.push(code);
+    return token;
+  });
 
   // 1) Properly-escaped delimiters (asli, poori backslash ke saath) — sabse pehle, sabse bharosemand.
   out = out.replace(/\\\(([\s\S]*?)\\\)/g, (_m, body) => `$${body.trim()}$`);
@@ -22,6 +29,25 @@ export function normalizeMath(input: string): string {
     (_m, body) => `$$${body.trim()}$$`
   );
 
+  // Models sometimes mix plain LaTeX with a dollar-wrapped fragment, e.g.
+  // `s_t = \beta s_{t-1} + $1-\beta$ g_t^2`. Treat a complete equation line
+  // as one math expression so commands/subscripts outside that fragment do not
+  // leak into the answer as raw text or get split into malformed math nodes.
+  out = out.split('\n').map((line) => {
+    const match = line.match(/^(\s*(?:(?:[-*+]|\d+[.)])\s+)?)((?:\\?[A-Za-z][A-Za-z0-9]*(?:\([^)]*\))?(?:_(?:\{[^}]+\}|[A-Za-z0-9]+)|\^(?:\{[^}]+\}|[A-Za-z0-9]+))?)\s*(?:=|≈|≃|≤|≥)\s*.+)$/);
+    if (!match) return line;
+
+    const [, prefix, equation] = match;
+    const hasMathSyntax = /\\[A-Za-z]+|[_^]/.test(equation);
+    if (!hasMathSyntax || equation.includes('$$')) return line;
+
+    // An already well-formed whole-line inline equation needs no rewrite.
+    if (/^\$[^$].*[^$]\$$/.test(equation.trim())) return line;
+
+    const body = equation.replace(/\$/g, '').trim();
+    return `${prefix}$${body}$`;
+  }).join('\n');
+
   // 3) Fallback: bare (...) sirf tab math maano jab:
   //    - andar koi LaTeX command ho, aur
   //    - ye kisi function-call jaisa na dikhe (jaise "P(x)", "f(x)") — us case me turant pehle
@@ -33,5 +59,5 @@ export function normalizeMath(input: string): string {
     (_m, body) => `$${body.trim()}$`
   );
 
-  return out;
+  return out.replace(/TEJAS_MATH_CODE_(\d+)_TOKEN/g, (_token, index) => codeBlocks[Number(index)]);
 }

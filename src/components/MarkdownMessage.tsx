@@ -224,14 +224,18 @@ export const MarkdownMessage: React.FC<{ content: string; isDark: boolean; confi
   };
 
   return <>
+  <div className={`markdown-content ${isDark ? 'is-dark' : 'is-light'}`}>
   <ReactMarkdown
-    className={`markdown-content ${isDark ? 'is-dark' : 'is-light'}`}
     remarkPlugins={[remarkGfm, remarkMath]}
     // A malformed/incomplete equation must not crash the whole assistant message.
-    rehypePlugins={[[rehypeKatex, { throwOnError: false, strict: 'ignore' }]]}
+    rehypePlugins={[[rehypeKatex, {
+      throwOnError: false,
+      strict: 'ignore',
+      errorColor: isDark ? '#d7e5eb' : '#334155',
+    }]]}
     components={{
       h1: ({ children }) => (
-        <h1 className={`mt-6 mb-4 rounded-xl border px-4 py-3 text-xl font-bold tracking-tight shadow-sm sm:text-2xl ${
+        <h1 className={`mt-4 mb-2.5 rounded-xl border px-4 py-3 text-xl font-bold tracking-tight shadow-sm sm:text-2xl ${
           isDark
             ? 'border-cyan-400/25 bg-gradient-to-r from-cyan-500/15 to-blue-500/10 text-cyan-100'
             : 'border-cyan-700/20 bg-gradient-to-r from-cyan-100 to-blue-50 text-cyan-950'
@@ -240,7 +244,7 @@ export const MarkdownMessage: React.FC<{ content: string; isDark: boolean; confi
         </h1>
       ),
       h2: ({ children }) => (
-        <h2 className={`mt-6 mb-3 rounded-lg border-l-4 px-3 py-2 text-lg font-semibold ${
+        <h2 className={`mt-4 mb-2 rounded-lg border-l-4 px-3 py-2 text-lg font-semibold ${
           isDark
             ? 'border-cyan-400 bg-cyan-400/10 text-cyan-200'
             : 'border-cyan-700 bg-cyan-50 text-cyan-900'
@@ -249,7 +253,7 @@ export const MarkdownMessage: React.FC<{ content: string; isDark: boolean; confi
         </h2>
       ),
       h3: ({ children }) => (
-        <h3 className={`mt-5 mb-2 rounded-md border-l-2 px-3 py-1.5 text-base font-semibold ${
+        <h3 className={`mt-3 mb-1.5 rounded-md border-l-2 px-3 py-1.5 text-base font-semibold ${
           isDark
             ? 'border-violet-400 bg-violet-400/10 text-violet-200'
             : 'border-violet-600 bg-violet-50 text-violet-900'
@@ -258,12 +262,16 @@ export const MarkdownMessage: React.FC<{ content: string; isDark: boolean; confi
         </h3>
       ),
       h4: ({ children }) => (
-        <h4 className={`mt-4 mb-2 border-b pb-1 text-sm font-semibold ${
+        <h4 className={`mt-3 mb-1.5 border-b pb-1 text-sm font-semibold ${
           isDark ? 'border-zinc-700 text-zinc-200' : 'border-zinc-300 text-zinc-800'
         }`}>
           {children}
         </h4>
       ),
+      p: ({ children }) => <p className="my-2 leading-relaxed">{children}</p>,
+      hr: () => <hr className={`my-4 border-0 border-t ${isDark ? 'border-zinc-700' : 'border-zinc-300'}`} />,
+      ul: ({ children }) => <ul className="my-2 list-disc space-y-1 pl-5">{children}</ul>,
+      ol: ({ children }) => <ol className="my-2 list-decimal space-y-1 pl-5">{children}</ol>,
       // <pre> ko khali rakho, warna CodeBlock ke upar dusra box ban jata hai
       pre: ({ children }) => <>{children}</>,
       code({ className, children, ...props }) {
@@ -305,6 +313,7 @@ export const MarkdownMessage: React.FC<{ content: string; isDark: boolean; confi
   >
     {normalizedContent}
   </ReactMarkdown>
+  </div>
   {pendingUrl && (
     <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/60 p-4" role="presentation" onClick={() => setPendingUrl(null)}>
       <section role="alertdialog" aria-modal="true" aria-labelledby="external-link-title" className={`w-full max-w-lg rounded-2xl border p-5 shadow-2xl ${isDark ? 'border-zinc-700 bg-zinc-900 text-zinc-100' : 'border-zinc-200 bg-white text-zinc-900'}`} onClick={(event) => event.stopPropagation()}>

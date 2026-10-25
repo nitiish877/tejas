@@ -73,6 +73,8 @@ const DEFAULT_SETTINGS: AppSettings = {
 MATH FORMATTING RULES:
 - Use $...$ for inline math (e.g. $E = mc^2$, $\\frac{a}{b}$, $x^2 + y^2 = r^2$).
 - Use $$...$$ on their own lines for block/display equations.
+- Put each complete equation inside one matching math delimiter. Never mix raw LaTeX with partial $...$ fragments in the same equation; for example write $s_t = \\beta s_{t-1} + (1-\\beta)g_t^2$.
+- Keep ordinary explanatory sentences outside math delimiters, and do not wrap only one term of an equation.
 - NEVER use \\(...\\) or \\[...\\] as math delimiters.
 - NEVER wrap math in bare parentheses like (f(x)=...). Always use $...$ instead.
 - Always wrap LaTeX commands (\\frac, \\sum, \\int, \\sqrt, \\alpha, \\beta, \\theta, \\cos, \\sin, \\log, etc.) inside $...$ or $$...$$ — never leave them bare.
