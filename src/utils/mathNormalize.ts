@@ -34,17 +34,28 @@ export function normalizeMath(input: string): string {
   // as one math expression so commands/subscripts outside that fragment do not
   // leak into the answer as raw text or get split into malformed math nodes.
   out = out.split('\n').map((line) => {
-    const match = line.match(/^(\s*(?:(?:[-*+]|\d+[.)])\s+)?)((?:\\?[A-Za-z][A-Za-z0-9]*(?:\([^)]*\))?(?:_(?:\{[^}]+\}|[A-Za-z0-9]+)|\^(?:\{[^}]+\}|[A-Za-z0-9]+))?)\s*(?:=|≈|≃|≤|≥)\s*.+)$/);
-    if (!match) return line;
+    const prefixMatch = line.match(/^(\s*(?:(?:[-*+]|\d+[.)])\s+)?)(.*)$/);
+    if (!prefixMatch) return line;
+    const [, prefix, source] = prefixMatch;
+    const trimmedSource = source.trim();
 
-    const [, prefix, equation] = match;
-    const hasMathSyntax = /\\[A-Za-z]+|[_^]/.test(equation);
-    if (!hasMathSyntax || equation.includes('$$')) return line;
+    // Keep already-valid single-dollar inline math intact. Mixed/nested dollar
+    // fragments (including a leading `$` before the equation) need to be merged.
+    const dollarCount = (trimmedSource.match(/\$/g) || []).length;
+    if (dollarCount === 2 && /^\$[^$]+\$$/.test(trimmedSource)) {
+      const repaired = trimmedSource.replace(/\\_/g, '_');
+      return repaired === trimmedSource ? line : `${prefix}${repaired}`;
+    }
+    if (trimmedSource.includes('$$')) return line;
 
-    // An already well-formed whole-line inline equation needs no rewrite.
-    if (/^\$[^$].*[^$]\$$/.test(equation.trim())) return line;
+    const equation = trimmedSource.replace(/\$/g, '').trim();
+    const isEquation = /^(?:\\?[A-Za-z]+)(?:\\?_?(?:\{[^}]+\}|[A-Za-z0-9]+)|\^\{[^}]+\})?\s*(?:=|≈|≃|≤|≥)\s*.+$/.test(equation);
+    const hasMathSyntax = /\\[A-Za-z]+|\\_|[_^]/.test(equation);
+    if (!isEquation || !hasMathSyntax || dollarCount === 0) return line;
 
-    const body = equation.replace(/\$/g, '').trim();
+    // Some model outputs escape underscores as if they were Markdown text.
+    // Inside math mode, turn those back into LaTeX subscript markers.
+    const body = equation.replace(/\\_/g, '_');
     return `${prefix}$${body}$`;
   }).join('\n');
 
