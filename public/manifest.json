@@ -1,8 +1,8 @@
 {
   "id": "/",
-  "name": "Tejas - AI Assistant",
-  "short_name": "Tejas",
-  "description": "Tejas Chatbot with fast streaming, clean interface, and custom user settings.",
+  "name": "Colaus - AI Assistant",
+  "short_name": "Colaus",
+  "description": "Colaus Chatbot with fast streaming, clean interface, and custom user settings.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",

@@ -44,7 +44,7 @@ export const SharedChatView: React.FC<SharedChatViewProps> = ({ shareId, getApiU
       >
         <div className="flex items-center gap-2.5">
           <Logo size="sm" glowing={false} />
-          <span className="font-bold text-lg tracking-tight">Tejas</span>
+          <span className="font-bold text-lg tracking-tight">Colaus</span>
           <span
             className={`inline-flex items-center gap-1 text-[11px] font-medium px-2 py-0.5 rounded-full ${
               isDark ? 'bg-blue-500/15 text-blue-300 border border-blue-500/30' : 'bg-blue-50 text-blue-700 border border-blue-200'
@@ -57,7 +57,7 @@ export const SharedChatView: React.FC<SharedChatViewProps> = ({ shareId, getApiU
           href="/"
           className="px-3 py-1.5 rounded-xl text-xs font-semibold bg-gradient-to-r from-cyan-700 to-blue-700 hover:from-cyan-600 hover:to-blue-600 text-white transition-all"
         >
-         try Tejas AI →
+         try Colaus AI →
         </a>
       </header>
 
@@ -127,7 +127,7 @@ export const SharedChatView: React.FC<SharedChatViewProps> = ({ shareId, getApiU
                   href="/"
                   className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold bg-gradient-to-r from-cyan-700 to-blue-700 hover:from-cyan-600 hover:to-blue-600 text-white transition-all"
                 >
-                  ✨ Start your own chat — Tejas AI
+                  ✨ Start your own chat — Colaus AI
                 </a>
               </div>
             </>

@@ -396,7 +396,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           ) : (
             <div className="flex items-center gap-3">
               <Logo size="sm" glowing={false} />
-              <span className="font-bold text-lg tracking-tight text-inherit">Tejas</span>
+              <span className="font-bold text-lg tracking-tight text-inherit">Colaus</span>
             </div>
           )}
 
@@ -617,7 +617,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 {currentUser.name ? currentUser.name[0].toUpperCase() : 'T'}
               </div>
               <div className="truncate flex-1">
-                <p className="text-xs font-medium truncate leading-tight">{currentUser.name || 'Tejas User'}</p>
+                <p className="text-xs font-medium truncate leading-tight">{currentUser.name || 'Colaus User'}</p>
                 <p className={`text-[10px] truncate ${isDark ? 'text-zinc-400' : 'text-zinc-500'}`}>
                   {currentUser.email ? currentUser.email : 'Guest • Click to sign in'}
                 </p>

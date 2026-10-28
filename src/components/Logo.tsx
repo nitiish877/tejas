@@ -29,7 +29,7 @@ export const Logo: React.FC<LogoProps> = ({
       className={`relative inline-flex items-center justify-center select-none transition-transform duration-200 ${
         onClick ? 'cursor-pointer hover:scale-105 active:scale-95' : ''
       } ${sizeMap[size]} ${className}`}
-      title="Tejas Logo"
+      title="Colaus Logo"
     >
       {/* Optional glow behind the logo */}
       {glowing && (
@@ -43,7 +43,7 @@ export const Logo: React.FC<LogoProps> = ({
       {/* The logo image — transparent PNG */}
       <img
         src="/tejas-logo-transparent.png"
-        alt="Tejas Logo"
+        alt="Colaus Logo"
         className="w-full h-full object-contain relative z-10"
         draggable={false}
       />

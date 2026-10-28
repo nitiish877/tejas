@@ -58,7 +58,7 @@ const EXTENSION_AUTH_PENDING_KEY = 'tejas_extension_auth_pending_v1';
 
 const DEFAULT_USER: UserProfile = {
   id: 'user_guest',
-  name: 'Tejas User',
+  name: 'Colaus User',
   email: '',
   provider: 'guest',
 };
@@ -68,7 +68,7 @@ const DEFAULT_SETTINGS: AppSettings = {
   notificationsEnabled: true,
   customHfToken: '',
   customBackendUrl: '',
-  systemPrompt: `You are Tejas, an intelligent, fast, and polite AI assistant. Always match the response length directly to the user's query: keep simple questions concise and direct (1-3 sentences), and provide structured explanations only for complex or coding queries.
+  systemPrompt: `You are Colaus, an intelligent, fast, and polite AI assistant. Always match the response length directly to the user's query: keep simple questions concise and direct (1-3 sentences), and provide structured explanations only for complex or coding queries.
 
 MATH FORMATTING RULES:
 - Use $...$ for inline math (e.g. $E = mc^2$, $\\frac{a}{b}$, $x^2 + y^2 = r^2$).
@@ -332,9 +332,9 @@ export default function App() {
 
         const planNames: Record<SubscriptionPlanType, { name: string; modelId: string }> = {
           free: { name: 'Free Tier', modelId: 'Qwen/Qwen2.5-1.5B-Instruct' },
-          cat: { name: 'Tejas Cat (3B) Test Tier', modelId: 'Qwen/Qwen2.5-3B-Instruct' },
-          chetak: { name: 'Tejas Chetak (8B)', modelId: 'deepseek-ai/DeepSeek-R1-Distill-Llama-8B' },
-          arka: { name: 'Tejas Arka (70B)', modelId: 'meta-llama/Llama-3.3-70B-Instruct' },
+          cat: { name: 'Colaus Cat (3B) Test Tier', modelId: 'Qwen/Qwen2.5-3B-Instruct' },
+          chetak: { name: 'Colaus Chetak (8B)', modelId: 'deepseek-ai/DeepSeek-R1-Distill-Llama-8B' },
+          arka: { name: 'Colaus Arka (70B)', modelId: 'meta-llama/Llama-3.3-70B-Instruct' },
         };
         const info = planNames[plan] || planNames.free;
         const amounts: Record<SubscriptionPlanType, number> = {
@@ -439,7 +439,7 @@ export default function App() {
     if (!extensionAuthDeviceCode || extensionAuthOutcome) return;
     if (!getAuthToken()) {
       if (!isGuestUser(currentUser)) resetToGuest();
-      setAuthNotice('Sign in or create a Tejas account to connect the Tossive extension.');
+      setAuthNotice('Sign in or create a Colaus account to connect the Tossive extension.');
       setAuthModalOpen(true);
       return;
     }
@@ -452,7 +452,7 @@ export default function App() {
     }).catch((error) => {
       if (cancelled) return;
       if (error instanceof ApiError && error.status === 401) resetToGuest();
-      setAuthNotice('Sign in or create a Tejas account to connect the Tossive extension.');
+      setAuthNotice('Sign in or create a Colaus account to connect the Tossive extension.');
       setAuthModalOpen(true);
     });
     return () => { cancelled = true; };
@@ -589,7 +589,7 @@ export default function App() {
               setUpdateModalOpen(true);
             }
           } else if (manual) {
-            alert(`Tejas AI is up to date (v${currentVer}).`);
+            alert(`Colaus AI is up to date (v${currentVer}).`);
           }
         }
       } else if (manual) {
@@ -1158,7 +1158,7 @@ export default function App() {
     } catch (error: any) {
       if (error instanceof ApiError && error.status === 401) {
         resetToGuest();
-        setAuthNotice('Your Tejas session expired. Sign in again to connect the Tossive extension.');
+        setAuthNotice('Your Colaus session expired. Sign in again to connect the Tossive extension.');
         setAuthModalOpen(true);
         setExtensionAuthError('');
         return;
@@ -1768,7 +1768,7 @@ export default function App() {
     return (
       <div className={`h-[100dvh] w-full overflow-y-auto overscroll-contain px-4 py-8 sm:px-8 ${isDark ? 'bg-[#16191c] text-zinc-100' : 'bg-[#f5f8fa] text-zinc-900'}`}>
         <article className={`mx-auto mb-8 max-w-3xl rounded-2xl border p-5 sm:p-8 ${isDark ? 'border-zinc-800 bg-zinc-900/60' : 'border-zinc-200 bg-white'}`}>
-          <button type="button" onClick={() => { window.history.pushState({}, '', '/'); setPolicyPage(null); }} className="mb-5 text-sm text-cyan-500 hover:underline">← Back to Tejas</button>
+          <button type="button" onClick={() => { window.history.pushState({}, '', '/'); setPolicyPage(null); }} className="mb-5 text-sm text-cyan-500 hover:underline">← Back to Colaus</button>
           <MarkdownMessage content={isTermsPage ? TERMS_TEXT : PRIVACY_TEXT} isDark={isDark} />
           <div className="mt-8 border-t border-zinc-700/40 pt-4 text-sm">
             {isTermsPage ? <>Also read our <button type="button" onClick={() => navigatePolicy('privacy')} className="text-cyan-500 underline">Privacy Policy</button>.</> : <>Also read our <button type="button" onClick={() => navigatePolicy('terms')} className="text-cyan-500 underline">Terms &amp; Conditions</button>.</>}
@@ -1981,7 +1981,7 @@ export default function App() {
           <section role="alertdialog" aria-modal="true" aria-labelledby="legal-acceptance-title" className={`flex max-h-[92dvh] w-full max-w-lg flex-col overflow-hidden rounded-2xl border shadow-2xl ${isDark ? 'border-zinc-700 bg-[#16191c] text-zinc-100' : 'border-zinc-200 bg-white text-zinc-900'}`}>
             <div className="border-b border-zinc-700/40 px-5 py-4">
               <h2 id="legal-acceptance-title" className="text-lg font-semibold">Terms &amp; Conditions apply</h2>
-              <p className={`mt-1 text-sm ${isDark ? 'text-zinc-400' : 'text-zinc-600'}`}>Please read before using Tejas.</p>
+              <p className={`mt-1 text-sm ${isDark ? 'text-zinc-400' : 'text-zinc-600'}`}>Please read before using Colaus.</p>
             </div>
             <div className="overflow-y-auto px-5 py-4 text-sm leading-relaxed">
               <p>By continuing, you agree to the <button type="button" onClick={() => navigatePolicy('terms')} className="text-cyan-500 underline">Terms &amp; Conditions</button> and acknowledge the <button type="button" onClick={() => navigatePolicy('privacy')} className="text-cyan-500 underline">Privacy Policy</button>.</p>
@@ -2015,10 +2015,10 @@ export default function App() {
               <p className={`mt-2 text-sm ${isDark ? 'text-zinc-400' : 'text-zinc-600'}`}>No access was granted. You can close this page and try again from the extension.</p>
             ) : isGuestUser(currentUser) ? (
               <>
-                <p className={`mt-2 text-sm ${isDark ? 'text-zinc-400' : 'text-zinc-600'}`}>Sign in or create a Tejas account, then allow the extension to connect. Tossive cannot be used in the editor until you sign in.</p>
+                <p className={`mt-2 text-sm ${isDark ? 'text-zinc-400' : 'text-zinc-600'}`}>Sign in or create a Colaus account, then allow the extension to connect. Tossive cannot be used in the editor until you sign in.</p>
                 <button
                   type="button"
-                  onClick={() => { setAuthNotice('Sign in or create a Tejas account to connect the Tossive extension.'); setAuthModalOpen(true); }}
+                  onClick={() => { setAuthNotice('Sign in or create a Colaus account to connect the Tossive extension.'); setAuthModalOpen(true); }}
                   className="mt-5 w-full rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-500"
                 >
                   Sign in or sign up
@@ -2027,7 +2027,7 @@ export default function App() {
             ) : (
               <>
                 <p className={`mt-2 text-sm ${isDark ? 'text-zinc-400' : 'text-zinc-600'}`}>
-                  Allow Tossive extension to use your Tejas account <span className="font-medium">{currentUser.email}</span>?
+                  Allow Tossive extension to use your Colaus account <span className="font-medium">{currentUser.email}</span>?
                 </p>
                 {extensionAuthError && <p className="mt-3 text-sm text-red-500">{extensionAuthError}</p>}
                 <div className="mt-5 flex gap-2">

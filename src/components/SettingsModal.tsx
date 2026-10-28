@@ -415,7 +415,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 <RowButton
                   icon={<IconBox tone="blue"><Star className="w-4 h-4" /></IconBox>}
                   title="Give your feedback"
-                  subtitle="Rate Tejas and share your thoughts"
+                  subtitle="Rate Colaus and share your thoughts"
                   onClick={() => startFeedbackForm('feedback')}
                 />
                 <RowButton
@@ -446,8 +446,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 
                 {feedbackKind === 'feedback' && (
                   <div>
-                    <p className="mb-2 text-xs font-medium">How would you rate Tejas?</p>
-                    <div className="flex gap-1" role="radiogroup" aria-label="Rate Tejas from one to five stars">
+                    <p className="mb-2 text-xs font-medium">How would you rate Colaus?</p>
+                    <div className="flex gap-1" role="radiogroup" aria-label="Rate Colaus from one to five stars">
                       {[1, 2, 3, 4, 5].map((star) => (
                         <button key={star} type="button" role="radio" aria-checked={feedbackRating === star} aria-label={`${star} star${star === 1 ? '' : 's'}`} onClick={() => setFeedbackRating(star)} className="rounded-md p-1 focus:outline-none focus:ring-2 focus:ring-amber-400">
                           <Star className={`h-7 w-7 ${star <= feedbackRating ? 'fill-amber-400 text-amber-400' : isDark ? 'text-zinc-600' : 'text-zinc-300'}`} />
@@ -572,7 +572,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               <div className={`rounded-xl border p-4 ${isDark ? 'border-zinc-800 bg-zinc-900/60' : 'border-zinc-200 bg-white'}`}>
                 <h3 className="text-sm font-semibold">Connections</h3>
                 <p className={`mt-1 text-xs ${isDark ? 'text-zinc-400' : 'text-zinc-600'}`}>
-                  Editors signed in to your Tejas account. Disconnecting revokes Tossive access in that editor.
+                  Editors signed in to your Colaus account. Disconnecting revokes Tossive access in that editor.
                 </p>
 
                 <div className="mt-3 space-y-2">
@@ -739,7 +739,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                   </div>
 
                   <div className="truncate">
-                    <p className="text-sm font-medium truncate">{currentUser.name || 'Tejas User'}</p>
+                    <p className="text-sm font-medium truncate">{currentUser.name || 'Colaus User'}</p>
                     <p className={`text-[11px] truncate ${isDark ? 'text-zinc-400' : 'text-zinc-500'}`}>
                       {isGuest ? 'Guest • Tap to sign in' : currentUser.email}
                     </p>

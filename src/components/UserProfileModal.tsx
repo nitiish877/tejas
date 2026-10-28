@@ -137,7 +137,7 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
                 }`}
               >
                 <LogOut className="w-4 h-4" />
-                <span>Sign Out (Switch to Tejas Guest)</span>
+                <span>Sign Out (Switch to Colaus Guest)</span>
               </button>
             ) : (
               onOpenAuth && (

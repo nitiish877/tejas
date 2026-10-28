@@ -134,7 +134,7 @@ const CodeBlock: React.FC<{ code: string; language: string }> = ({ code, languag
 
   const handleDownload = () => {
     const ext = getExtension(lang);
-    const filename = `tejas-snippet-${Date.now()}.${ext}`;
+    const filename = `colaus-snippet-${Date.now()}.${ext}`;
     const blob = new Blob([code], { type: 'text/plain;charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');

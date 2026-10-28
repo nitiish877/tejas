@@ -1,7 +1,7 @@
 @import "tailwindcss";
 @plugin "@tailwindcss/typography";
 
-/* Tejas palette: cool ink neutrals with a calm teal-blue brand accent. */
+/* Colaus palette: cool ink neutrals with a calm teal-blue brand accent. */
 @theme {
   --color-zinc-50: #f5f8fa;
   --color-zinc-100: #eaf0f3;

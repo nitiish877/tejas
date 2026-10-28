@@ -64,10 +64,10 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({
           <div className="px-6 pt-7 pb-4 text-center max-w-3xl mx-auto">
             <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-amber-500/10 text-amber-400 border border-amber-500/20 mb-3">
               <Sparkles className="w-3.5 h-3.5" />
-              <span>Tejas Model Subscription & Checkout</span>
+              <span>Colaus Model Subscription & Checkout</span>
             </div>
             <h2 className="text-2xl sm:text-3xl font-bold tracking-tight">
-              Select Your Tejas Plan
+              Select Your Colaus Plan
             </h2>
             <p className={`mt-2 text-xs sm:text-sm ${isDark ? 'text-zinc-400' : 'text-zinc-600'}`}>
               Upgrade to higher reasoning models. Plans automatically revert to Free tier once the duration completes.
@@ -76,7 +76,7 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({
             {/* Active Plan notice if subscribed */}
             {currentPlan !== 'free' && daysLeft !== null && (
               <div className="mt-3 inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-medium">
-                <span>Currently Active: <strong>Tejas {currentPlan.toUpperCase()}</strong></span>
+                <span>Currently Active: <strong>Colaus {currentPlan.toUpperCase()}</strong></span>
                 <span>•</span>
                 <span>{daysLeft} days remaining before auto-free revert</span>
               </div>
@@ -159,7 +159,7 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({
                 <ul className="space-y-1.5 text-xs">
                   <li className="flex items-start gap-1.5">
                     <Check className="w-3.5 h-3.5 text-emerald-400 shrink-0 mt-0.5" />
-                    <span>Tejas sieo model access</span>
+                    <span>Colaus sieo model access</span>
                   </li>
                   <li className="flex items-start gap-1.5">
                     <Check className="w-3.5 h-3.5 text-emerald-400 shrink-0 mt-0.5" />
@@ -254,7 +254,7 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({
                 <ul className="space-y-1.5 text-xs">
                   <li className="flex items-start gap-1.5">
                     <Check className="w-3.5 h-3.5 text-purple-400 shrink-0 mt-0.5" />
-                    <span>Tejas <strong>Cat (3B)</strong> model access</span>
+                    <span>Colaus <strong>Cat (3B)</strong> model access</span>
                   </li>
                   <li className="flex items-start gap-1.5">
                     <Check className="w-3.5 h-3.5 text-purple-400 shrink-0 mt-0.5" />
@@ -291,7 +291,7 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({
                 onInitiateCheckout({
                   plan: 'cat',
                   modelId: 'meta-llama/Llama-3.2-3B-Instruct',
-                  name: 'Tejas Cat (3B) Test Tier',
+                  name: 'Colaus Cat (3B) Test Tier',
                   amount: 1,
                   period: '1 month',
                   durationDays: 30,
@@ -365,7 +365,7 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({
                 <ul className="space-y-1.5 text-xs">
                   <li className="flex items-start gap-1.5">
                     <Check className="w-3.5 h-3.5 text-blue-400 shrink-0 mt-0.5" />
-                    <span>Full access to <strong>Tejas Chetak (8B)</strong></span>
+                    <span>Full access to <strong>Colaus Chetak (8B)</strong></span>
                   </li>
                   <li className="flex items-start gap-1.5">
                     <Check className="w-3.5 h-3.5 text-blue-400 shrink-0 mt-0.5" />
@@ -402,7 +402,7 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({
                 onInitiateCheckout({
                   plan: 'chetak',
                   modelId: 'meta-llama/Llama-3.1-8B-Instruct',
-                  name: 'Tejas Chetak (8B)',
+                  name: 'Colaus Chetak (8B)',
                   amount: billingCycle === 'monthly' ? 299 : 3499,
                   period: billingCycle === 'monthly' ? '1 month' : '1 year',
                   durationDays: billingCycle === 'monthly' ? 30 : 365,
@@ -476,7 +476,7 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({
                 <ul className="space-y-1.5 text-xs">
                   <li className="flex items-start gap-1.5">
                     <Check className="w-3.5 h-3.5 text-amber-400 shrink-0 mt-0.5" />
-                    <span>Unrestricted <strong>Tejas Arka (70B)</strong></span>
+                    <span>Unrestricted <strong>Colaus Arka (70B)</strong></span>
                   </li>
                   <li className="flex items-start gap-1.5">
                     <Check className="w-3.5 h-3.5 text-amber-400 shrink-0 mt-0.5" />
@@ -513,7 +513,7 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({
                 onInitiateCheckout({
                   plan: 'arka',
                   modelId: 'meta-llama/Llama-3.3-70B-Instruct',
-                  name: 'Tejas Arka (70B)',
+                  name: 'Colaus Arka (70B)',
                   amount: billingCycle === 'monthly' ? 799 : 9499,
                   period: billingCycle === 'monthly' ? '1 month' : '1 year',
                   durationDays: billingCycle === 'monthly' ? 30 : 365,

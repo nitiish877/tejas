@@ -148,7 +148,7 @@ export const UpdateModal: React.FC<UpdateModalProps> = ({
           {updateInfo.apkDownloadUrl && (
             <a
               href={updateInfo.apkDownloadUrl}
-              download="Tejas.apk"
+              download="Colaus.apk"
               className={`w-full py-2.5 px-4 rounded-xl font-medium text-xs border flex items-center justify-center gap-2 transition-all ${
                 isDark
                   ? 'border-zinc-800 hover:bg-zinc-800/80 text-zinc-300'

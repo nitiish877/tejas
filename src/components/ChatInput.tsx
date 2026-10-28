@@ -431,7 +431,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
       <div className="mt-2 px-2 flex flex-col items-center justify-end gap-2">
         <span />
         <p className={`flex flex-wrap items-center justify-center gap-x-1 text-[11px] select-none ${isDark ? 'text-zinc-500' : 'text-zinc-400'}`}>
-          <span>Tejas is AI can make mistakes.</span>
+          <span>Colaus is AI can make mistakes.</span>
           <a href="/terms" className="text-cyan-500 hover:underline">Terms &amp; Conditions</a>
           <span>and</span>
           <a href="/privacy" className="text-cyan-500 hover:underline">Privacy Policy</a>

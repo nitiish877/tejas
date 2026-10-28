@@ -147,7 +147,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   const handleGuestLogin = () => {
     const guestUser: UserProfile = {
       id: 'user_guest',
-      name: 'Tejas User',
+      name: 'Colaus User',
       email: '',
       provider: 'guest',
     };
@@ -168,7 +168,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         <div className="flex items-center justify-between px-5 sm:px-6 py-3.5 border-b border-zinc-800/60 shrink-0">
           <div className="flex items-center gap-2">
             <Logo size="sm" glowing={false} />
-            <span className="font-bold text-base tracking-tight">Tejas Account</span>
+            <span className="font-bold text-base tracking-tight">Colaus Account</span>
           </div>
           <button
             type="button"

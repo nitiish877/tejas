@@ -354,12 +354,12 @@ export const ChatArea: React.FC<ChatAreaProps> = ({
     try {
       const a = document.createElement('a');
       a.href = imageUrl;
-      const safeName = (prompt || 'tejas-image')
+      const safeName = (prompt || 'colaus-image')
         .replace(/[^a-z0-9]+/gi, '-')
         .toLowerCase()
         .replace(/^-+|-+$/g, '')
         .slice(0, 40);
-      a.download = `${safeName || 'tejas-image'}.jpg`;
+      a.download = `${safeName || 'colaus-image'}.jpg`;
       a.style.display = 'none';
       document.body.appendChild(a);
       a.click();
@@ -372,20 +372,20 @@ export const ChatArea: React.FC<ChatAreaProps> = ({
 
   const handleShareImage = async (imageUrl: string, _prompt?: string) => {
     const SHARE_TEXT =
-      '✨ Generated with Tejas AI\n\nChat and generate images for free:\nhttps://tejassai.vercel.app/';
+      '✨ Generated with Colaus AI\n\nChat and generate images for free:\nhttps://colaus.vercel.app/';
 
     try {
       const res = await fetch(imageUrl);
       const blob = await res.blob();
       const ext = (blob.type.split('/')[1] || 'jpeg').replace('jpeg', 'jpg');
-      const file = new File([blob], `tejas-image.${ext}`, {
+      const file = new File([blob], `colaus-image.${ext}`, {
         type: blob.type || 'image/jpeg',
       });
 
       if (navigator.canShare && navigator.canShare({ files: [file] })) {
         await navigator.share({
           files: [file],
-          title: 'Tejas AI',
+          title: 'Colaus AI',
           text: SHARE_TEXT,
         });
         return;
@@ -393,7 +393,7 @@ export const ChatArea: React.FC<ChatAreaProps> = ({
 
       if (navigator.share) {
         await navigator.share({
-          title: 'Tejas AI',
+          title: 'Colaus AI',
           text: SHARE_TEXT,
         });
         return;
@@ -607,7 +607,7 @@ export const ChatArea: React.FC<ChatAreaProps> = ({
               <span className="h-[4px] w-4 rounded-full bg-current" />
             </span>
             <span className="font-bold text-lg tracking-tight">
-              Tejas
+              Colaus
             </span>
           </button>
 

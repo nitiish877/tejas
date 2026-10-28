@@ -55,7 +55,7 @@ export const PaymentHistoryModal: React.FC<PaymentHistoryModalProps> = ({
   const downloadReceipt = (p: PaymentRecord) => {
     const lines = [
       '════════════════════════════════════════════',
-      '         TEJAS AI — PAYMENT RECEIPT',
+      '         COLAUS AI — PAYMENT RECEIPT',
       '════════════════════════════════════════════',
       '',
       `Receipt / Tx ID : ${p.txId}`,
@@ -74,7 +74,7 @@ export const PaymentHistoryModal: React.FC<PaymentHistoryModalProps> = ({
       `Status          : SUCCESS`,
       '',
       '════════════════════════════════════════════',
-      'Thank you for subscribing to Tejas AI.',
+      'Thank you for subscribing to Colaus AI.',
       'For support, contact: support@tejasai.app',
       '════════════════════════════════════════════',
     ].join('\n');
@@ -83,7 +83,7 @@ export const PaymentHistoryModal: React.FC<PaymentHistoryModalProps> = ({
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `tejas-receipt-${p.txId}.txt`;
+    a.download = `colaus-receipt-${p.txId}.txt`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);

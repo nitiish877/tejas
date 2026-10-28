@@ -22,7 +22,7 @@ import { SubscriptionPlanType } from '../types';
 // ==========================================================
 export const UPI_CONFIG = {
   vpa: 'abcd@upi',
-  merchantName: 'Tejas AI',
+  merchantName: 'Colaus AI',
 };
 
 export interface PaymentItem {
@@ -70,7 +70,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
 
   // Real NPCI-compliant UPI payment intent string
   const upiIntentUrl = item
-    ? `upi://pay?pa=${encodeURIComponent(currentVpa)}&pn=${encodeURIComponent(currentMerchant)}&am=${item.amount}&cu=INR&tn=${encodeURIComponent(`Tejas ${item.name} Plan`)}`
+    ? `upi://pay?pa=${encodeURIComponent(currentVpa)}&pn=${encodeURIComponent(currentMerchant)}&am=${item.amount}&cu=INR&tn=${encodeURIComponent(`Colaus ${item.name} Plan`)}`
     : '';
 
   // Generate 100% real UPI QR code (Zero external dependencies, works everywhere)

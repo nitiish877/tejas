@@ -1,8 +1,8 @@
-# Tejas AI — Frontend
+# Colaus AI — Frontend
 
-Live: https://tejassai.vercel.app
+Live: https://colaus.vercel.app
 
-Tejas AI Frontend is a production-grade single-page application that provides the user-facing interface for the Tejas AI platform. It includes chat UI, authentication, file and image handling, subscription flows, and integration with the Tossive VS Code extension.
+Colaus AI Frontend is a production-grade single-page application that provides the user-facing interface for the Colaus AI platform. It includes chat UI, authentication, file and image handling, subscription flows, and integration with the Tossive VS Code extension.
 
 ## Key technologies
 - React + TypeScript
@@ -21,8 +21,8 @@ Tejas AI Frontend is a production-grade single-page application that provides th
 
 ## Main Code Editor Integration
 This project includes a VS Code extension source under the `tossive-vsix-source` folder. The Tossive extension allows users to:
-- Authenticate an editor session with Tejas
-- Open an in-editor Tejas assistant panel
+- Authenticate an editor session with Colaus
+- Open an in-editor Colaus assistant panel
 - Share selections and request code-focused assistance
 
 ## Prerequisites
@@ -53,7 +53,7 @@ VITE_FIREBASE_PROJECT_ID="..."
 VITE_FIREBASE_STORAGE_BUCKET="..."
 VITE_FIREBASE_MESSAGING_SENDER_ID="..."
 VITE_FIREBASE_APP_ID="..."
-VITE_PUBLIC_SITE_URL="https://tejassai.vercel.app"
+VITE_PUBLIC_SITE_URL="https://colaus.vercel.app"
 ```
 
 Notes:
@@ -103,7 +103,7 @@ Notes:
 4. Add the same environment variables in Netlify settings.
 
 ## Backend configuration
-The frontend communicates with the Tejas backend through the configured backend URL. If the backend is not reachable, some features may fail.
+The frontend communicates with the Colaus backend through the configured backend URL. If the backend is not reachable, some features may fail.
 
 Set the backend URL in the app settings or configure it via your deployment environment. Ensure the backend allows the frontend origin via CORS.
 
