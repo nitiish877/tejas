@@ -31,7 +31,7 @@ import {
   Send,
 } from 'lucide-react';
 import { getClientVersion } from '../version';
-import { ConnectedEditor, fetchConnectedEditors, isGuestUser, revokeConnectedEditor, submitFeedback, SharedProjectSummary, SharedProjectDetail, fetchSharedProjects, fetchSharedProject, fetchSharedProjectCode, addSharedProjectMember, revokeSharedProjectMember } from '../utils/api';
+import { ConnectedEditor, fetchConnectedEditors, isGuestUser, revokeConnectedEditor, submitFeedback, SharedProjectSummary, SharedProjectDetail, fetchSharedProjects, fetchSharedProject, fetchSharedProjectCode, addSharedProjectMember, revokeSharedProjectMember, regenerateSharedProjectLink } from '../utils/api';
 
 const TOSSIVE_MARKETPLACE_ITEM_ID = 'nitishVishwakarma.tossive';
 const TOSSIVE_VSCODE_MARKETPLACE_URL = `https://marketplace.visualstudio.com/items?itemName=${TOSSIVE_MARKETPLACE_ITEM_ID}`;
@@ -95,6 +95,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   const [memberRole, setMemberRole] = useState<'editor'|'viewer'>('editor');
   const [projectBusy, setProjectBusy] = useState(false);
   const [projectMessage, setProjectMessage] = useState('');
+  const [projectLinkCopied, setProjectLinkCopied] = useState(false);
   const [feedbackKind, setFeedbackKind] = useState<FeedbackKind | null>(null);
   const [feedbackCategory, setFeedbackCategory] = useState('');
   const [feedbackTitle, setFeedbackTitle] = useState('');
@@ -174,6 +175,30 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     try { const result=await fetchSharedProjectCode(getApiUrl,selectedSharedProject.project.id); const blob=new Blob([JSON.stringify(result.files,null,2)],{type:'application/json'}); const href=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=href; a.download=`${selectedSharedProject.project.name.replace(/[^a-z0-9-_]/gi,'-')}-shared-files.json`; a.click(); URL.revokeObjectURL(href); setProjectMessage('Shared files downloaded as a reviewable JSON bundle.'); }
     catch(error:any){setProjectMessage(error?.message||'Could not download shared code.');}
     finally{setProjectBusy(false);}
+  };
+  const shareProjectLink = async () => {
+    const url=selectedSharedProject?.project.share_url;
+    if(!url) return;
+    try {
+      if(navigator.share) await navigator.share({title:selectedSharedProject.project.name,text:'Shared project link',url});
+      else { await navigator.clipboard.writeText(url); setProjectLinkCopied(true); window.setTimeout(()=>setProjectLinkCopied(false),2200); }
+    } catch(error:any) { if(error?.name!=='AbortError') setProjectMessage('Could not open sharing options. Copy the link instead.'); }
+  };
+  const copyProjectLink = async () => {
+    const url=selectedSharedProject?.project.share_url;
+    if(!url) return;
+    try { await navigator.clipboard.writeText(url); setProjectLinkCopied(true); window.setTimeout(()=>setProjectLinkCopied(false),2200); }
+    catch { setProjectMessage('Could not copy the link. Select and copy it manually.'); }
+  };
+  const renewProjectLink = async () => {
+    if(!selectedSharedProject) return;
+    setProjectBusy(true); setProjectMessage('Creating a new share link…');
+    try {
+      const {shareUrl}=await regenerateSharedProjectLink(getApiUrl,selectedSharedProject.project.id);
+      setSelectedSharedProject(current=>current?{...current,project:{...current.project,share_url:shareUrl}}:current);
+      setProjectMessage('New share link created. The previous link no longer works.');
+    } catch(error:any) { setProjectMessage(error?.message||'Could not create a new share link.'); }
+    finally { setProjectBusy(false); }
   };
 
   const handleRevokeEditor = async (installationId: string) => {
@@ -624,6 +649,14 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 {selectedSharedProject ? <div className="mt-4 space-y-4">
                   <button type="button" className="text-xs font-medium text-blue-500" onClick={()=>setSelectedSharedProject(null)}>← All shared projects</button>
                   <div className={`rounded-lg border p-3 ${isDark?'border-zinc-800 bg-zinc-950/40':'border-zinc-200 bg-zinc-50'}`}><p className="text-sm font-semibold">{selectedSharedProject.project.name}</p><p className="mt-1 text-xs text-zinc-500">{selectedSharedProject.project.share_mode==='code'?'Context + code':'Agent context only'} · Admin: {selectedSharedProject.members.find(m=>m.role==='admin')?.name || 'Project owner'}</p></div>
+                  <div className={`rounded-lg border p-3 ${isDark?'border-zinc-800':'border-zinc-200'}`}>
+                    <p className="text-xs font-semibold">Share link</p>
+                    {selectedSharedProject.project.share_url ? <>
+                      <input readOnly value={selectedSharedProject.project.share_url} onFocus={e=>e.currentTarget.select()} aria-label="Shared project link" className={`mt-2 w-full rounded-lg border px-3 py-2 text-xs ${isDark?'border-zinc-700 bg-zinc-950 text-zinc-300':'border-zinc-300 bg-white text-zinc-700'}`} />
+                      <div className="mt-2 flex flex-wrap gap-2"><button onClick={shareProjectLink} className="inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-3 py-2 text-xs font-semibold text-white"><Share2 size={13}/>{navigator.share?'Share…':'Share link'}</button><button onClick={copyProjectLink} className={`rounded-lg border px-3 py-2 text-xs font-semibold ${isDark?'border-zinc-700':'border-zinc-300'}`}>{projectLinkCopied?'Copied':'Copy link'}</button>{selectedSharedProject.project.role==='admin'&&<button disabled={projectBusy} onClick={renewProjectLink} className={`rounded-lg border px-3 py-2 text-xs ${isDark?'border-zinc-700 text-zinc-300':'border-zinc-300 text-zinc-700'} disabled:opacity-50`}>Create new link</button>}</div>
+                      <p className="mt-2 text-[11px] text-zinc-500">Anyone with this link can open the shared {selectedSharedProject.project.share_mode==='code'?'project files and context':'agent context'}.</p>
+                    </> : <div className="mt-2"><p className="text-xs text-zinc-500">No public link exists yet.</p>{selectedSharedProject.project.role==='admin'&&<button disabled={projectBusy} onClick={renewProjectLink} className="mt-2 rounded-lg bg-blue-600 px-3 py-2 text-xs font-semibold text-white disabled:opacity-50">Create share link</button>}</div>}
+                  </div>
                   {selectedSharedProject.project.share_mode==='code'&&<button disabled={projectBusy} onClick={downloadSharedCode} className="rounded-lg border border-blue-500/40 px-3 py-2 text-xs font-semibold text-blue-500 disabled:opacity-50">Download shared code bundle</button>}
                   <div><p className="text-xs font-semibold">Members and access</p><div className="mt-2 space-y-2">{selectedSharedProject.members.map(member=><div key={member.user_id} className={`flex items-center justify-between rounded-lg border p-2.5 ${isDark?'border-zinc-800':'border-zinc-200'}`}><div><p className="text-xs font-medium">{member.name} <span className="text-zinc-500">· {member.role}</span></p><p className="text-[11px] text-zinc-500">{member.email}</p></div>{selectedSharedProject.project.role==='admin'&&member.role!=='admin'&&<button disabled={projectBusy} className="text-xs text-red-500 disabled:opacity-50" onClick={()=>revokeProjectMember(member.user_id)}>Revoke</button>}</div>)}</div></div>
                   {selectedSharedProject.project.role==='admin'&&<div className="flex flex-wrap gap-2"><input value={memberEmail} onChange={e=>setMemberEmail(e.target.value)} placeholder="Existing Colaus account email" className={`min-w-0 flex-1 rounded-lg border px-3 py-2 text-xs ${isDark?'border-zinc-700 bg-zinc-950':'border-zinc-300 bg-white'}`} /><select value={memberRole} onChange={e=>setMemberRole(e.target.value as 'editor'|'viewer')} className={`rounded-lg border px-2 py-2 text-xs ${isDark?'border-zinc-700 bg-zinc-950':'border-zinc-300 bg-white'}`}><option value="editor">Editor</option><option value="viewer">Viewer</option></select><button disabled={projectBusy||!memberEmail.trim()} onClick={inviteProjectMember} className="rounded-lg bg-blue-600 px-3 py-2 text-xs font-semibold text-white disabled:opacity-50">Add member</button></div>}

@@ -1,0 +1,16 @@
+import React, { useEffect, useState } from 'react';
+
+type SharedProject = { name: string; share_mode: 'context' | 'code'; context?: { summary?: string; filePaths?: string[] } };
+type SharedFile = { path: string; content: string };
+
+export const SharedProjectView: React.FC<{ token: string; getApiUrl: (path:string)=>string; isDark:boolean }> = ({token,getApiUrl,isDark}) => {
+  const [project,setProject]=useState<SharedProject|null>(null);
+  const [files,setFiles]=useState<SharedFile[]>([]);
+  const [error,setError]=useState('');
+  const [copied,setCopied]=useState(false);
+  const link=window.location.href;
+  useEffect(()=>{let active=true;fetch(getApiUrl(`/api/project-share/${encodeURIComponent(token)}`),{cache:'no-store'}).then(async r=>{const data=await r.json();if(!r.ok)throw new Error(data.error||'Could not load this project share.');if(active){setProject(data.project);setFiles(Array.isArray(data.files)?data.files:[]);}}).catch(e=>{if(active)setError(e.message||'Could not load project share.');});return()=>{active=false;};},[token,getApiUrl]);
+  const share=async()=>{try{if(navigator.share)await navigator.share({title:project?.name||'Shared project',text:'Project shared with me',url:link});else{await navigator.clipboard.writeText(link);setCopied(true);}}catch(e:any){if(e?.name!=='AbortError')setError('Could not open the system share options. Copy the page link from your browser.');}};
+  const download=()=>{const blob=new Blob([JSON.stringify({project,files},null,2)],{type:'application/json'});const href=URL.createObjectURL(blob);const a=document.createElement('a');a.href=href;a.download=`${(project?.name||'shared-project').replace(/[^a-z0-9-_]/gi,'-')}-files.json`;a.click();URL.revokeObjectURL(href);};
+  return <main className={`min-h-screen p-5 sm:p-10 ${isDark?'bg-[#16191c] text-zinc-100':'bg-slate-50 text-slate-900'}`}><div className="mx-auto max-w-2xl"><a href="/" className="text-sm text-blue-500">Colaus</a><section className={`mt-5 rounded-2xl border p-5 sm:p-7 ${isDark?'border-zinc-700 bg-zinc-900':'border-slate-200 bg-white'}`}><p className="text-xs font-semibold uppercase tracking-wide text-blue-500">Shared project</p><h1 className="mt-2 text-2xl font-bold">{project?.name||'Loading project…'}</h1>{project&&<><p className="mt-2 text-sm text-zinc-500">{project.share_mode==='code'?'Project context and source files':'Project context only'}</p>{project.context?.summary&&<p className="mt-4 whitespace-pre-wrap text-sm">{project.context.summary}</p>}<div className="mt-5 flex flex-wrap gap-2"><button onClick={share} className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white">Share this link</button>{project.share_mode==='code'&&<button onClick={download} className="rounded-lg border px-4 py-2 text-sm font-semibold">Download files ({files.length})</button>}</div>{copied&&<p className="mt-2 text-xs text-green-500">Link copied.</p>}{project.share_mode==='code'&&<div className="mt-6"><h2 className="text-sm font-semibold">Included files</h2><ul className="mt-2 max-h-72 space-y-1 overflow-auto rounded-lg bg-black/5 p-3 text-xs dark:bg-black/20">{files.map(file=><li key={file.path} className="font-mono">{file.path}</li>)}</ul></div>}</>}{error&&<p className="mt-4 text-sm text-red-500">{error}</p>}</section></div></main>;
+};

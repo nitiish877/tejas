@@ -12,6 +12,7 @@ import { SubscriptionModal } from './components/SubscriptionModal';
 import { PaymentItem, PaymentModal } from './components/PaymentModal';
 import { UpdateModal } from './components/UpdateModal';
 import { SharedChatView } from './components/SharedChatView';
+import { SharedProjectView } from './components/SharedProjectView';
 import { PaymentHistoryModal } from './components/PaymentHistoryModal';
 import { SharedChatsModal } from './components/SharedChatsModal';
 import { getClientVersion, isVersionDismissed, AppVersionInfo } from './version';
@@ -174,6 +175,9 @@ export default function App() {
     } catch {
       return null;
     }
+  });
+  const [sharedProjectToken] = useState<string | null>(() => {
+    try { const match=window.location.pathname.match(/^\/project-share\/([A-Za-z0-9_-]+)/); return match?.[1]||null; } catch { return null; }
   });
 
   const tempChatIdRef = useRef<string>('temp_' + Date.now());
@@ -1763,6 +1767,8 @@ export default function App() {
   if (sharedChatId) {
     return <SharedChatView shareId={sharedChatId} getApiUrl={getApiUrl} isDark={isDark} />;
   }
+
+  if (sharedProjectToken) return <SharedProjectView token={sharedProjectToken} getApiUrl={getApiUrl} isDark={isDark} />;
 
   if (policyPage) {
     const isTermsPage = policyPage === 'terms';
