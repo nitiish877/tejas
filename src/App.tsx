@@ -576,7 +576,7 @@ export default function App() {
   const checkForUpdates = async (manual = false) => {
     if (manual) setIsCheckingUpdates(true);
     try {
-      const res = await fetch(getApiUrl('/api/version'));
+      const res = await fetch(getApiUrl('/api/version'), { cache: 'no-store' });
       if (res.ok) {
         const data: AppVersionInfo = await res.json();
         if (data && data.version) {
@@ -641,7 +641,7 @@ export default function App() {
       }, 2500);
 
       try {
-        const res = await fetch(getApiUrl('/api/status'));
+        const res = await fetch(getApiUrl('/api/status'), { cache: 'no-store' });
         clearTimeout(slowTimer);
         const contentType = res.headers.get('content-type') || '';
 
@@ -1519,6 +1519,7 @@ export default function App() {
         : settings.systemPrompt;
 
       const response = await fetch(getApiUrl('/api/chat'), {
+        cache: 'no-store',
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

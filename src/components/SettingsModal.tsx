@@ -419,6 +419,13 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               onClick={() => setView('preferences')}
             />
 
+            <RowButton
+              icon={<IconBox tone="emerald"><Laptop className="w-4 h-4" /></IconBox>}
+              title="Code Editor"
+              subtitle="Install Tossive and manage shared projects"
+              onClick={() => setView('editor')}
+            />
+
             {!HIDE_SUBSCRIPTION_UI && (
               <RowButton
                 icon={<IconBox tone="amber"><Crown className="w-4 h-4" /></IconBox>}

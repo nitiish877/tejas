@@ -58,7 +58,7 @@ async function request<T>(getUrl: UrlBuilder, path: string, options: RequestInit
 
   let res: Response;
   try {
-    res = await fetch(getUrl(path), { ...options, headers: { ...headers, ...(options.headers as any) } });
+    res = await fetch(getUrl(path), { ...options, cache: 'no-store', headers: { ...headers, ...(options.headers as any) } });
   } catch {
     throw new ApiError('Could not reach the server. Check your internet or backend URL.', 0);
   }
