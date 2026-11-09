@@ -31,7 +31,7 @@ import {
   Send,
 } from 'lucide-react';
 import { getClientVersion } from '../version';
-import { ConnectedEditor, fetchConnectedEditors, isGuestUser, revokeConnectedEditor, submitFeedback } from '../utils/api';
+import { ConnectedEditor, fetchConnectedEditors, isGuestUser, revokeConnectedEditor, submitFeedback, SharedProjectSummary, SharedProjectDetail, fetchSharedProjects, fetchSharedProject, fetchSharedProjectCode, addSharedProjectMember, revokeSharedProjectMember } from '../utils/api';
 
 const TOSSIVE_MARKETPLACE_ITEM_ID = 'nitishVishwakarma.tossive';
 const TOSSIVE_VSCODE_MARKETPLACE_URL = `https://marketplace.visualstudio.com/items?itemName=${TOSSIVE_MARKETPLACE_ITEM_ID}`;
@@ -89,6 +89,12 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   const [connectedEditors, setConnectedEditors] = useState<ConnectedEditor[]>([]);
   const [revokingEditorId, setRevokingEditorId] = useState<string | null>(null);
   const [connectionsError, setConnectionsError] = useState('');
+  const [sharedProjects, setSharedProjects] = useState<SharedProjectSummary[]>([]);
+  const [selectedSharedProject, setSelectedSharedProject] = useState<SharedProjectDetail | null>(null);
+  const [memberEmail, setMemberEmail] = useState('');
+  const [memberRole, setMemberRole] = useState<'editor'|'viewer'>('editor');
+  const [projectBusy, setProjectBusy] = useState(false);
+  const [projectMessage, setProjectMessage] = useState('');
   const [feedbackKind, setFeedbackKind] = useState<FeedbackKind | null>(null);
   const [feedbackCategory, setFeedbackCategory] = useState('');
   const [feedbackTitle, setFeedbackTitle] = useState('');
@@ -133,6 +139,42 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
       window.clearInterval(refreshId);
     };
   }, [isOpen, view, isGuest, getApiUrl]);
+
+  useEffect(() => {
+    if (!isOpen || view !== 'editor' || isGuest) return;
+    let active = true;
+    fetchSharedProjects(getApiUrl).then(({projects}) => { if (active) setSharedProjects(projects); })
+      .catch((error:any) => { if (active) setProjectMessage(error?.message || 'Could not load shared projects.'); });
+    return () => { active = false; };
+  }, [isOpen, view, isGuest, getApiUrl]);
+
+  const openSharedProject = async (id:string) => {
+    setProjectBusy(true); setProjectMessage('Loading project members and activity…');
+    try { setSelectedSharedProject(await fetchSharedProject(getApiUrl,id)); setProjectMessage(''); }
+    catch (error:any) { setProjectMessage(error?.message || 'Could not load project details.'); }
+    finally { setProjectBusy(false); }
+  };
+  const inviteProjectMember = async () => {
+    if (!selectedSharedProject || !memberEmail.trim()) return;
+    setProjectBusy(true); setProjectMessage('Adding project member…');
+    try { await addSharedProjectMember(getApiUrl,selectedSharedProject.project.id,memberEmail.trim(),memberRole); setMemberEmail(''); await openSharedProject(selectedSharedProject.project.id); setProjectMessage('Member added.'); }
+    catch(error:any) { setProjectMessage(error?.message || 'Could not add this member.'); }
+    finally { setProjectBusy(false); }
+  };
+  const revokeProjectMember = async (userId:string) => {
+    if (!selectedSharedProject) return;
+    setProjectBusy(true); setProjectMessage('Revoking project access…');
+    try { await revokeSharedProjectMember(getApiUrl,selectedSharedProject.project.id,userId); await openSharedProject(selectedSharedProject.project.id); setProjectMessage('Project access revoked.'); }
+    catch(error:any) { setProjectMessage(error?.message || 'Could not revoke access.'); }
+    finally { setProjectBusy(false); }
+  };
+  const downloadSharedCode = async () => {
+    if(!selectedSharedProject) return;
+    setProjectBusy(true); setProjectMessage('Preparing shared project download…');
+    try { const result=await fetchSharedProjectCode(getApiUrl,selectedSharedProject.project.id); const blob=new Blob([JSON.stringify(result.files,null,2)],{type:'application/json'}); const href=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=href; a.download=`${selectedSharedProject.project.name.replace(/[^a-z0-9-_]/gi,'-')}-shared-files.json`; a.click(); URL.revokeObjectURL(href); setProjectMessage('Shared files downloaded as a reviewable JSON bundle.'); }
+    catch(error:any){setProjectMessage(error?.message||'Could not download shared code.');}
+    finally{setProjectBusy(false);}
+  };
 
   const handleRevokeEditor = async (installationId: string) => {
     setRevokingEditorId(installationId);
@@ -568,60 +610,21 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               </button>
             )}
 
-            {connectedEditors.length > 0 && (
+            {!isGuest ? (
               <div className={`rounded-xl border p-4 ${isDark ? 'border-zinc-800 bg-zinc-900/60' : 'border-zinc-200 bg-white'}`}>
-                <h3 className="text-sm font-semibold">Connections</h3>
-                <p className={`mt-1 text-xs ${isDark ? 'text-zinc-400' : 'text-zinc-600'}`}>
-                  Editors signed in to your Colaus account. Disconnecting revokes Tossive access in that editor.
-                </p>
-
-                <div className="mt-3 space-y-2">
-                  {connectedEditors.map((editor) => (
-                    <div key={editor.installationId} className={`flex items-center justify-between gap-3 rounded-lg border p-3 ${isDark ? 'border-zinc-800 bg-zinc-950/50' : 'border-zinc-200 bg-zinc-50'}`}>
-                      <div className="min-w-0">
-                        <p className="truncate text-sm font-medium">{editor.editorName}</p>
-                        <p className={`mt-0.5 text-xs ${isDark ? 'text-zinc-500' : 'text-zinc-500'}`}>
-                          {editor.extensionVersion ? `Tossive ${editor.extensionVersion} · ` : ''}Last used {new Date(editor.lastUsedAt).toLocaleString()}
-                        </p>
-                      </div>
-
-                      <button
-                        type="button"
-                        onClick={() => handleRevokeEditor(editor.installationId)}
-                        disabled={revokingEditorId === editor.installationId}
-                        className="shrink-0 rounded-lg border border-red-500/40 px-3 py-1.5 text-xs font-semibold text-red-500 transition-colors hover:bg-red-500/10 disabled:opacity-50"
-                      >
-                        {revokingEditorId === editor.installationId ? 'Disconnecting…' : 'Disconnect'}
-                      </button>
-                    </div>
-                  ))}
-                </div>
-
-                {connectionsError && <p className="mt-2 text-xs text-red-500">{connectionsError}</p>}
+                <div className="flex items-center justify-between gap-3"><div><h3 className="text-sm font-semibold">Shared projects</h3><p className={`mt-1 text-xs ${isDark?'text-zinc-400':'text-zinc-600'}`}>Share starts in the editor. Manage members, roles, revokes and project activity here.</p></div><span className="text-xs text-zinc-500">{sharedProjects.length} projects</span></div>
+                {projectMessage && <p className={`mt-3 text-xs ${projectMessage.includes('Could not')?'text-red-500':'text-blue-500'}`}>{projectMessage}</p>}
+                {selectedSharedProject ? <div className="mt-4 space-y-4">
+                  <button type="button" className="text-xs font-medium text-blue-500" onClick={()=>setSelectedSharedProject(null)}>← All shared projects</button>
+                  <div className={`rounded-lg border p-3 ${isDark?'border-zinc-800 bg-zinc-950/40':'border-zinc-200 bg-zinc-50'}`}><p className="text-sm font-semibold">{selectedSharedProject.project.name}</p><p className="mt-1 text-xs text-zinc-500">{selectedSharedProject.project.share_mode==='code'?'Context + code':'Agent context only'} · Admin: {selectedSharedProject.members.find(m=>m.role==='admin')?.name || 'Project owner'}</p></div>
+                  {selectedSharedProject.project.share_mode==='code'&&<button disabled={projectBusy} onClick={downloadSharedCode} className="rounded-lg border border-blue-500/40 px-3 py-2 text-xs font-semibold text-blue-500 disabled:opacity-50">Download shared code bundle</button>}
+                  <div><p className="text-xs font-semibold">Members and access</p><div className="mt-2 space-y-2">{selectedSharedProject.members.map(member=><div key={member.user_id} className={`flex items-center justify-between rounded-lg border p-2.5 ${isDark?'border-zinc-800':'border-zinc-200'}`}><div><p className="text-xs font-medium">{member.name} <span className="text-zinc-500">· {member.role}</span></p><p className="text-[11px] text-zinc-500">{member.email}</p></div>{selectedSharedProject.project.role==='admin'&&member.role!=='admin'&&<button disabled={projectBusy} className="text-xs text-red-500 disabled:opacity-50" onClick={()=>revokeProjectMember(member.user_id)}>Revoke</button>}</div>)}</div></div>
+                  {selectedSharedProject.project.role==='admin'&&<div className="flex flex-wrap gap-2"><input value={memberEmail} onChange={e=>setMemberEmail(e.target.value)} placeholder="Existing Colaus account email" className={`min-w-0 flex-1 rounded-lg border px-3 py-2 text-xs ${isDark?'border-zinc-700 bg-zinc-950':'border-zinc-300 bg-white'}`} /><select value={memberRole} onChange={e=>setMemberRole(e.target.value as 'editor'|'viewer')} className={`rounded-lg border px-2 py-2 text-xs ${isDark?'border-zinc-700 bg-zinc-950':'border-zinc-300 bg-white'}`}><option value="editor">Editor</option><option value="viewer">Viewer</option></select><button disabled={projectBusy||!memberEmail.trim()} onClick={inviteProjectMember} className="rounded-lg bg-blue-600 px-3 py-2 text-xs font-semibold text-white disabled:opacity-50">Add member</button></div>}
+                  <div><p className="text-xs font-semibold">Recent project activity</p><div className="mt-2 max-h-48 space-y-2 overflow-y-auto">{selectedSharedProject.activity.map(event=><div key={event.id} className="border-l-2 border-blue-500/50 pl-2.5"><p className="text-xs">{event.actor_name||'Member'} · {event.event_type.replaceAll('_',' ')}</p><p className="text-[10px] text-zinc-500">{new Date(event.created_at).toLocaleString()}</p></div>)}{!selectedSharedProject.activity.length&&<p className="text-xs text-zinc-500">No activity yet.</p>}</div></div>
+                </div> : <div className="mt-3 space-y-2">{sharedProjects.map(project=><button key={project.id} onClick={()=>openSharedProject(project.id)} className={`w-full rounded-lg border p-3 text-left transition-colors ${isDark?'border-zinc-800 hover:bg-zinc-800':'border-zinc-200 hover:bg-zinc-50'}`}><span className="block text-sm font-medium">{project.name}</span><span className="mt-1 block text-xs text-zinc-500">{project.share_mode==='code'?'Code shared':'Context only'} · {project.member_count} members · You: {project.role}</span></button>)}{!sharedProjects.length&&<div className={`rounded-lg border border-dashed p-4 text-center text-xs ${isDark?'border-zinc-700 text-zinc-400':'border-zinc-300 text-zinc-500'}`}>No shared projects yet. Open Tossive in your code editor, choose Share project, review its files and security scan, then share it here with your team.</div>}</div>}
+                {projectBusy&&<p className="mt-2 text-xs text-zinc-500">Updating project…</p>}
               </div>
-            )}
-
-            {!isMobileDevice && (
-              <div className={`rounded-xl border p-3.5 ${isDark ? 'border-amber-500/20 bg-amber-500/5' : 'border-amber-300 bg-amber-50'}`}>
-                <div className="flex items-start gap-2.5">
-                  <MonitorCheck className={`mt-0.5 h-4 w-4 shrink-0 ${isDark ? 'text-amber-300' : 'text-amber-700'}`} />
-                  <p className={`text-xs leading-relaxed ${isDark ? 'text-amber-100/80' : 'text-amber-900'}`}>
-                    Select your editor to open the Tossive extension listing or download its install package. Then open the Tossive panel from the editor's sidebar.
-                  </p>
-                </div>
-              </div>
-            )}
-
-            {!isMobileDevice && (
-              <div className={`rounded-xl border p-3.5 ${isDark ? 'border-zinc-800 bg-zinc-900/40' : 'border-zinc-200 bg-white'}`}>
-                <p className="text-xs font-semibold">Get started</p>
-                <ol className={`mt-2 list-inside list-decimal space-y-1.5 text-xs ${isDark ? 'text-zinc-400' : 'text-zinc-600'}`}>
-                  <li>Choose VS Code, Cursor, or Windsurf and install Tossive.</li>
-                  <li>Open a workspace and select Tossive from the editor sidebar.</li>
-                  <li>Review proposed changes before applying them to existing files.</li>
-                </ol>
-              </div>
-            )}
+            ) : <div className="rounded-xl border border-zinc-700 p-4 text-xs text-zinc-500">Sign in to manage shared projects and team members.</div>}
           </div>
         )}
 
