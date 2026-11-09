@@ -140,11 +140,12 @@ export const revokeConnectedEditor = (getUrl: UrlBuilder, installationId: string
     true
   );
 
-export interface SharedProjectSummary { id: string; name: string; workspace_key: string; share_mode: 'context'|'code'; context: Record<string, unknown>; role: 'admin'|'editor'|'viewer'; member_count: number; updated_at: string; }
+export interface SharedProjectSummary { id: string; project_code?: string; name: string; workspace_key: string; share_mode: 'context'|'code'; context: Record<string, unknown>; role: 'admin'|'editor'|'viewer'; member_count: number; updated_at: string; }
 export interface SharedProjectDetail { project: SharedProjectSummary & {share_url:string|null}; members: {user_id:string;name:string;email:string;role:string;created_at:string}[]; activity: {id:number;event_type:string;details:Record<string,unknown>;created_at:string;actor_name:string|null}[]; }
 export const fetchSharedProjects = (getUrl: UrlBuilder) => request<{projects:SharedProjectSummary[]}>(getUrl,'/api/projects',{},true);
 export const fetchSharedProject = (getUrl: UrlBuilder, id: string) => request<SharedProjectDetail>(getUrl,`/api/projects/${encodeURIComponent(id)}`,{},true);
 export const regenerateSharedProjectLink = (getUrl: UrlBuilder,id:string) => request<{shareUrl:string}>(getUrl,`/api/projects/${encodeURIComponent(id)}/share-link`,{method:'POST'},true);
+export const joinSharedProject = (getUrl: UrlBuilder,code:string) => request<{ok:boolean;projectId:string}>(getUrl,'/api/projects/join',{method:'POST',body:JSON.stringify({code})},true);
 export const fetchSharedProjectCode = (getUrl: UrlBuilder,id:string) => request<{files:{path:string;content:string}[]}>(getUrl,`/api/projects/${encodeURIComponent(id)}/code`,{},true);
 export const addSharedProjectMember = (getUrl: UrlBuilder,id:string,email:string,role:'editor'|'viewer') => request<{ok:boolean}>(getUrl,`/api/projects/${encodeURIComponent(id)}/members`,{method:'POST',body:JSON.stringify({email,role})},true);
 export const revokeSharedProjectMember = (getUrl: UrlBuilder,id:string,userId:string) => request<{ok:boolean}>(getUrl,`/api/projects/${encodeURIComponent(id)}/members/${encodeURIComponent(userId)}`,{method:'DELETE'},true);

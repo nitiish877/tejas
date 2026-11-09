@@ -91,6 +91,8 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
             </div>
           </div>
 
+          {!isGuest && user.colausId && <div className={`flex items-center justify-between rounded-xl border px-3 py-2.5 text-sm ${isDark?'border-zinc-800 bg-zinc-900/60 text-zinc-300':'border-zinc-200 bg-zinc-50 text-zinc-700'}`}><span className="text-xs text-zinc-500">Colaus ID</span><code className="font-semibold tracking-wider">{user.colausId}</code></div>}
+
           {/* Edit Name */}
           <div className="space-y-1.5 pt-1">
             <label

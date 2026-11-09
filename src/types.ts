@@ -36,6 +36,7 @@ export interface ChatSession {
 
 export interface UserProfile {
   id: string;
+    colausId?: string;
   name: string;
   email: string;
   avatarUrl?: string;
