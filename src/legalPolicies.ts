@@ -1,6 +1,6 @@
 export const TERMS_VERSION = '2026-10-23';
-export const PRIVACY_VERSION = '2026-10-23';
-export const POLICY_LAST_UPDATED = 'October 23, 2026';
+export const PRIVACY_VERSION = '2026-11-10';
+export const POLICY_LAST_UPDATED = 'November 10, 2026';
 
 export const TERMS_TEXT = `# Colaus – Terms & Conditions
 
@@ -208,6 +208,10 @@ We share information with providers that help operate authentication, AI process
 
 People who obtain a public conversation link may be able to view that conversation. Do not share passwords, confidential or personal information, or content you are not authorized to disclose. **Deleting a conversation disables all public links associated with it.**
 
+### 4.3 Shared Projects, Links, and QR Invites
+
+When a project administrator shares a project, Colaus processes the project name, workspace context, selected project files (when code sharing is chosen), member details, access roles, and project activity. Shared code bundles are encrypted while stored by Colaus. A project share link can be opened by anyone who has the link; administrators may optionally protect a link with a password. Share passwords are stored as password hashes, and a protected link requires the password before its project context or files are returned. Anyone who has both the link and password can access the shared material. Project QR invites contain a temporary code that expires after five minutes. Scanning a valid invite adds the signed-in account as a viewer; the administrator may change that role or revoke access. Project activity is available to project administrators. A project administrator can delete a project, which disables its share links and QR invites and deletes its associated member records, stored project files, and activity from the active database. Do not share code, context, or links containing information you are not authorized to disclose.
+
 ### 4.3 Legal and Safety Reasons
 
 We may disclose information when reasonably necessary to comply with laws or valid legal process; protect Colaus, users, or others; investigate suspected fraud, abuse, or security incidents; or enforce our Terms. Disclosures are subject to applicable legal requirements.
@@ -239,6 +243,10 @@ Colaus currently has no self-service account deletion feature. Contact support t
 ### 5.5 Backups and Third-Party Providers
 
 Deletion from active Colaus systems may not immediately remove information from backups or third-party systems. Information retained for lawful purposes is handled under applicable law and retention practices.
+
+### 5.6 Shared Project Deletion
+
+When an administrator deletes a shared project, Colaus removes the project and its associated member records, encrypted file bundle, activity records, and temporary QR invite codes from the active database. Its project share link and QR invites stop working after deletion. Copies previously downloaded by members or other recipients, and information already retained in backups, are not deleted by this action and may remain subject to applicable law and backup retention practices.
 
 ## 6. Security
 
