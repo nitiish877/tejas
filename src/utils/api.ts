@@ -146,6 +146,7 @@ export const fetchSharedProjects = (getUrl: UrlBuilder) => request<{projects:Sha
 export const fetchSharedProject = (getUrl: UrlBuilder, id: string) => request<SharedProjectDetail>(getUrl,`/api/projects/${encodeURIComponent(id)}`,{},true);
 export const regenerateSharedProjectLink = (getUrl: UrlBuilder,id:string) => request<{shareUrl:string}>(getUrl,`/api/projects/${encodeURIComponent(id)}/share-link`,{method:'POST'},true);
 export const joinSharedProject = (getUrl: UrlBuilder,code:string) => request<{ok:boolean;projectId:string}>(getUrl,'/api/projects/join',{method:'POST',body:JSON.stringify({code})},true);
+export const createProjectInviteCode = (getUrl: UrlBuilder,id:string) => request<{code:string;expiresInSeconds:number}>(getUrl,`/api/projects/${encodeURIComponent(id)}/invite-code`,{method:'POST'},true);
 export const fetchSharedProjectCode = (getUrl: UrlBuilder,id:string) => request<{files:{path:string;content:string}[]}>(getUrl,`/api/projects/${encodeURIComponent(id)}/code`,{},true);
 export const addSharedProjectMember = (getUrl: UrlBuilder,id:string,email:string,role:'editor'|'viewer') => request<{ok:boolean}>(getUrl,`/api/projects/${encodeURIComponent(id)}/members`,{method:'POST',body:JSON.stringify({email,role})},true);
 export const revokeSharedProjectMember = (getUrl: UrlBuilder,id:string,userId:string) => request<{ok:boolean}>(getUrl,`/api/projects/${encodeURIComponent(id)}/members/${encodeURIComponent(userId)}`,{method:'DELETE'},true);

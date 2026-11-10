@@ -30,9 +30,10 @@ import {
   Lightbulb,
   Star,
   Send,
+  Search,
 } from 'lucide-react';
 import { getClientVersion } from '../version';
-import { ConnectedEditor, fetchConnectedEditors, isGuestUser, revokeConnectedEditor, submitFeedback, SharedProjectSummary, SharedProjectDetail, fetchSharedProjects, fetchSharedProject, fetchSharedProjectCode, addSharedProjectMember, revokeSharedProjectMember, regenerateSharedProjectLink, joinSharedProject } from '../utils/api';
+import { ConnectedEditor, fetchConnectedEditors, isGuestUser, revokeConnectedEditor, submitFeedback, SharedProjectSummary, SharedProjectDetail, fetchSharedProjects, fetchSharedProject, fetchSharedProjectCode, addSharedProjectMember, revokeSharedProjectMember, regenerateSharedProjectLink, joinSharedProject, createProjectInviteCode } from '../utils/api';
 
 const TOSSIVE_MARKETPLACE_ITEM_ID = 'nitishVishwakarma.tossive';
 const TOSSIVE_VSCODE_MARKETPLACE_URL = `https://marketplace.visualstudio.com/items?itemName=${TOSSIVE_MARKETPLACE_ITEM_ID}`;
@@ -93,10 +94,13 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   const [sharedProjects, setSharedProjects] = useState<SharedProjectSummary[]>([]);
   const [projectsLoading, setProjectsLoading] = useState(false);
   const [projectSearch, setProjectSearch] = useState('');
-  const [projectSort, setProjectSort] = useState<'recent'|'oldest'|'name'>('recent');
+  const [showProjectSearch, setShowProjectSearch] = useState(false);
   const [joinCode, setJoinCode] = useState('');
   const [projectQr, setProjectQr] = useState('');
-  const qrFileInput = useRef<HTMLInputElement>(null);
+  const [cameraScanning, setCameraScanning] = useState(false);
+  const cameraVideo = useRef<HTMLVideoElement>(null);
+  const cameraStream = useRef<MediaStream|null>(null);
+  const cameraStop = useRef(false);
   const [selectedSharedProject, setSelectedSharedProject] = useState<SharedProjectDetail | null>(null);
   const [memberEmail, setMemberEmail] = useState('');
   const [memberRole, setMemberRole] = useState<'editor'|'viewer'>('editor');
@@ -210,10 +214,11 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     finally { setProjectBusy(false); }
   };
   const showProjectQr = async () => {
-    const code=selectedSharedProject?.project.project_code;
-    if(!code) return;
-    try { setProjectQr(await QRCode.toDataURL(code,{width:220,margin:1})); }
+    const selected=selectedSharedProject;
+    if(!selected) return;
+    try { setProjectBusy(true); const {code}=await createProjectInviteCode(getApiUrl,selected.project.id); setProjectQr(await QRCode.toDataURL(code,{width:220,margin:1})); setProjectMessage('QR code expires in 5 minutes.'); }
     catch { setProjectMessage('Could not create project QR code.'); }
+    finally { setProjectBusy(false); }
   };
   const joinProjectByCode = async () => {
     if(!joinCode.trim()) return;
@@ -222,6 +227,27 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     catch(error:any) { setProjectMessage(error?.message||'Could not join project.'); }
     finally { setProjectBusy(false); }
   };
+  useEffect(()=>{
+    if(!cameraScanning) return;
+    let timer=0; cameraStop.current=false;
+    const start=async()=>{
+      try{
+        const Detector=(window as any).BarcodeDetector;
+        if(!Detector) throw new Error('QR camera scanning is not supported in this browser.');
+        const detector=new Detector({formats:['qr_code']});
+        const stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'}},audio:false});
+        cameraStream.current=stream;
+        if(cameraVideo.current){cameraVideo.current.srcObject=stream;await cameraVideo.current.play();}
+        const scan=async()=>{
+          if(cameraStop.current||!cameraVideo.current)return;
+          try{const codes=await detector.detect(cameraVideo.current);const code=String(codes[0]?.rawValue||'').toUpperCase().match(/[A-Z0-9]{10}/)?.[0];if(code){cameraStop.current=true;setCameraScanning(false);setJoinCode(code);setProjectBusy(true);setProjectMessage('Code detected. Joining project…');try{await joinSharedProject(getApiUrl,code);const {projects}=await fetchSharedProjects(getApiUrl);setSharedProjects(projects);setProjectMessage('Project joined as viewer.');}catch(error:any){setProjectMessage(error?.message||'Could not join project.');}finally{setProjectBusy(false);}return;}}catch{}
+          timer=window.setTimeout(scan,250);
+        };scan();
+      }catch(error:any){setProjectMessage(error?.message||'Could not open camera. Allow camera access and try again.');setCameraScanning(false);}
+    };
+    void start();
+    return()=>{cameraStop.current=true;window.clearTimeout(timer);cameraStream.current?.getTracks().forEach(track=>track.stop());cameraStream.current=null;};
+  },[cameraScanning,getApiUrl]);
 
   const handleRevokeEditor = async (installationId: string) => {
     setRevokingEditorId(installationId);
@@ -672,16 +698,17 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
           <div className="space-y-4">
             <button type="button" className="text-xs font-medium text-blue-500" onClick={()=>{setSelectedSharedProject(null);setView('editor');}}>← Code editor</button>
             {!isGuest ? (
-              <div className={`rounded-xl border p-4 ${isDark ? 'border-zinc-800 bg-zinc-900/60' : 'border-zinc-200 bg-white'}`}>
-                <div className="flex items-center justify-between gap-3"><div><h3 className="text-sm font-semibold">Projects</h3><p className={`mt-1 text-xs ${isDark?'text-zinc-400':'text-zinc-600'}`}>Manage shared access, links and project activity.</p></div><span className="text-xs text-zinc-500">{projectsLoading?'Loading…':`${sharedProjects.length} projects`}</span></div>
+              <div className="py-1">
+                <div className="flex items-center justify-between"><h3 className={`text-xs font-medium ${isDark?'text-zinc-300':'text-zinc-600'}`}>Your projects</h3>{!selectedSharedProject&&<button aria-label="Search projects" onClick={()=>setShowProjectSearch(v=>!v)} className="rounded-md p-1.5 text-zinc-500 hover:bg-zinc-800/60"><Search size={16}/></button>}</div>
+                {showProjectSearch&&!selectedSharedProject&&<input autoFocus value={projectSearch} onChange={e=>setProjectSearch(e.target.value)} placeholder="Search projects" className={`mt-2 w-full rounded-lg border px-3 py-2 text-xs ${isDark?'border-zinc-700 bg-zinc-950':'border-zinc-300 bg-white'}`} />}
                 {!selectedSharedProject&&<div className="mt-3 flex gap-2"><input value={joinCode} onChange={e=>setJoinCode(e.target.value.toUpperCase().slice(0,10))} placeholder="Add existing project code" className={`min-w-0 flex-1 rounded-lg border px-3 py-2 text-xs ${isDark?'border-zinc-700 bg-zinc-950':'border-zinc-300 bg-white'}`} /><button disabled={projectBusy||joinCode.length!==10} onClick={joinProjectByCode} className="rounded-lg bg-blue-600 px-3 py-2 text-xs font-semibold text-white disabled:opacity-50">Join</button></div>}
-                {!selectedSharedProject&&<><input ref={qrFileInput} type="file" accept="image/*" capture="environment" className="hidden" onChange={async e=>{const file=e.target.files?.[0];e.target.value='';if(!file)return;try{const Detector=(window as any).BarcodeDetector;if(!Detector)throw new Error('QR image scanning is not supported in this browser. Enter the project code manually.');const detector=new Detector({formats:['qr_code']});const codes=await detector.detect(await createImageBitmap(file));const code=String(codes[0]?.rawValue||'').toUpperCase().match(/[A-Z0-9]{10}/)?.[0];if(!code)throw new Error('No project code found in this QR.');setJoinCode(code);}catch(error:any){setProjectMessage(error?.message||'Could not scan QR code.');}}} /><button type="button" onClick={()=>qrFileInput.current?.click()} className={`mt-2 w-full rounded-lg border px-3 py-2 text-xs ${isDark?'border-zinc-700':'border-zinc-300'}`}>Scan project QR</button></>}
+                {!selectedSharedProject&&<button type="button" onClick={()=>{setProjectMessage('');setCameraScanning(true);}} className={`mt-2 w-full rounded-lg border px-3 py-2 text-xs ${isDark?'border-zinc-700':'border-zinc-300'}`}>Scan project QR</button>}
                 {projectMessage && <p className={`mt-3 text-xs ${projectMessage.includes('Could not')?'text-red-500':'text-blue-500'}`}>{projectMessage}</p>}
                 {selectedSharedProject ? <div className="mt-4 space-y-4">
                   <button type="button" className="text-xs font-medium text-blue-500" onClick={()=>setSelectedSharedProject(null)}>← All shared projects</button>
                   <div className={`rounded-lg border p-3 ${isDark?'border-zinc-800 bg-zinc-950/40':'border-zinc-200 bg-zinc-50'}`}><p className="text-sm font-semibold">{selectedSharedProject.project.name}</p><p className="mt-1 text-xs text-zinc-500">{selectedSharedProject.project.share_mode==='code'?'Context + code':'Agent context only'} · Admin: {selectedSharedProject.members.find(m=>m.role==='admin')?.name || 'Project owner'}</p></div>
-                  {selectedSharedProject.project.project_code&&<div className={`flex items-center justify-between rounded-lg border px-3 py-2 ${isDark?'border-zinc-800':'border-zinc-200'}`}><div><p className="text-[11px] text-zinc-500">Project code</p><code className="text-sm font-semibold tracking-wider">{selectedSharedProject.project.project_code}</code></div><button onClick={showProjectQr} className="rounded-md border px-2 py-1 text-xs">Show QR</button></div>}
-                  {projectQr&&<div className="flex justify-center rounded-lg bg-white p-3"><img src={projectQr} alt="Project join QR code" className="h-44 w-44" /></div>}
+                  <div className="flex justify-end"><button onClick={showProjectQr} className="rounded-md px-2 py-1 text-xs text-blue-500">Create 5-minute join QR</button></div>
+                  {projectQr&&<div className="flex justify-center bg-white p-3"><img src={projectQr} alt="Project join QR code" className="h-44 w-44" /></div>}
                   <div className={`rounded-lg border p-3 ${isDark?'border-zinc-800':'border-zinc-200'}`}>
                     <p className="text-xs font-semibold">Share link</p>
                     {selectedSharedProject.project.share_url ? <>
@@ -694,7 +721,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                   <div><p className="text-xs font-semibold">Members and access</p><div className="mt-2 space-y-2">{selectedSharedProject.members.map(member=><div key={member.user_id} className={`flex items-center justify-between rounded-lg border p-2.5 ${isDark?'border-zinc-800':'border-zinc-200'}`}><div><p className="text-xs font-medium">{member.name} <span className="text-zinc-500">· {member.role}</span></p><p className="text-[11px] text-zinc-500">{member.email}</p></div>{selectedSharedProject.project.role==='admin'&&member.role!=='admin'&&<button disabled={projectBusy} className="text-xs text-red-500 disabled:opacity-50" onClick={()=>revokeProjectMember(member.user_id)}>Revoke</button>}</div>)}</div></div>
                   {selectedSharedProject.project.role==='admin'&&<div className="flex flex-wrap gap-2"><input value={memberEmail} onChange={e=>setMemberEmail(e.target.value)} placeholder="Existing Colaus account email" className={`min-w-0 flex-1 rounded-lg border px-3 py-2 text-xs ${isDark?'border-zinc-700 bg-zinc-950':'border-zinc-300 bg-white'}`} /><select value={memberRole} onChange={e=>setMemberRole(e.target.value as 'editor'|'viewer')} className={`rounded-lg border px-2 py-2 text-xs ${isDark?'border-zinc-700 bg-zinc-950':'border-zinc-300 bg-white'}`}><option value="editor">Editor</option><option value="viewer">Viewer</option></select><button disabled={projectBusy||!memberEmail.trim()} onClick={inviteProjectMember} className="rounded-lg bg-blue-600 px-3 py-2 text-xs font-semibold text-white disabled:opacity-50">Add member</button></div>}
                   <div><p className="text-xs font-semibold">Recent project activity</p><div className="mt-2 max-h-48 space-y-2 overflow-y-auto">{selectedSharedProject.activity.map(event=><div key={event.id} className="border-l-2 border-blue-500/50 pl-2.5"><p className="text-xs">{event.actor_name||'Member'} · {event.event_type.replaceAll('_',' ')}</p><p className="text-[10px] text-zinc-500">{new Date(event.created_at).toLocaleString()}</p></div>)}{!selectedSharedProject.activity.length&&<p className="text-xs text-zinc-500">No activity yet.</p>}</div></div>
-                </div> : <div className="mt-3 space-y-2">{projectsLoading?<div className="rounded-lg border p-4 text-center text-xs text-zinc-500">Loading projects…</div>:<><div className="flex gap-2"><input value={projectSearch} onChange={e=>setProjectSearch(e.target.value)} placeholder="Search projects" className={`min-w-0 flex-1 rounded-lg border px-3 py-2 text-xs ${isDark?'border-zinc-700 bg-zinc-950':'border-zinc-300 bg-white'}`} /><select value={projectSort} onChange={e=>setProjectSort(e.target.value as 'recent'|'oldest'|'name')} aria-label="Sort projects" className={`rounded-lg border px-2 text-xs ${isDark?'border-zinc-700 bg-zinc-950':'border-zinc-300 bg-white'}`}><option value="recent">Recent</option><option value="oldest">Oldest</option><option value="name">Name</option></select></div>{[...sharedProjects].filter(p=>p.name.toLowerCase().includes(projectSearch.toLowerCase())).sort((a,b)=>projectSort==='name'?a.name.localeCompare(b.name):projectSort==='oldest'?new Date(a.updated_at).getTime()-new Date(b.updated_at).getTime():new Date(b.updated_at).getTime()-new Date(a.updated_at)).map(project=><button key={project.id} onClick={()=>openSharedProject(project.id)} className={`w-full rounded-lg border px-3 py-2 text-left transition-colors ${isDark?'border-zinc-800 hover:bg-zinc-800':'border-zinc-200 hover:bg-zinc-50'}`}><span className="text-sm font-medium">{project.name}</span><span className="ml-2 text-xs text-zinc-500">· {project.member_count} members · {project.role}</span></button>)}{!sharedProjects.length&&<div className={`rounded-lg border border-dashed p-4 text-center text-xs ${isDark?'border-zinc-700 text-zinc-400':'border-zinc-300 text-zinc-500'}`}>No shared projects yet. Share a project from Tossive.</div>}</>}</div>}
+                </div> : <div className="mt-2">{projectsLoading?<div className="py-4 text-center text-xs text-zinc-500">Loading projects…</div>:<>{sharedProjects.filter(p=>p.name.toLowerCase().includes(projectSearch.toLowerCase())).map(project=><button key={project.id} onClick={()=>openSharedProject(project.id)} className={`w-full py-2 text-left transition-colors ${isDark?'hover:bg-zinc-800/60':'hover:bg-zinc-100'}`}><span className="text-sm font-medium">{project.name}</span><span className="ml-2 text-xs text-zinc-500">· {project.member_count} members · {project.role}</span></button>)}{!sharedProjects.length&&<div className="py-4 text-center text-xs text-zinc-500">No shared projects yet. Share a project from Tossive.</div>}</>}</div>}
                 {projectBusy&&<p className="mt-2 text-xs text-zinc-500">Updating project…</p>}
               </div>
             ) : <div className="rounded-xl border border-zinc-700 p-4 text-xs text-zinc-500">Sign in to manage shared projects and team members.</div>}
@@ -952,6 +979,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
         </div>
       )}
 
+      {cameraScanning&&<div className="fixed inset-0 z-[80] flex items-center justify-center bg-black"><video ref={cameraVideo} playsInline muted className="absolute inset-0 h-full w-full object-cover"/><div className="absolute inset-0 bg-black/55"/><div className="relative flex h-64 w-64 items-center justify-center rounded-3xl border-2 border-white shadow-[0_0_0_999px_rgba(0,0,0,0.58)]"><div className="h-52 w-52 rounded-2xl border border-white/50"/></div><p className="absolute top-[calc(50%+9rem)] px-6 text-center text-sm text-white">QR ko frame ke andar rakhein — scan hote hi project join ho jayega.</p><button onClick={()=>setCameraScanning(false)} className="absolute right-5 top-5 rounded-full bg-black/50 px-4 py-2 text-sm text-white">Cancel</button></div>}
       {showInstallChooser && !isMobileDevice && (
         <div
           className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm"
