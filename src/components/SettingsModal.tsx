@@ -31,9 +31,11 @@ import {
   Star,
   Send,
   Search,
+  Copy,
+  Pencil,
 } from 'lucide-react';
 import { getClientVersion } from '../version';
-import { ConnectedEditor, fetchConnectedEditors, isGuestUser, revokeConnectedEditor, submitFeedback, SharedProjectSummary, SharedProjectDetail, fetchSharedProjects, fetchSharedProject, fetchSharedProjectCode, addSharedProjectMember, revokeSharedProjectMember, regenerateSharedProjectLink, joinSharedProject, createProjectInviteCode } from '../utils/api';
+import { ConnectedEditor, fetchConnectedEditors, isGuestUser, revokeConnectedEditor, submitFeedback, SharedProjectSummary, SharedProjectDetail, fetchSharedProjects, fetchSharedProject, fetchSharedProjectCode, addSharedProjectMember, revokeSharedProjectMember, regenerateSharedProjectLink, joinSharedProject, createProjectInviteCode, updateSharedProjectMemberRole } from '../utils/api';
 
 const TOSSIVE_MARKETPLACE_ITEM_ID = 'nitishVishwakarma.tossive';
 const TOSSIVE_VSCODE_MARKETPLACE_URL = `https://marketplace.visualstudio.com/items?itemName=${TOSSIVE_MARKETPLACE_ITEM_ID}`;
@@ -205,13 +207,20 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   };
   const renewProjectLink = async () => {
     if(!selectedSharedProject) return;
+    const password=window.prompt('Optional: set a password for this share link (minimum 8 characters). Leave blank for no password. Cancel to stop.');
+    if(password===null)return;
     setProjectBusy(true); setProjectMessage('Creating a new share link…');
     try {
-      const {shareUrl}=await regenerateSharedProjectLink(getApiUrl,selectedSharedProject.project.id);
+      const {shareUrl}=await regenerateSharedProjectLink(getApiUrl,selectedSharedProject.project.id,password);
       setSelectedSharedProject(current=>current?{...current,project:{...current.project,share_url:shareUrl}}:current);
       setProjectMessage('New share link created. The previous link no longer works.');
     } catch(error:any) { setProjectMessage(error?.message||'Could not create a new share link.'); }
     finally { setProjectBusy(false); }
+  };
+  const changeMemberRole=async(userId:string,role:'editor'|'viewer')=>{
+    if(!selectedSharedProject)return;setProjectBusy(true);
+    try{await updateSharedProjectMemberRole(getApiUrl,selectedSharedProject.project.id,userId,role);await openSharedProject(selectedSharedProject.project.id);setProjectMessage('Member permission updated.');}
+    catch(error:any){setProjectMessage(error?.message||'Could not update member permission.');}finally{setProjectBusy(false);}
   };
   const showProjectQr = async () => {
     const selected=selectedSharedProject;
@@ -707,21 +716,21 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 {selectedSharedProject ? <div className="mt-4 space-y-4">
                   <button type="button" className="text-xs font-medium text-blue-500" onClick={()=>setSelectedSharedProject(null)}>← All shared projects</button>
                   <div className={`rounded-lg border p-3 ${isDark?'border-zinc-800 bg-zinc-950/40':'border-zinc-200 bg-zinc-50'}`}><p className="text-sm font-semibold">{selectedSharedProject.project.name}</p><p className="mt-1 text-xs text-zinc-500">{selectedSharedProject.project.share_mode==='code'?'Context + code':'Agent context only'} · Admin: {selectedSharedProject.members.find(m=>m.role==='admin')?.name || 'Project owner'}</p></div>
-                  <div className="flex justify-end"><button onClick={showProjectQr} className="rounded-md px-2 py-1 text-xs text-blue-500">Create 5-minute join QR</button></div>
-                  {projectQr&&<div className="flex justify-center bg-white p-3"><img src={projectQr} alt="Project join QR code" className="h-44 w-44" /></div>}
+                  {selectedSharedProject.project.role==='admin'&&<div className="flex justify-end"><button onClick={showProjectQr} className="rounded-md px-2 py-1 text-xs text-blue-500">Create 5-minute join QR</button></div>}
+                  {projectQr&&selectedSharedProject.project.role==='admin'&&<div className="relative flex justify-center bg-white p-3"><img src={projectQr} alt="Project join QR code" className="h-44 w-44"/><button onClick={()=>setProjectQr('')} aria-label="Close QR" className="absolute right-2 top-2 rounded-full bg-white p-1 text-zinc-700">×</button></div>}
                   <div className={`rounded-lg border p-3 ${isDark?'border-zinc-800':'border-zinc-200'}`}>
                     <p className="text-xs font-semibold">Share link</p>
                     {selectedSharedProject.project.share_url ? <>
                       <input readOnly value={selectedSharedProject.project.share_url} onFocus={e=>e.currentTarget.select()} aria-label="Shared project link" className={`mt-2 w-full rounded-lg border px-3 py-2 text-xs ${isDark?'border-zinc-700 bg-zinc-950 text-zinc-300':'border-zinc-300 bg-white text-zinc-700'}`} />
-                      <div className="mt-2 flex flex-wrap gap-2"><button onClick={shareProjectLink} className="inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-3 py-2 text-xs font-semibold text-white"><Share2 size={13}/>{navigator.share?'Share…':'Share link'}</button><button onClick={copyProjectLink} className={`rounded-lg border px-3 py-2 text-xs font-semibold ${isDark?'border-zinc-700':'border-zinc-300'}`}>{projectLinkCopied?'Copied':'Copy link'}</button>{selectedSharedProject.project.role==='admin'&&<button disabled={projectBusy} onClick={renewProjectLink} className={`rounded-lg border px-3 py-2 text-xs ${isDark?'border-zinc-700 text-zinc-300':'border-zinc-300 text-zinc-700'} disabled:opacity-50`}>Create new link</button>}</div>
+                      <div className="mt-2 flex gap-2"><a href={selectedSharedProject.project.share_url} target="_blank" rel="noreferrer" className="min-w-0 flex-1 truncate rounded-lg border px-3 py-2 text-xs text-blue-500">Open link ↗</a><button onClick={copyProjectLink} aria-label="Copy share link" title="Copy link" className="rounded-lg border p-2"><Copy size={15}/></button></div>
                       <p className="mt-2 text-[11px] text-zinc-500">Anyone with this link can open the shared {selectedSharedProject.project.share_mode==='code'?'project files and context':'agent context'}.</p>
                     </> : <div className="mt-2"><p className="text-xs text-zinc-500">No public link exists yet.</p>{selectedSharedProject.project.role==='admin'&&<button disabled={projectBusy} onClick={renewProjectLink} className="mt-2 rounded-lg bg-blue-600 px-3 py-2 text-xs font-semibold text-white disabled:opacity-50">Create share link</button>}</div>}
                   </div>
                   {selectedSharedProject.project.share_mode==='code'&&<button disabled={projectBusy} onClick={downloadSharedCode} className="rounded-lg border border-blue-500/40 px-3 py-2 text-xs font-semibold text-blue-500 disabled:opacity-50">Download shared code bundle</button>}
-                  <div><p className="text-xs font-semibold">Members and access</p><div className="mt-2 space-y-2">{selectedSharedProject.members.map(member=><div key={member.user_id} className={`flex items-center justify-between rounded-lg border p-2.5 ${isDark?'border-zinc-800':'border-zinc-200'}`}><div><p className="text-xs font-medium">{member.name} <span className="text-zinc-500">· {member.role}</span></p><p className="text-[11px] text-zinc-500">{member.email}</p></div>{selectedSharedProject.project.role==='admin'&&member.role!=='admin'&&<button disabled={projectBusy} className="text-xs text-red-500 disabled:opacity-50" onClick={()=>revokeProjectMember(member.user_id)}>Revoke</button>}</div>)}</div></div>
+                  <div><p className="text-xs font-semibold">Members and access</p><div className="mt-2 space-y-2">{selectedSharedProject.members.map(member=><div key={member.user_id} className={`flex items-center justify-between rounded-lg border p-2.5 ${isDark?'border-zinc-800':'border-zinc-200'}`}><div><p className="text-xs font-medium">{member.name} <span className="text-zinc-500">· {member.role}</span></p><p className="text-[11px] text-zinc-500">{member.email}</p></div>{selectedSharedProject.project.role==='admin'&&member.role!=='admin'&&<div className="flex items-center gap-3"><button disabled={projectBusy} title={`Change access to ${member.role==='viewer'?'editor':'viewer'}`} className="text-zinc-500 disabled:opacity-50" onClick={()=>changeMemberRole(member.user_id,member.role==='viewer'?'editor':'viewer')}><Pencil size={14}/></button><button disabled={projectBusy} className="text-xs text-red-500 disabled:opacity-50" onClick={()=>revokeProjectMember(member.user_id)}>Revoke</button></div>}</div>)}</div></div>
                   {selectedSharedProject.project.role==='admin'&&<div className="flex flex-wrap gap-2"><input value={memberEmail} onChange={e=>setMemberEmail(e.target.value)} placeholder="Existing Colaus account email" className={`min-w-0 flex-1 rounded-lg border px-3 py-2 text-xs ${isDark?'border-zinc-700 bg-zinc-950':'border-zinc-300 bg-white'}`} /><select value={memberRole} onChange={e=>setMemberRole(e.target.value as 'editor'|'viewer')} className={`rounded-lg border px-2 py-2 text-xs ${isDark?'border-zinc-700 bg-zinc-950':'border-zinc-300 bg-white'}`}><option value="editor">Editor</option><option value="viewer">Viewer</option></select><button disabled={projectBusy||!memberEmail.trim()} onClick={inviteProjectMember} className="rounded-lg bg-blue-600 px-3 py-2 text-xs font-semibold text-white disabled:opacity-50">Add member</button></div>}
-                  <div><p className="text-xs font-semibold">Recent project activity</p><div className="mt-2 max-h-48 space-y-2 overflow-y-auto">{selectedSharedProject.activity.map(event=><div key={event.id} className="border-l-2 border-blue-500/50 pl-2.5"><p className="text-xs">{event.actor_name||'Member'} · {event.event_type.replaceAll('_',' ')}</p><p className="text-[10px] text-zinc-500">{new Date(event.created_at).toLocaleString()}</p></div>)}{!selectedSharedProject.activity.length&&<p className="text-xs text-zinc-500">No activity yet.</p>}</div></div>
-                </div> : <div className="mt-2">{projectsLoading?<div className="py-4 text-center text-xs text-zinc-500">Loading projects…</div>:<>{sharedProjects.filter(p=>p.name.toLowerCase().includes(projectSearch.toLowerCase())).map(project=><button key={project.id} onClick={()=>openSharedProject(project.id)} className={`w-full py-2 text-left transition-colors ${isDark?'hover:bg-zinc-800/60':'hover:bg-zinc-100'}`}><span className="text-sm font-medium">{project.name}</span><span className="ml-2 text-xs text-zinc-500">· {project.member_count} members · {project.role}</span></button>)}{!sharedProjects.length&&<div className="py-4 text-center text-xs text-zinc-500">No shared projects yet. Share a project from Tossive.</div>}</>}</div>}
+                  {selectedSharedProject.project.role==='admin'&&<div><p className="text-xs font-semibold">Recent project activity</p><div className="mt-2 max-h-48 space-y-2 overflow-y-auto">{selectedSharedProject.activity.map(event=><div key={event.id} className="border-l-2 border-blue-500/50 pl-2.5"><p className="text-xs">{event.actor_name||'Member'} · {event.event_type.replaceAll('_',' ')}</p><p className="text-[10px] text-zinc-500">{new Date(event.created_at).toLocaleString()}</p></div>)}{!selectedSharedProject.activity.length&&<p className="text-xs text-zinc-500">No activity yet.</p>}</div></div>}
+                </div> : <div className="mt-2">{projectsLoading?<div className="py-4 text-center text-xs text-zinc-500">Loading projects…</div>:<>{sharedProjects.filter(p=>p.name.toLowerCase().includes(projectSearch.toLowerCase())).map(project=><div key={project.id} className={`flex items-center py-1 ${isDark?'hover:bg-zinc-800/60':'hover:bg-zinc-100'}`}><button onClick={()=>openSharedProject(project.id)} className="min-w-0 flex-1 py-2 text-left"><span className="text-sm font-medium">{project.name}</span><span className="ml-2 text-xs text-zinc-500">· {project.member_count} members · {project.role}</span></button><button aria-label={`Share ${project.name}`} title="Share project" onClick={()=>openSharedProject(project.id)} className="rounded-md p-2 text-zinc-500 hover:text-blue-500"><Share2 size={15}/></button></div>)}{!sharedProjects.length&&<div className="py-4 text-center text-xs text-zinc-500">No shared projects yet. Share a project from Tossive.</div>}</>}</div>}
                 {projectBusy&&<p className="mt-2 text-xs text-zinc-500">Updating project…</p>}
               </div>
             ) : <div className="rounded-xl border border-zinc-700 p-4 text-xs text-zinc-500">Sign in to manage shared projects and team members.</div>}
@@ -979,7 +988,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
         </div>
       )}
 
-      {cameraScanning&&<div className="fixed inset-0 z-[80] flex items-center justify-center bg-black"><video ref={cameraVideo} playsInline muted className="absolute inset-0 h-full w-full object-cover"/><div className="absolute inset-0 bg-black/55"/><div className="relative flex h-64 w-64 items-center justify-center rounded-3xl border-2 border-white shadow-[0_0_0_999px_rgba(0,0,0,0.58)]"><div className="h-52 w-52 rounded-2xl border border-white/50"/></div><p className="absolute top-[calc(50%+9rem)] px-6 text-center text-sm text-white">QR ko frame ke andar rakhein — scan hote hi project join ho jayega.</p><button onClick={()=>setCameraScanning(false)} className="absolute right-5 top-5 rounded-full bg-black/50 px-4 py-2 text-sm text-white">Cancel</button></div>}
+      {cameraScanning&&<div className="fixed inset-0 z-[80] flex items-center justify-center bg-black"><video ref={cameraVideo} playsInline muted className="absolute inset-0 h-full w-full object-cover"/><div className="absolute inset-0 bg-black/55"/><div className="relative h-64 w-64 rounded-3xl border-2 border-white shadow-[0_0_0_999px_rgba(0,0,0,0.58)]"/><button onClick={()=>setCameraScanning(false)} className="absolute right-5 top-5 rounded-full bg-black/50 px-4 py-2 text-sm text-white">Cancel</button></div>}
       {showInstallChooser && !isMobileDevice && (
         <div
           className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm"
