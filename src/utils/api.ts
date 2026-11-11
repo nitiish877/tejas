@@ -60,7 +60,7 @@ async function request<T>(getUrl: UrlBuilder, path: string, options: RequestInit
   try {
     res = await fetch(getUrl(path), { ...options, cache: 'no-store', headers: { ...headers, ...(options.headers as any) } });
   } catch {
-    throw new ApiError('Could not reach the server. Check your internet or backend URL.', 0);
+    throw new ApiError(navigator.onLine ? 'Service is unavailable right now. Please try again shortly.' : 'No internet connection. Check your connection and try again.', 0);
   }
 
   let data: any = null;
@@ -69,12 +69,14 @@ async function request<T>(getUrl: UrlBuilder, path: string, options: RequestInit
   } catch {}
 
   if (!res.ok) {
+    if (res.status >= 500) throw new ApiError('Server error. Please try again shortly.', res.status);
+    if (res.status === 404) throw new ApiError('This service is unavailable right now.', res.status);
     throw new ApiError(data?.error || `Request failed (${res.status})`, res.status);
   }
 
   if (data === null) {
     throw new ApiError(
-      'Backend returned an invalid response (page instead of JSON). Check VITE_BACKEND_URL or the /api proxy rewrite.',
+      'We couldn’t complete that request. Please try again shortly.',
       502
     );
   }

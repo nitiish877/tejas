@@ -1647,10 +1647,10 @@ export default function App() {
           streamErrorFriendly
             ? streamError
             : !navigator.onLine
-            ? 'Connection lost. Please check your internet and try again.'
+            ? 'No internet connection. Check your connection and try again.'
             : err.message === 'Failed to fetch'
-            ? 'Could not reach the backend. Check the backend URL configured for this app deployment and the server status.'
-            : err.message || 'Failed to connect to the LLM endpoint';
+            ? 'Service is unavailable right now. Please try again shortly.'
+            : 'Something went wrong. Please try again shortly.';
         const errorText = streamErrorFriendly
           ? `\n\n⚠️ ${friendly}`
           : `\n\n⚠️ *Streaming error: ${friendly}*`;
