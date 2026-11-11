@@ -226,8 +226,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
           {openMenuId === chat.id && (
             <div
               onClick={(e) => e.stopPropagation()}
-              className={`absolute right-0 top-full mt-1 z-50 w-40 rounded-lg border shadow-xl py-1 ${
-                isDark ? 'bg-zinc-900 border-zinc-700' : 'bg-white border-zinc-200'
+              className={`absolute right-0 top-full mt-1 z-50 w-40 rounded-lg py-1 shadow-lg ${
+                isDark ? 'bg-zinc-900' : 'bg-white'
               }`}
             >
               <button
@@ -323,8 +323,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
           {openMenuId === chat.id && (
             <div
-              className={`absolute right-0 top-full mt-1 z-50 w-48 rounded-lg border shadow-xl py-1 ${
-                isDark ? 'bg-zinc-900 border-zinc-700' : 'bg-white border-zinc-200'
+              className={`absolute right-0 top-full mt-1 z-50 w-48 rounded-lg py-1 shadow-lg ${
+                isDark ? 'bg-zinc-900' : 'bg-white'
               }`}
             >
               <button
@@ -372,7 +372,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
       <aside
         id="app-sidebar"
-        className={`fixed top-0 bottom-0 left-0 z-50 w-72 sm:w-80 flex flex-col border-r transition-transform duration-300 ease-in-out ${
+        className={`fixed top-0 bottom-0 left-0 z-50 w-72 sm:w-80 flex flex-col transition-transform duration-300 ease-in-out ${
           isOpen ? 'translate-x-0' : isCollapsed ? '-translate-x-full' : '-translate-x-full md:translate-x-0'
         } ${
           isDark
@@ -381,7 +381,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         }`}
       >
         {/* Top Header */}
-        <div className={`p-4 flex items-center justify-between border-b ${isDark ? 'border-zinc-800' : 'border-zinc-200'}`}>
+        <div className="p-4 flex items-center justify-between">
           {view === 'trash' ? (
             <button
               type="button"
@@ -427,17 +427,17 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 onNewChat();
                 if (window.innerWidth < 768) onClose();
               }}
-              className={`w-full py-2.5 px-3 rounded-xl text-sm font-medium border flex items-center justify-between transition-all ${
+              className={`w-full py-2.5 px-2 text-sm font-medium flex items-center justify-between transition-colors ${
                 isDark
-                  ? 'bg-zinc-800/80 hover:bg-zinc-700/80 border-zinc-700/60 text-zinc-100 shadow-sm'
-                  : 'bg-white hover:bg-zinc-100 border-zinc-200 text-zinc-900 shadow-sm'
+                  ? 'hover:bg-zinc-800/60 text-zinc-100'
+                  : 'hover:bg-zinc-100 text-zinc-900'
               }`}
             >
               <div className="flex items-center gap-2">
                 <Plus className="w-4 h-4" />
                 <span>New chat</span>
               </div>
-              <span className={`text-[10px] px-1.5 py-0.5 rounded ${isDark ? 'bg-zinc-700 text-zinc-300' : 'bg-zinc-100 text-zinc-500'}`}>
+              <span className={`text-[10px] ${isDark ? 'text-zinc-500' : 'text-zinc-400'}`}>
                 Ctrl+K
               </span>
             </button>
@@ -449,14 +449,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 onStartTempChat();
                 if (window.innerWidth < 768) onClose();
               }}
-              className={`w-full py-2 px-3 rounded-xl text-xs font-medium border flex items-center justify-center gap-2 transition-all ${
+              className={`w-full py-2 px-2 text-xs font-medium flex items-center gap-2 transition-colors ${
                 isTempChatActive
                   ? isDark
-                    ? 'bg-amber-500/15 border-amber-500/40 text-amber-300'
-                    : 'bg-amber-50 border-amber-300 text-amber-900'
+                    ? 'text-amber-300'
+                    : 'text-amber-900'
                   : isDark
-                  ? 'bg-zinc-800/40 hover:bg-zinc-800 border-zinc-800 text-zinc-400 hover:text-zinc-200'
-                  : 'bg-white hover:bg-zinc-100 border-zinc-200 text-zinc-600'
+                  ? 'hover:bg-zinc-800/60 text-zinc-400 hover:text-zinc-200'
+                  : 'hover:bg-zinc-100 text-zinc-600'
               }`}
             >
               <Flame className={`w-3.5 h-3.5 ${isTempChatActive ? 'text-amber-400' : 'text-zinc-400'}`} />
@@ -471,10 +471,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search chats..."
-                className={`w-full pl-8 pr-3 py-1.5 rounded-lg text-xs border focus:outline-none focus:ring-1 focus:ring-zinc-400 transition-colors ${
+                className={`w-full pl-8 pr-3 py-1.5 rounded-lg text-xs border-0 focus:outline-none focus:ring-1 focus:ring-zinc-400 transition-colors ${
                   isDark
-                    ? 'bg-zinc-900/60 border-zinc-800 text-zinc-200 placeholder-zinc-500'
-                    : 'bg-white border-zinc-200 text-zinc-800 placeholder-zinc-400'
+                    ? 'bg-transparent text-zinc-200 placeholder-zinc-500'
+                    : 'bg-transparent text-zinc-800 placeholder-zinc-400'
                 }`}
               />
             </div>
@@ -571,10 +571,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
               id="sidebar-code-editor-btn"
               type="button"
               onClick={onOpenCodeEditor}
-              className={`w-full py-2 px-3 rounded-xl text-xs font-semibold flex items-center justify-center gap-2 border transition-all ${
+              className={`w-full py-2 px-2 text-xs font-semibold flex items-center gap-2 transition-colors ${
                 isDark
-                  ? 'bg-zinc-800/60 hover:bg-zinc-800 border-zinc-800 text-zinc-300'
-                  : 'bg-white hover:bg-zinc-100 border-zinc-200 text-zinc-700'
+                  ? 'hover:bg-zinc-800/60 text-zinc-300'
+                  : 'hover:bg-zinc-100 text-zinc-700'
               }`}
             >
               <Code2 className="w-3.5 h-3.5" />
@@ -585,7 +585,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
         {/* Guest sign-in banner */}
         {view === 'chats' && onOpenAuth && (currentUser.provider === 'guest' || !currentUser.email || currentUser.email.includes('guest')) && (
-          <div className="px-3 py-2 border-t border-zinc-800/80">
+          <div className="px-3 py-2">
             <button
               id="sidebar-auth-btn"
               type="button"
@@ -593,7 +593,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 onOpenAuth();
                 if (window.innerWidth < 768) onClose();
               }}
-              className="w-full py-2 px-3 rounded-xl text-xs font-bold bg-white text-zinc-950 hover:bg-zinc-200 flex items-center justify-center gap-2 transition-all shadow-sm"
+              className={`w-full py-2 px-2 rounded-lg text-xs font-bold flex items-center gap-2 transition-colors ${
+                isDark ? 'text-zinc-300 hover:bg-zinc-800/60' : 'text-zinc-700 hover:bg-zinc-100'
+              }`}
             >
               <LogIn className="w-3.5 h-3.5" />
               <span>Log In / Register</span>
@@ -602,7 +604,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         )}
 
         {/* Bottom: profile + settings */}
-        <div className={`p-2.5 border-t ${isDark ? 'border-zinc-800 bg-zinc-900/50' : 'border-zinc-200 bg-zinc-50'}`}>
+        <div className={`p-2.5 ${isDark ? 'bg-zinc-900/50' : 'bg-zinc-50'}`}>
           <div className="flex items-center justify-between gap-1.5">
             <button
               id="user-account-btn"
