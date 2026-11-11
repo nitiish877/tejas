@@ -154,6 +154,7 @@ export const addSharedProjectMember = (getUrl: UrlBuilder,id:string,email:string
 export const revokeSharedProjectMember = (getUrl: UrlBuilder,id:string,userId:string) => request<{ok:boolean}>(getUrl,`/api/projects/${encodeURIComponent(id)}/members/${encodeURIComponent(userId)}`,{method:'DELETE'},true);
 export const updateSharedProjectMemberRole = (getUrl: UrlBuilder,id:string,userId:string,role:'editor'|'viewer') => request<{ok:boolean}>(getUrl,`/api/projects/${encodeURIComponent(id)}/members/${encodeURIComponent(userId)}`,{method:'PATCH',body:JSON.stringify({role})},true);
 export const deleteSharedProject = (getUrl: UrlBuilder,id:string) => request<{ok:boolean}>(getUrl,`/api/projects/${encodeURIComponent(id)}`,{method:'DELETE'},true);
+export const createSharedProjectEditorLaunch = (getUrl: UrlBuilder,id:string) => request<{launchToken:string}>(getUrl,`/api/projects/${encodeURIComponent(id)}/editor-launch`,{method:'POST'},true);
 
 export const fetchAuthProviders = (getUrl: UrlBuilder) =>
   request<{ email: boolean; google: boolean; github: boolean; microsoft: boolean }>(

@@ -1302,7 +1302,7 @@ export default function App() {
         err?.message || 'Image generation failed. Try again';
       const updateMsg = (m: Message) =>
         m.id === assistantId
-          ? { ...m, content: `⚠️ ${errorMsg}`, status: 'error' as const }
+          ? { ...m, content: `${errorMsg}`, status: 'error' as const }
           : m;
       if (isTempChatActive) {
         setTempChatMessages((prev) => prev.map(updateMsg));
@@ -1652,8 +1652,8 @@ export default function App() {
             ? 'Service is unavailable right now. Please try again shortly.'
             : 'Something went wrong. Please try again shortly.';
         const errorText = streamErrorFriendly
-          ? `\n\n⚠️ ${friendly}`
-          : `\n\n⚠️ *Streaming error: ${friendly}*`;
+          ? `\n\n ${friendly}`
+          : `\n\n *Streaming error: ${friendly}*`;
         if (isTempChatActive) {
           setTempChatMessages((prev) =>
             prev.map((m) =>

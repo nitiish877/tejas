@@ -35,9 +35,10 @@ import {
   Pencil,
   Hash,
   Link2,
+  Code2,
 } from 'lucide-react';
 import { getClientVersion } from '../version';
-import { ConnectedEditor, fetchConnectedEditors, isGuestUser, revokeConnectedEditor, submitFeedback, SharedProjectSummary, SharedProjectDetail, fetchSharedProjects, fetchSharedProject, fetchSharedProjectCode, addSharedProjectMember, revokeSharedProjectMember, regenerateSharedProjectLink, joinSharedProject, createProjectInviteCode, updateSharedProjectMemberRole, deleteSharedProject } from '../utils/api';
+import { ConnectedEditor, fetchConnectedEditors, isGuestUser, revokeConnectedEditor, submitFeedback, SharedProjectSummary, SharedProjectDetail, fetchSharedProjects, fetchSharedProject, fetchSharedProjectCode, addSharedProjectMember, revokeSharedProjectMember, regenerateSharedProjectLink, joinSharedProject, createProjectInviteCode, updateSharedProjectMemberRole, deleteSharedProject, createSharedProjectEditorLaunch } from '../utils/api';
 
 const TOSSIVE_MARKETPLACE_ITEM_ID = 'nitishVishwakarma.tossive';
 const TOSSIVE_VSCODE_MARKETPLACE_URL = `https://marketplace.visualstudio.com/items?itemName=${TOSSIVE_MARKETPLACE_ITEM_ID}`;
@@ -233,6 +234,12 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     const id=selectedSharedProject.project.id;setProjectBusy(true);
     try{await deleteSharedProject(getApiUrl,id);setSelectedSharedProject(null);setSharedProjects(items=>items.filter(item=>item.id!==id));setProjectMessage('Project and its shares deleted.');}
     catch(error:any){setProjectMessage(error?.message||'Could not delete project.');}finally{setProjectBusy(false);}
+  };
+  const openProjectInEditor=async(projectId:string)=>{
+    setProjectBusy(true);setProjectMessage('Opening Tossive…');
+    try{const {launchToken}=await createSharedProjectEditorLaunch(getApiUrl,projectId);window.location.href=`vscode://nitishVishwakarma.tossive/open-shared?token=${encodeURIComponent(launchToken)}`;}
+    catch(error:any){setProjectMessage(error?.message||'Could not open this project in Tossive.');}
+    finally{setProjectBusy(false);}
   };
   const showProjectQr = async () => {
     const selected=selectedSharedProject;
@@ -734,6 +741,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 {selectedSharedProject ? <div className="mt-4 space-y-4">
                   <button type="button" className="text-xs font-medium text-blue-500" onClick={()=>setSelectedSharedProject(null)}>← All shared projects</button>
                   <div className="py-1"><p className="text-sm font-semibold">{selectedSharedProject.project.name}</p><p className="mt-1 text-xs text-zinc-500">{selectedSharedProject.project.share_mode==='code'?'Context + code':'Agent context only'} · Admin: {selectedSharedProject.members.find(m=>m.role==='admin')?.name || 'Project owner'}</p></div>
+                  <button disabled={projectBusy} onClick={()=>openProjectInEditor(selectedSharedProject.project.id)} className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-3 py-2 text-xs font-semibold text-white disabled:opacity-50"><Code2 size={14}/>Open project in editor</button>
                   <div className="py-1">
                     <p className="text-xs font-semibold">Share link</p>
                     {selectedSharedProject.project.share_url ? <>
@@ -750,7 +758,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                   {selectedSharedProject.project.role==='admin'&&<div><p className="text-xs font-semibold">Recent project activity</p><div className="mt-2 max-h-48 space-y-2 overflow-y-auto">{selectedSharedProject.activity.map(event=><div key={event.id} className="border-l-2 border-blue-500/50 pl-2.5"><p className="text-xs">{event.actor_name||'Member'} · {event.event_type.replaceAll('_',' ')}</p><p className="text-[10px] text-zinc-500">{new Date(event.created_at).toLocaleString()}</p></div>)}{!selectedSharedProject.activity.length&&<p className="text-xs text-zinc-500">No activity yet.</p>}</div></div>}
                   {selectedSharedProject.project.role==='admin'&&!showDeleteConfirmation&&<button disabled={projectBusy} onClick={()=>setShowDeleteConfirmation(true)} className="text-left text-xs text-red-500 disabled:opacity-50">Delete project</button>}
                   {selectedSharedProject.project.role==='admin'&&showDeleteConfirmation&&<div role="alertdialog" aria-label="Confirm project deletion" className={`rounded-lg p-3 ${isDark?'bg-red-950/30':'bg-red-50'}`}><p className="text-sm font-medium">Delete this project?</p><p className="mt-1 text-xs text-zinc-500">Its share links, QR invites, files, members, and activity will be deleted.</p><div className="mt-3 flex justify-end gap-2"><button disabled={projectBusy} onClick={()=>setShowDeleteConfirmation(false)} className="rounded-md px-3 py-1.5 text-xs">Cancel</button><button disabled={projectBusy} onClick={removeProject} className="rounded-md bg-red-600 px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-50">{projectBusy?'Deleting…':'Delete project'}</button></div></div>}
-                </div> : <div className="mt-2">{projectsLoading?<div className="py-4 text-center text-xs text-zinc-500">Loading projects…</div>:<>{sharedProjects.filter(p=>p.name.toLowerCase().includes(projectSearch.toLowerCase())).map(project=><div key={project.id} className={`flex items-center py-1 ${isDark?'hover:bg-zinc-800/60':'hover:bg-zinc-100'}`}><button onClick={()=>openSharedProject(project.id)} className="min-w-0 flex-1 py-2 text-left"><span className="text-sm font-medium">{project.name}</span><span className="ml-2 text-xs text-zinc-500">· {project.member_count} members · {project.role}</span></button><button aria-label={`Share ${project.name}`} title="Share project" onClick={()=>openSharedProject(project.id)} className="rounded-md p-2 text-zinc-500 hover:text-blue-500"><Share2 size={15}/></button></div>)}{!sharedProjects.length&&<div className="py-4 text-center text-xs text-zinc-500">No shared projects yet. Share a project from Tossive.</div>}</>}</div>}
+                </div> : <div className="mt-2">{projectsLoading?<div className="py-4 text-center text-xs text-zinc-500">Loading projects…</div>:<>{sharedProjects.filter(p=>p.name.toLowerCase().includes(projectSearch.toLowerCase())).map(project=><div key={project.id} className={`flex items-center py-1 ${isDark?'hover:bg-zinc-800/60':'hover:bg-zinc-100'}`}><button onClick={()=>openSharedProject(project.id)} className="min-w-0 flex-1 py-2 text-left"><span className="text-sm font-medium">{project.name}</span><span className="ml-2 text-xs text-zinc-500">· {project.member_count} members · {project.role}</span></button><button aria-label={`Open ${project.name} in editor`} title="Open project in editor" onClick={()=>openProjectInEditor(project.id)} className="rounded-md p-2 text-zinc-500 hover:text-blue-500"><Code2 size={15}/></button><button aria-label={`Share ${project.name}`} title="Share project" onClick={()=>openSharedProject(project.id)} className="rounded-md p-2 text-zinc-500 hover:text-blue-500"><Share2 size={15}/></button></div>)}{!sharedProjects.length&&<div className="py-4 text-center text-xs text-zinc-500">No shared projects yet. Share a project from Tossive.</div>}</>}</div>}
                 {projectBusy&&<p className="mt-2 text-xs text-zinc-500">Updating project…</p>}
               </div>
             ) : <div className="rounded-xl border border-zinc-700 p-4 text-xs text-zinc-500">Sign in to manage shared projects and team members.</div>}
