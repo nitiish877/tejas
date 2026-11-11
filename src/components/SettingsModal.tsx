@@ -243,8 +243,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   };
   const showProjectCode = async () => {
     const selected=selectedSharedProject;if(!selected)return;
-    try{setProjectBusy(true);const {code}=await createProjectInviteCode(getApiUrl,selected.project.id);setProjectInviteCode(code);setProjectQr('');setProjectMessage('Invite code expires in 5 minutes.');}
-    catch{setProjectMessage('Could not create project code.');}finally{setProjectBusy(false);}
+    try{setProjectBusy(true);const {code}=await createProjectInviteCode(getApiUrl,selected.project.id);setProjectInviteCode(code);setProjectQr('');}
   };
   const joinProjectByCode = async () => {
     if(!joinCode.trim()) return;
