@@ -13,6 +13,7 @@ import {
   LogIn,
   Code2,
   MoreVertical,
+  GripVertical,
   RotateCcw,
   AlertTriangle,
   Loader2,
@@ -22,6 +23,8 @@ import {
 interface SidebarProps {
   isOpen: boolean;
   isCollapsed?: boolean;
+  width: number;
+  onWidthChange: (width: number) => void;
   onClose: () => void;
   onToggleCollapsed?: () => void;
   chats: ChatSession[];
@@ -52,6 +55,8 @@ interface SidebarProps {
 export const Sidebar: React.FC<SidebarProps> = ({
   isOpen,
   isCollapsed = false,
+  width,
+  onWidthChange,
   onClose,
   onToggleCollapsed,
   chats,
@@ -78,9 +83,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onPermanentlyDeleteChat,
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
+  const [searchOpen, setSearchOpen] = useState(false);
   const [view, setView] = useState<'chats' | 'trash'>('chats');
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
+  const resizeStartRef = useRef<{ x: number; width: number } | null>(null);
 
   // ---- Long-press state ----
   const longPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -105,6 +113,23 @@ export const Sidebar: React.FC<SidebarProps> = ({
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
   }, []);
+
+  useEffect(() => {
+    if (searchOpen) searchInputRef.current?.focus();
+  }, [searchOpen]);
+
+  const handleResizeStart = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (window.innerWidth < 768) return;
+    e.preventDefault();
+    resizeStartRef.current = { x: e.clientX, width };
+    e.currentTarget.setPointerCapture(e.pointerId);
+  };
+
+  const handleResize = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (!resizeStartRef.current) return;
+    const nextWidth = resizeStartRef.current.width + e.clientX - resizeStartRef.current.x;
+    onWidthChange(Math.max(260, Math.min(480, nextWidth)));
+  };
 
   const startLongPress = (chatId: string, e: React.PointerEvent) => {
     longPressTriggeredRef.current = false;
@@ -372,7 +397,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
       <aside
         id="app-sidebar"
-        className={`fixed top-0 bottom-0 left-0 z-50 w-72 sm:w-80 flex flex-col transition-transform duration-300 ease-in-out ${
+        style={{ width, maxWidth: 'calc(100vw - 24px)' }}
+        className={`fixed top-0 bottom-0 left-0 z-50 flex flex-col border-r transition-transform duration-300 ease-in-out ${
           isOpen ? 'translate-x-0' : isCollapsed ? '-translate-x-full' : '-translate-x-full md:translate-x-0'
         } ${
           isDark
@@ -417,66 +443,44 @@ export const Sidebar: React.FC<SidebarProps> = ({
           </button>
         </div>
 
-        {/* Action buttons — only in chats view */}
+        {/* Chat mode switch — only in chats view */}
         {view === 'chats' && (
-          <div className="p-3 space-y-2">
-            <button
-              id="new-chat-btn"
-              type="button"
-              onClick={() => {
-                onNewChat();
-                if (window.innerWidth < 768) onClose();
-              }}
-              className={`w-full py-2.5 px-2 text-sm font-medium flex items-center justify-between transition-colors ${
-                isDark
-                  ? 'hover:bg-zinc-800/60 text-zinc-100'
-                  : 'hover:bg-zinc-100 text-zinc-900'
-              }`}
-            >
-              <div className="flex items-center gap-2">
-                <Plus className="w-4 h-4" />
-                <span>New chat</span>
-              </div>
-              <span className={`text-[10px] ${isDark ? 'text-zinc-500' : 'text-zinc-400'}`}>
-                Ctrl+K
-              </span>
-            </button>
-
-            <button
-              id="temp-chat-btn"
-              type="button"
-              onClick={() => {
-                onStartTempChat();
-                if (window.innerWidth < 768) onClose();
-              }}
-              className={`w-full py-2 px-2 text-xs font-medium flex items-center gap-2 transition-colors ${
-                isTempChatActive
-                  ? isDark
-                    ? 'text-amber-300'
-                    : 'text-amber-900'
-                  : isDark
-                  ? 'hover:bg-zinc-800/60 text-zinc-400 hover:text-zinc-200'
-                  : 'hover:bg-zinc-100 text-zinc-600'
-              }`}
-            >
-              <Flame className={`w-3.5 h-3.5 ${isTempChatActive ? 'text-amber-400' : 'text-zinc-400'}`} />
-              <span>{isTempChatActive ? 'Temporary chat active' : 'Temporary chat'}</span>
-            </button>
-
-            <div className="relative pt-1">
-              <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none" />
-              <input
-                id="search-chats-input"
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search chats..."
-                className={`w-full pl-8 pr-3 py-1.5 rounded-lg text-xs border-0 focus:outline-none focus:ring-1 focus:ring-zinc-400 transition-colors ${
-                  isDark
-                    ? 'bg-transparent text-zinc-200 placeholder-zinc-500'
-                    : 'bg-transparent text-zinc-800 placeholder-zinc-400'
+          <div className="px-3 pb-3">
+            <div className={`flex w-full rounded-full border p-1 ${isDark ? 'border-zinc-700' : 'border-zinc-300'}`} role="group" aria-label="Start a chat">
+              <button
+                id="new-chat-btn"
+                type="button"
+                aria-pressed={!isTempChatActive}
+                onClick={() => {
+                  onNewChat();
+                  if (window.innerWidth < 768) onClose();
+                }}
+                className={`flex flex-1 items-center justify-center gap-2 rounded-full px-3 py-2 text-xs font-medium transition-colors ${
+                  !isTempChatActive
+                    ? isDark ? 'bg-zinc-700 text-white' : 'bg-zinc-200 text-zinc-900'
+                    : isDark ? 'text-zinc-400 hover:bg-zinc-800' : 'text-zinc-600 hover:bg-zinc-100'
                 }`}
-              />
+              >
+                <Plus className="h-3.5 w-3.5" />
+                <span>New chat</span>
+              </button>
+              <button
+                id="temp-chat-btn"
+                type="button"
+                aria-pressed={isTempChatActive}
+                onClick={() => {
+                  onStartTempChat();
+                  if (window.innerWidth < 768) onClose();
+                }}
+                className={`flex flex-1 items-center justify-center gap-2 rounded-full px-3 py-2 text-xs font-medium transition-colors ${
+                  isTempChatActive
+                    ? isDark ? 'bg-zinc-700 text-white' : 'bg-zinc-200 text-zinc-900'
+                    : isDark ? 'text-zinc-400 hover:bg-zinc-800' : 'text-zinc-600 hover:bg-zinc-100'
+                }`}
+              >
+                <Flame className="h-3.5 w-3.5" />
+                <span>Temporary</span>
+              </button>
             </div>
           </div>
         )}
@@ -504,9 +508,35 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 )}
 
                 <div className="space-y-1">
-                  <div className="px-2 py-1 text-[11px] font-semibold uppercase tracking-wider text-zinc-400">
-                    Chats
+                  <div className="flex items-center justify-between px-2 py-1">
+                    <span className="text-[11px] font-semibold uppercase tracking-wider text-zinc-400">Chats</span>
+                    <button
+                      type="button"
+                      aria-label={searchOpen ? 'Close chat search' : 'Search chats'}
+                      title={searchOpen ? 'Close search' : 'Search chats'}
+                      onClick={() => {
+                        if (searchOpen) setSearchQuery('');
+                        setSearchOpen(!searchOpen);
+                      }}
+                      className={`rounded-md p-1 transition-colors ${isDark ? 'text-zinc-400 hover:bg-zinc-800 hover:text-zinc-200' : 'text-zinc-500 hover:bg-zinc-100 hover:text-zinc-800'}`}
+                    >
+                      <Search className="h-3.5 w-3.5" />
+                    </button>
                   </div>
+
+                  {searchOpen && (
+                    <div className="px-2 pb-1">
+                      <input
+                        id="search-chats-input"
+                        ref={searchInputRef}
+                        type="text"
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        placeholder="Search chats..."
+                        className={`w-full rounded-md bg-transparent px-1 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-zinc-400 ${isDark ? 'text-zinc-200 placeholder-zinc-500' : 'text-zinc-800 placeholder-zinc-400'}`}
+                      />
+                    </div>
+                  )}
 
                   {filteredChats.length === 0 ? (
                     <div className="px-3 py-6 text-center text-xs text-zinc-500">
@@ -638,6 +668,28 @@ export const Sidebar: React.FC<SidebarProps> = ({
               <Settings className="w-4 h-4" />
             </button>
           </div>
+        </div>
+
+        <div
+          role="separator"
+          aria-label="Resize sidebar"
+          aria-orientation="vertical"
+          aria-valuemin={260}
+          aria-valuemax={480}
+          aria-valuenow={width}
+          tabIndex={0}
+          onPointerDown={handleResizeStart}
+          onPointerMove={handleResize}
+          onPointerUp={() => { resizeStartRef.current = null; }}
+          onPointerCancel={() => { resizeStartRef.current = null; }}
+          onKeyDown={(e) => {
+            if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+            e.preventDefault();
+            onWidthChange(Math.max(260, Math.min(480, width + (e.key === 'ArrowRight' ? 16 : -16))));
+          }}
+          className={`absolute right-0 top-0 z-[60] hidden h-full w-2 cursor-col-resize touch-none items-center justify-center md:flex ${isDark ? 'text-zinc-600 hover:text-zinc-300' : 'text-zinc-400 hover:text-zinc-700'}`}
+        >
+          <GripVertical className="h-5 w-3" />
         </div>
       </aside>
     </>

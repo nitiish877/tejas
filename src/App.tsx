@@ -195,6 +195,14 @@ export default function App() {
   // Modals & drawers state
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [sidebarWidth, setSidebarWidth] = useState(() => {
+    try {
+      const savedWidth = Number(localStorage.getItem('tejas_sidebar_width_v1'));
+      return Number.isFinite(savedWidth) && savedWidth >= 260 && savedWidth <= 480 ? savedWidth : 320;
+    } catch {
+      return 320;
+    }
+  });
   const [userProfileOpen, setUserProfileOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [settingsEditorEntry, setSettingsEditorEntry] = useState(false);
@@ -235,6 +243,10 @@ export default function App() {
     window.addEventListener('popstate', onPopState);
     return () => window.removeEventListener('popstate', onPopState);
   }, []);
+
+  useEffect(() => {
+    try { localStorage.setItem('tejas_sidebar_width_v1', String(sidebarWidth)); } catch {}
+  }, [sidebarWidth]);
 
   const navigatePolicy = (page: 'terms' | 'privacy') => {
     window.history.pushState({}, '', page === 'terms' ? '/terms' : '/privacy');
@@ -1787,6 +1799,7 @@ export default function App() {
 
   return (
     <div
+      style={{ '--sidebar-width': `${sidebarWidth}px` } as React.CSSProperties}
       className={`flex h-[100dvh] w-full overflow-hidden ${
         isDark ? 'bg-[#16191c] text-zinc-100' : 'bg-[#f5f8fa] text-zinc-900'
       }`}
@@ -1795,6 +1808,8 @@ export default function App() {
         isOpen={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
         isCollapsed={sidebarCollapsed}
+        width={sidebarWidth}
+        onWidthChange={setSidebarWidth}
         onToggleCollapsed={() => setSidebarCollapsed((collapsed) => !collapsed)}
         chats={chats}
         activeChatId={activeChatId}
@@ -1820,7 +1835,7 @@ export default function App() {
         onPermanentlyDeleteChat={handlePermanentlyDeleteChat}
       />
 
-      <main className={`flex-1 min-w-0 min-h-0 flex flex-col overflow-hidden transition-all ${sidebarCollapsed ? 'md:pl-0' : 'md:pl-72 sm:md:pl-80'}`}>
+      <main className={`flex-1 min-w-0 min-h-0 flex flex-col overflow-hidden transition-all ${sidebarCollapsed ? 'md:pl-0' : 'md:pl-[var(--sidebar-width)]'}`}>
         <ChatArea
           messages={activeMessages}
           isLoadingMessages={!!activeChatId && !!loadingMessageIds[activeChatId]}
