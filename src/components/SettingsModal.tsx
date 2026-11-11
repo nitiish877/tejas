@@ -237,7 +237,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   const showProjectQr = async () => {
     const selected=selectedSharedProject;
     if(!selected) return;
-    try { setProjectBusy(true); const {code}=await createProjectInviteCode(getApiUrl,selected.project.id); setProjectInviteCode(code); setProjectQr(await QRCode.toDataURL(code,{width:220,margin:1})); setProjectMessage('QR code expires in 5 minutes.'); }
+    try { setProjectBusy(true); const {code}=await createProjectInviteCode(getApiUrl,selected.project.id); setProjectInviteCode(code); setProjectQr(await QRCode.toDataURL(code,{width:220,margin:1}));}
     catch { setProjectMessage('Could not create project QR code.'); }
     finally { setProjectBusy(false); }
   };
