@@ -112,6 +112,11 @@
   font-size: 1.04em;
 }
 
+.markdown-content {
+  min-width: 0;
+  max-width: 100%;
+}
+
 .markdown-content.is-light .katex {
   color: #176b73;
 }

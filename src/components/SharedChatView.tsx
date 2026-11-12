@@ -61,8 +61,8 @@ export const SharedChatView: React.FC<SharedChatViewProps> = ({ shareId, getApiU
         </a>
       </header>
 
-      <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 sm:px-6 py-6">
-        <div className="max-w-3xl mx-auto space-y-6">
+      <div className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-contain px-4 sm:px-6 py-6">
+        <div className="mx-auto w-full min-w-0 max-w-3xl space-y-6">
           {loading && (
             <div className="flex items-center justify-center gap-2 text-zinc-400 py-20">
               <Loader2 className="w-5 h-5 animate-spin" />
@@ -89,7 +89,7 @@ export const SharedChatView: React.FC<SharedChatViewProps> = ({ shareId, getApiU
               {data.messages.map((msg, idx) => {
                 const isUser = msg.role === 'user';
                 return (
-                  <div key={msg.id || idx} className={`flex gap-3 ${isUser ? 'justify-end' : 'justify-start'} items-start`}>
+                  <div key={msg.id || idx} className={`flex w-full min-w-0 gap-3 ${isUser ? 'justify-end' : 'justify-start'} items-start`}>
                     {!isUser && (
                       <div className="shrink-0 pt-0.5">
                         <div className="w-7 h-7 rounded-full bg-zinc-800 border border-zinc-700 flex items-center justify-center">
@@ -98,12 +98,10 @@ export const SharedChatView: React.FC<SharedChatViewProps> = ({ shareId, getApiU
                       </div>
                     )}
                     <div
-                      className={`relative max-w-[85%] sm:max-w-[80%] rounded-2xl px-4 py-2.5 text-sm sm:text-base leading-relaxed ${
+                      className={`relative min-w-0 rounded-2xl px-4 py-2.5 text-sm sm:text-base leading-relaxed ${
                         isUser
-                          ? isDark
-                            ? 'bg-[#252a2e] text-zinc-100'
-                            : 'bg-[#eaf1f4] text-zinc-900'
-                          : 'text-inherit px-0 sm:px-1'
+                          ? `max-w-[85%] sm:max-w-[80%] ${isDark ? 'bg-[#252a2e] text-zinc-100' : 'bg-[#eaf1f4] text-zinc-900'}`
+                          : 'w-full text-inherit px-0 sm:px-1'
                       }`}
                     >
                       {isUser ? (
@@ -112,7 +110,7 @@ export const SharedChatView: React.FC<SharedChatViewProps> = ({ shareId, getApiU
                         <div
                           className={`prose prose-zinc ${
                             isDark ? 'prose-invert' : ''
-                          } max-w-none break-words leading-relaxed text-sm sm:text-base prose-headings:font-semibold prose-headings:mt-5 prose-headings:mb-2 prose-p:my-2 prose-li:my-0.5 prose-code:before:content-none prose-code:after:content-none`}
+                          } w-full min-w-0 max-w-none break-words leading-relaxed text-sm sm:text-base prose-headings:font-semibold prose-headings:mt-5 prose-headings:mb-2 prose-p:my-2 prose-li:my-0.5 prose-code:before:content-none prose-code:after:content-none`}
                         >
                           <MarkdownMessage content={msg.content} isDark={isDark} />
                         </div>

@@ -188,12 +188,15 @@ const CodeBlock: React.FC<{ code: string; language: string }> = ({ code, languag
         </div>
       </div>
 
-      <div className="max-w-full overflow-auto overscroll-contain bg-[#1b2024]">
+      <div
+        className="w-full min-w-0 max-w-full overflow-auto bg-[#1b2024]"
+        style={{ maxHeight: 'min(60vh, 32rem)', overscrollBehavior: 'auto' }}
+      >
         <SyntaxHighlighter
           language={lang}
           style={codeTheme}
           PreTag="div"
-          customStyle={{ margin: 0, padding: '1rem', background: 'transparent', fontSize: '0.85rem', lineHeight: '1.6', minWidth: '100%', maxHeight: 'min(60vh, 32rem)', overflow: 'auto' }}
+          customStyle={{ margin: 0, padding: '1rem', background: 'transparent', fontSize: '0.85rem', lineHeight: '1.6', width: 'max-content', minWidth: '100%', maxHeight: 'none', overflow: 'visible' }}
           codeTagProps={{ style: { fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Consolas, monospace' } }}
         >
           {code}
@@ -224,7 +227,7 @@ export const MarkdownMessage: React.FC<{ content: string; isDark: boolean; confi
   };
 
   return <>
-  <div className={`markdown-content ${isDark ? 'is-dark' : 'is-light'}`}>
+  <div className={`markdown-content w-full min-w-0 max-w-full ${isDark ? 'is-dark' : 'is-light'}`}>
   <ReactMarkdown
     remarkPlugins={[remarkGfm, remarkMath]}
     // A malformed/incomplete equation must not crash the whole assistant message.

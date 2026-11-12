@@ -728,7 +728,7 @@ export const ChatArea: React.FC<ChatAreaProps> = ({
           onScroll={handleMessagesScroll}
           onMouseUp={handleSelectionCheck}
           onTouchEnd={handleSelectionCheck}
-          className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-4 py-6 space-y-6"
+          className="flex-1 min-h-0 overflow-x-hidden overflow-y-auto overscroll-contain px-4 py-6 space-y-6"
         >
           <div className="w-full space-y-6">
             {messages.map((msg, index) => {
@@ -744,7 +744,7 @@ export const ChatArea: React.FC<ChatAreaProps> = ({
                   key={msg.id}
                   data-message-id={msg.id}
                   data-message-role={msg.role}
-                  className={`group relative flex gap-3 sm:gap-4 ${
+                  className={`group relative flex w-full min-w-0 gap-3 sm:gap-4 ${
                     isUser ? 'justify-end' : 'justify-start'
                   } items-start`}
                 >
@@ -755,7 +755,7 @@ export const ChatArea: React.FC<ChatAreaProps> = ({
                           ? isDark
                             ? 'bg-[#252a2e] text-zinc-100 self-end'
                             : 'bg-[#eaf1f4] text-zinc-900 self-end'
-                          : 'text-inherit self-start px-0 sm:px-1'
+                          : 'w-full min-w-0 text-inherit px-0 sm:px-1'
                       }`}
                     >
                       {isUser ? (
@@ -859,7 +859,7 @@ export const ChatArea: React.FC<ChatAreaProps> = ({
                         <div
                           className={`prose prose-zinc ${
                             isDark ? 'prose-invert' : ''
-                          } max-w-none break-words leading-relaxed text-sm sm:text-base prose-headings:font-semibold prose-headings:mt-5 prose-headings:mb-2 prose-p:my-2 prose-li:my-0.5 prose-code:before:content-none prose-code:after:content-none`}
+                          } w-full min-w-0 max-w-none break-words leading-relaxed text-sm sm:text-base prose-headings:font-semibold prose-headings:mt-5 prose-headings:mb-2 prose-p:my-2 prose-li:my-0.5 prose-code:before:content-none prose-code:after:content-none`}
                         >
                           {msg.imageUrl ? (
                             <div className="not-prose flex flex-col gap-3">
