@@ -1494,6 +1494,7 @@ export default function App() {
     abortControllerRef.current = controller;
     let streamError = '';
     let streamErrorFriendly = false;
+    let streamTruncated = false;
     try {
       const expandForModel = (m: Message): Message => {
         if (m.role === 'user' && m.contextText) {
@@ -1587,6 +1588,7 @@ export default function App() {
                 streamError = String(parsed.error);
                 streamErrorFriendly = !!parsed.friendly;
               }
+              if (parsed.truncated) streamTruncated = true;
               if (parsed.text) {
                 accumulatedText += parsed.text;
 
@@ -1626,10 +1628,14 @@ export default function App() {
         throw new Error(streamError);
       }
 
+      const finalAssistantText = streamTruncated && accumulatedText
+        ? `${accumulatedText}\n\n⚠️ **The model reached its output limit. Ask “continue from where you stopped” to get the remaining code.**`
+        : accumulatedText;
+
       if (isTempChatActive) {
         setTempChatMessages((prev) =>
           prev.map((m) =>
-            m.id === assistantMessageId ? { ...m, status: 'complete' } : m
+            m.id === assistantMessageId ? { ...m, content: finalAssistantText, status: 'complete' } : m
           )
         );
       } else {
@@ -1639,7 +1645,7 @@ export default function App() {
               ? {
                   ...c,
                   messages: c.messages.map((m) =>
-                    m.id === assistantMessageId ? { ...m, status: 'complete' } : m
+                    m.id === assistantMessageId ? { ...m, content: finalAssistantText, status: 'complete' } : m
                   ),
                 }
               : c
